@@ -39,6 +39,9 @@ export function makeDirector(rng, biomes) {
       damage: Math.round(boss.damage * (1 + lv * 0.07 + cycle * 0.12)),
       skillTier: Math.min(3, biomeIdx + cycle),   // 진행할수록 보스 스킬 광역·강력(0~3)
       x: arena.x, y: arena.y - 170 });
+    world.spawnParticle({ x: arena.x, y: arena.y - 170, r: 20, rMax: 160, life: 24, color: boss.color, shock: true });  // 등장 충격파
+    world.spawnFloater({ x: world.player.x, y: world.player.y - 60,
+      text: `👑 ${prefix + boss.name} 출현!`, color: boss.color, life: 90, max: 90, vy: -0.25, crit: true });
   }
   // 중간보스(악시온): 바이옴 중반에 50% 확률 등장(나올 때도, 안 나올 때도). 아레나·바이옴 진행과 무관.
   function spawnMidboss(world, level) {
@@ -46,11 +49,14 @@ export function makeDirector(rng, biomes) {
     const cycle = Math.floor(biomeIdx / biomes.length);
     const scale = (1 + biomeIdx * 0.5 + lv * 0.06) * (1 + cycle * 0.15);
     const hp = Math.round(mb.hp * scale);
+    // 화면 안(캔버스 960×540 시야) 타원 반경에 생성 — 등장이 눈에 보이게.
     const ang = rng.next() * Math.PI * 2;
+    const mx = world.player.x + Math.cos(ang) * 330, my = world.player.y + Math.sin(ang) * 175;
     world.spawnEnemy({ ...mb, hp, maxHp: hp,
       damage: Math.round(mb.damage * (1 + lv * 0.06 + cycle * 0.1)),
       skillTier: Math.min(2, biomeIdx + cycle),
-      x: world.player.x + Math.cos(ang) * 420, y: world.player.y + Math.sin(ang) * 420 });
+      x: mx, y: my });
+    world.spawnParticle({ x: mx, y: my, r: 14, rMax: 110, life: 20, color: mb.color, shock: true });  // 등장 충격파
     world.spawnFloater({ x: world.player.x, y: world.player.y - 60,
       text: '⚠ 네온의 집행자 악시온 출현!', color: '#7dffce', life: 80, max: 80, vy: -0.25, crit: true });
   }
