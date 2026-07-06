@@ -41,7 +41,7 @@ test('보스 반복 등장 시 수식어가 붙고 더 강해짐', () => {
   for (let i=0;i<10;i++) dir.update(100, w, 1);
   boss = dir.getBossRef(); assert.ok(boss);
   assert.notEqual(boss.name, firstName);
-  assert.ok(boss.name.startsWith('강한'));
+  assert.ok(boss.name.startsWith('강력한'));
   assert.ok(boss.maxHp > firstHp);
 });
 test('보스 처치 시 다음 바이옴 진행 + 아레나 해제', () => {
