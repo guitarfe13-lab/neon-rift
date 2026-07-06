@@ -215,12 +215,10 @@ export function boot() {
     }
     // MP 재생
     rs.mp = Math.min(rs.stats.maxMp, (rs.mp||0) + rs.stats.mpRegen);
-    // 픽업(자석) + 획득 효과
+    // 픽업: 드랍 좌표에 고정(자석 없음) → 아이템이 정적 지면 기준이 되어 이동감 살아남.
+    //       획득 반경(pickupRange) 안으로 플레이어가 다가오면 수집.
     for (const g of world.pickups) { if (!g.alive) continue;
-      const d = Math.hypot(g.x-world.player.x, g.y-world.player.y);
-      if (d < rs.stats.pickupRange) { const a=Math.atan2(world.player.y-g.y, world.player.x-g.x);
-        g.x+=Math.cos(a)*4; g.y+=Math.sin(a)*4; }
-      if (d < world.player.radius) { g.alive=false; collect(g); }
+      if (Math.hypot(g.x-world.player.x, g.y-world.player.y) < rs.stats.pickupRange) { g.alive=false; collect(g); }
     }
     // 파티클/플로터 수명
     for (const pt of world.particles){ if(!pt.alive)continue;
