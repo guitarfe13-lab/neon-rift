@@ -440,6 +440,12 @@ export function boot() {
         const bx = canvas.width/2-180, by = canvas.height-40, bw = 360, bh = 14;
         R.text(ctx, `👑 ${boss.name}`, canvas.width/2, canvas.height-46, { size:14, align:'center', color:'#ff9ee0' });
         R.bar(ctx, bx, by, bw, bh, boss.hp/boss.maxHp, '#ff5cc8');
+        // 보스 스킬 시전 시 HP 바 상단에 스킬명 표시(끝에 페이드아웃)
+        if (boss._skillName && boss._skillNameT > 0) {
+          ctx.save(); ctx.globalAlpha = Math.min(1, boss._skillNameT / 22);
+          R.text(ctx, `✦ ${boss._skillName} ✦`, canvas.width/2, canvas.height-66, { size:17, align:'center', color:'#ffcf3d', weight:'800' });
+          ctx.restore();
+        }
         // 보스 초상: HP 바 앞(좌측) 구형 원 안에 보스 이미지(없으면 코드 스프라이트)
         const pr = 22, pcx = bx - pr - 8, pcy = by + bh/2;
         ctx.save();

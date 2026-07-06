@@ -36,6 +36,7 @@ export function makeDirector(rng, biomes) {
     arena = { x: world.player.x, y: world.player.y, r: 360 };
     bossRef = world.spawnEnemy({ ...boss, hp, maxHp: hp, name: prefix + boss.name,
       damage: Math.round(boss.damage * (1 + lv * 0.07 + cycle * 0.12)),
+      skillTier: Math.min(3, biomeIdx + cycle),   // 진행할수록 보스 스킬 광역·강력(0~3)
       x: arena.x, y: arena.y - 170 });
   }
   function update(dt, world, level = 1) {
