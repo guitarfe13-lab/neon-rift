@@ -1,22 +1,29 @@
 # 배경음(BGM) 넣는 법
 
-## 플레이리스트 (track1~5)
+## 상태별 BGM 매핑 (파일명 고정)
 
-게임은 `track1.mp3 → track2.mp3 → … → track5.mp3`를 **순서대로 재생하고, 끝나면 다음 곡**으로 넘어갑니다.
-없는 트랙은 자동으로 건너뛰고, **하나도 없으면 프로시저럴 칩튠 폴백**이 재생됩니다.
-→ **곡을 늘리려면 파일만 추가**하면 됩니다(코드 수정 불필요):
+게임 상태에 따라 아래 파일을 **루프 재생**합니다. 없는 파일은 **프로시저럴 칩튠 폴백**.
+
+| 상태 | 파일 |
+|---|---|
+| 메뉴(타이틀·로드아웃·상점·설정) | `track4.mp3` |
+| 필드1 네온 그리드 | `track1.mp3` |
+| 필드2 맹독 균열 | `track2.mp3` |
+| 필드3 잿불 황야 | `track3.mp3` |
+| **보스 등장** | **`boss.mp3`** |
 
 ```
-webgame/assets/bgm/track1.mp3   ← 현재: Suno 중세풍
-webgame/assets/bgm/track2.mp3   ← 추가 예정
+webgame/assets/bgm/track1.mp3
+webgame/assets/bgm/track2.mp3
 webgame/assets/bgm/track3.mp3
 webgame/assets/bgm/track4.mp3
-webgame/assets/bgm/track5.mp3
+webgame/assets/bgm/boss.mp3     ← 보스 전용 (신규)
 ```
 
-- 형식은 **mp3** 권장(브라우저 호환·용량). 파일명은 정확히 `track2.mp3`처럼.
+- 형식은 **mp3** 권장. 파일명은 정확히 위와 같이(`boss.mp3` 등).
+- 매핑을 바꾸려면 `js/main.js`의 `updateBgm()`만 수정.
 - 볼륨·음소거는 게임 내 **설정** 화면에서 조절됩니다.
-- 참고: `tools/make-bgm.mjs`는 파일이 하나도 없을 때 쓰는 프로시저럴 폴백을 만드는 스크립트입니다.
+- 참고: `tools/make-bgm.mjs`는 파일이 없을 때 쓰는 프로시저럴 폴백 생성 스크립트입니다.
 
 ## 추천 무료(CC0/무료) 음원 출처
 

@@ -11,7 +11,7 @@ import { getCharacter, CHARACTERS } from './data/characters.js';
 import { ENEMIES } from './data/enemies.js';
 import { BOSSES } from './data/bosses.js';
 import { BIOMES } from './data/biomes.js';
-import { getSkill } from './data/skills.js';
+import { getSkill, SKILLS, EVOLUTIONS } from './data/skills.js';
 import { updateSkills, updateProjectiles } from './systems/skills.js';
 import { addXp, rollChoices, applyChoice } from './systems/levelup.js';
 import { makeInput } from './core/input.js';
@@ -139,18 +139,41 @@ export function boot() {
     }
   }
 
-  // 처치 드랍: 경험치 젬 + 코인(항상), 마나(확률), HP 물약(낮은 확률). 보스는 대량.
+  // 처치 드랍: 몬스터별 드롭률(e.drop). 보스는 대량 + 히든 스킬 확률.
   function spawnDrops(e) {
     const j = () => (rng.next()-0.5)*18;
     const gold = Math.round(e.gold * rs.stats.goldGain);
+    const dr = e.drop || {};
     world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'xp',   value:e.xp, radius:6 });
     world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'coin', value:gold, radius:6 });
-    if (e.boss || rng.next() < 0.55) world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'mana', value: e.boss?70:(6+Math.floor(rng.next()*7)), radius:6 });
-    if (e.boss || rng.next() < 0.1)  world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'hp',   value: e.boss?70:(14+Math.floor(rng.next()*12)), radius:7 });
-    if (e.boss) for (let i=0;i<6;i++) world.spawnPickup({ x:e.x+j()*3, y:e.y+j()*3, kind:'coin', value:gold, radius:6 });
+    // 추가 코인(탱커/광폭체 등 + 엘리트)
+    const extraCoins = (dr.coins || 0) + (e.elite ? 2 : 0);
+    for (let i=0;i<extraCoins;i++) world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'coin', value:gold, radius:6 });
+    // 마나/HP: 몬스터별 확률
+    if (e.boss || rng.next() < (dr.mana ?? 0.25)) world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'mana', value: e.boss?70:(6+Math.floor(rng.next()*7)), radius:6 });
+    if (e.boss || rng.next() < (dr.hp ?? 0.05))  world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'hp',   value: e.boss?70:(14+Math.floor(rng.next()*12)), radius:7 });
+    // 보스: 대량 드롭
+    if (e.boss) {
+      for (let i=0;i<8;i++) world.spawnPickup({ x:e.x+j()*3, y:e.y+j()*3, kind:'coin', value:gold, radius:6 });
+      for (let i=0;i<2;i++) world.spawnPickup({ x:e.x+j()*3, y:e.y+j()*3, kind:'mana', value:60, radius:6 });
+    }
+    // 히든 스킬: 보스 35%, 엘리트/특수 몹은 drop.skill, 그 외 없음
+    const skillChance = e.boss ? 0.35 : (dr.skill || (e.elite ? 0.03 : 0));
+    if (rng.next() < skillChance) world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'skill', value:1, radius:9 });
   }
+  // 히든 스킬 획득: 직업 풀과 무관한 무작위 미보유 스킬을 즉시 부여(= 히든).
+  function grantHiddenSkill() {
+    const owned = rs.ownedSkills; const p = world.player;
+    audio.sfx('levelup'); goldFlash = 16;
+    world.spawnParticle({ x:p.x, y:p.y, r:14, rMax:120, life:28, color:'#ff8cff', shock:true });
+    const cands = Object.keys(SKILLS).filter(id => !owned[id] && !EVOLUTIONS.has(id) && !(SKILLS[id].evolveInto && owned[SKILLS[id].evolveInto]));
+    if (!cands.length) { world.spawnFloater({ x:p.x, y:p.y-30, text:'✦ 히든 스킬 (모두 보유)', color:'#ff9cff', life:56, max:56, vy:-0.5, crit:true }); return; }
+    const id = cands[Math.floor(rng.next()*cands.length)]; owned[id] = 1;
+    world.spawnFloater({ x:p.x, y:p.y-30, text:`✦ 히든 스킬: ${SKILLS[id].name}`, color:'#ff9cff', life:64, max:64, vy:-0.4, crit:true });
+  }
+
   // 픽업 획득 효과
-  const PICK_COLOR = { coin:'#ffd54a', mana:'#4db3ff', hp:'#ff6b8a', xp:'#7cff6b' };
+  const PICK_COLOR = { coin:'#ffd54a', mana:'#4db3ff', hp:'#ff6b8a', xp:'#7cff6b', skill:'#ff8cff' };
   function collect(g) {
     // 획득 팝(작은 스파크)
     const col = PICK_COLOR[g.kind] || '#7cff6b';
@@ -160,6 +183,7 @@ export function boot() {
       world.spawnFloater({ x:world.player.x, y:world.player.y-22, text:`+${g.value} MP`, color:'#4db3ff', life:36, max:36, vy:-0.7 }); audio.sfx('pick'); }
     else if (g.kind === 'hp') { world.player.hp = Math.min(world.player.maxHp, world.player.hp + g.value);
       world.spawnFloater({ x:world.player.x, y:world.player.y-22, text:`+${g.value} HP`, color:'#ff6b8a', life:36, max:36, vy:-0.7 }); audio.sfx('upgrade'); }
+    else if (g.kind === 'skill') { grantHiddenSkill(); }
     else { if (frameCount%3===0) audio.sfx('pick'); if (addXp(rs, g.value*rs.stats.xpGain).leveled) onLevelGain(); }
   }
 
@@ -289,7 +313,7 @@ export function boot() {
   // 상태별 BGM: 런 중엔 바이옴별(track1~3), 보스전엔 track5, 그 외(메뉴)엔 track4.
   function updateBgm() {
     let want = 'track4.mp3';
-    if (scene==='run' && world && dir) want = dir.getBossRef() ? 'track5.mp3' : `track${(dir.biomeIndex()%3)+1}.mp3`;
+    if (scene==='run' && world && dir) want = dir.getBossRef() ? 'boss.mp3' : `track${(dir.biomeIndex()%3)+1}.mp3`;
     audio.setBgm(want);
   }
 
@@ -326,10 +350,12 @@ export function boot() {
         // 접지 그림자(바닥에 놓인 느낌)
         ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.beginPath(); ctx.ellipse(gx, gy + g.radius*1.05, g.radius*0.95, g.radius*0.42, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
-        // 종류별 형태: 코인=골드코인, HP=하트, 마나=파란 보석, XP=초록 보석
+        // 종류별 형태: 코인=골드코인, HP=하트, 마나=파란 보석, XP=초록 보석, 히든스킬=맥동 마젠타
         if (g.kind==='coin') R.coin(ctx, gx, gy, g.radius);
         else if (g.kind==='hp') R.heart(ctx, gx, gy-1, g.radius, '#ff6b8a');
         else if (g.kind==='mana') R.gem(ctx, gx, gy, g.radius, '#4db3ff');
+        else if (g.kind==='skill') { const pr=g.radius*(1.1+0.22*Math.sin(frameCount*0.15));
+          R.gem(ctx, gx, gy, pr, '#ff8cff'); R.text(ctx, '✦', gx, gy+4, { size:11, align:'center', color:'#fff', weight:'800' }); }
         else R.gem(ctx, gx, gy, g.radius, '#7cff6b'); }
       for (const hz of world.hazards) if (hz.alive) R.neonCircle(ctx, hz.x-camX, hz.y-camY, hz.radius, hz.color||'#ff5c5c');
       for (const e of world.enemies) if (e.alive)
