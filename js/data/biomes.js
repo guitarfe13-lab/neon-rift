@@ -7,5 +7,12 @@ export const BIOMES = [
     enemySet:['grunt','runner','tank','splitter','bomber'], boss:'hydra', durationMs:165000 },
   { id:'ember_wastes', name:'잿불 황야', palette:['#2a1410','#120806'], grid:'rgba(255,120,80,0.07)',
     enemySet:['runner','tank','shooter','charger','bomber','brute'], boss:'colossus', durationMs:180000 },
+  // ── 4~6스테이지(2주차 난이도, 배경: assets/bg/<id>.png — 없으면 그라디언트 폴백) ──
+  { id:'frost_core', name:'서리 코어', palette:['#12233a','#080e18'], grid:'rgba(139,216,255,0.07)',
+    enemySet:['runner','shooter','splitter','charger','tank'], boss:'warden', durationMs:195000 },
+  { id:'violet_abyss', name:'보랏빛 심연', palette:['#1d1230','#0c0714'], grid:'rgba(201,139,255,0.07)',
+    enemySet:['grunt','shooter','splitter','bomber','brute'], boss:'hydra', durationMs:210000 },
+  { id:'aurum_circuit', name:'황금 회로', palette:['#2a2210','#141006'], grid:'rgba(255,209,102,0.07)',
+    enemySet:['runner','tank','charger','bomber','brute'], boss:'colossus', durationMs:225000 },
 ];
 export function biomeAt(index) { return BIOMES[index % BIOMES.length]; }
