@@ -31,6 +31,18 @@ export function buyPotion(meta, kind) {
   return meta;
 }
 
+// 황금코인 → 소울 교환. 게임오버 때 적립된 meta.gold를 소울로 환전(GOLD_PER_SOUL:1).
+export const GOLD_PER_SOUL = 10;
+export function goldToSouls(gold) { return Math.floor(Math.max(0, gold || 0) / GOLD_PER_SOUL); }
+export function exchangeGold(meta, souls) {   // souls = 교환할 소울 개수
+  const n = Math.min(Math.floor(souls) || 0, goldToSouls(meta.gold));
+  if (n <= 0) return meta;
+  meta.gold -= n * GOLD_PER_SOUL;
+  meta.souls += n;
+  return meta;
+}
+export function exchangeAllGold(meta) { return exchangeGold(meta, goldToSouls(meta.gold)); }
+
 export function characterUnlockCost(id) { return CHARACTERS[id]?.unlockCost ?? null; }
 export function isCharUnlocked(meta, id) { return meta.unlockedCharacters.includes(id); }
 export function canUnlockChar(meta, id) {

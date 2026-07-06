@@ -4,7 +4,8 @@ import { CHARACTERS } from '../data/characters.js';
 import { getSkill } from '../data/skills.js';
 import { drawSkillIcon } from './skillIcons.js';
 import { upgradeCost, canBuy, buyUpgrade, characterUnlockCost, isCharUnlocked, canUnlockChar, unlockChar,
-  potionCost, canBuyPotion, buyPotion } from '../systems/meta.js';
+  potionCost, canBuyPotion, buyPotion,
+  GOLD_PER_SOUL, goldToSouls, exchangeGold, exchangeAllGold } from '../systems/meta.js';
 
 const root = () => document.getElementById('ui-root');
 function el(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
@@ -73,8 +74,20 @@ export function showMetaShop({ meta, save, onBack }) {
     clearScreens();
     const p = el('div', 'screen');
     p.appendChild(el('h2', 'screen-title', '메타 상점'));
-    const sl = el('p', 'souls'); sl.innerHTML = `<span class="soul-dia">◆</span> ${meta.souls} 소울`; p.appendChild(sl);
+    const sl = el('p', 'souls');
+    sl.innerHTML = `<span class="soul-dia">◆</span> ${(meta.souls||0).toLocaleString()} 소울` +
+      `<span style="color:#ffd166; margin-left:14px">💰 ${(meta.gold||0).toLocaleString()} 골드</span>`;
+    p.appendChild(sl);
     const list = el('div', 'shop-list');
+    // 황금코인 → 소울 교환(GOLD_PER_SOUL:1)
+    const gRow = el('div', 'shop-row'); const avail = goldToSouls(meta.gold);
+    gRow.innerHTML = `<div>💰 <b>골드 → 소울 교환</b> <span class="lvl">${GOLD_PER_SOUL}골드 = 1소울 · 최대 +${avail.toLocaleString()}소울</span></div>`;
+    const gBtns = el('div'); gBtns.style.cssText = 'display:flex; gap:6px';
+    const b10 = el('button', 'btn small', '+10 소울'); b10.disabled = avail < 10;
+    b10.onclick = () => { exchangeGold(meta, 10); save(); render(); };
+    const bAll = el('button', 'btn small', `전부 교환 (+${avail.toLocaleString()})`); bAll.disabled = avail < 1;
+    bAll.onclick = () => { exchangeAllGold(meta); save(); render(); };
+    gBtns.appendChild(b10); gBtns.appendChild(bAll); gRow.appendChild(gBtns); list.appendChild(gRow);
     for (const id of Object.keys(META_UPGRADES)) {
       const u = META_UPGRADES[id]; const lvl = meta.upgrades[id] || 0; const cost = upgradeCost(meta, id);
       const row = el('div', 'shop-row');

@@ -328,6 +328,7 @@ export function boot() {
     scene='gameover'; audio.sfx('death');
     const stage = Math.max(1, (rs.timeMs/30000|0)+1);
     meta.souls += Math.round((stage*5 + rs.timeMs/2000) * rs.stats.soulGain);
+    meta.gold = (meta.gold || 0) + rs.gold;   // 런에서 모은 황금코인을 영구 적립(상점에서 소울로 교환)
     meta.best.stage = Math.max(meta.best.stage, stage);
     meta.best.timeMs = Math.max(meta.best.timeMs, rs.timeMs);
     meta.potions = { hp: rs.potions.hp, mp: rs.potions.mp };  // 남은 물약 저장(자동 사용분 차감)

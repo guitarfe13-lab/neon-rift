@@ -1,7 +1,27 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { upgradeCost, canBuy, buyUpgrade, canUnlockChar, unlockChar, potionCost, canBuyPotion, buyPotion } from '../js/systems/meta.js';
+import { upgradeCost, canBuy, buyUpgrade, canUnlockChar, unlockChar, potionCost, canBuyPotion, buyPotion,
+  GOLD_PER_SOUL, goldToSouls, exchangeGold, exchangeAllGold } from '../js/systems/meta.js';
 import { defaultMeta } from '../js/core/storage.js';
+
+test('골드→소울: 환산은 GOLD_PER_SOUL로 내림', () => {
+  assert.equal(goldToSouls(0), 0);
+  assert.equal(goldToSouls(GOLD_PER_SOUL - 1), 0);
+  assert.equal(goldToSouls(GOLD_PER_SOUL * 3 + 4), 3);
+});
+test('골드→소울: 교환 시 골드 차감·소울 증가, 잔돈 유지', () => {
+  const m = defaultMeta(); m.gold = 34; m.souls = 5;   // 34골드 = 3소울 + 4잔돈
+  exchangeGold(m, 3);
+  assert.equal(m.souls, 8); assert.equal(m.gold, 4);
+});
+test('골드→소울: 보유 초과 요청은 가능한 만큼만, 전부 교환은 잔돈만 남김', () => {
+  const m = defaultMeta(); m.gold = GOLD_PER_SOUL * 2 + 7; m.souls = 0;
+  exchangeGold(m, 999);                 // 최대 2소울까지만
+  assert.equal(m.souls, 2); assert.equal(m.gold, 7);
+  const m2 = defaultMeta(); m2.gold = GOLD_PER_SOUL * 5 + 3;
+  exchangeAllGold(m2);
+  assert.equal(m2.souls, 5); assert.equal(m2.gold, 3);
+});
 
 test('소울 부족이면 구매 불가', () => {
   const m = defaultMeta(); m.souls = 0;
