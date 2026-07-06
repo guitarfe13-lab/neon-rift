@@ -75,6 +75,7 @@ export function boot() {
   let scene = 'title', overlay = null, world, rs, dir, rng, sstate, frameCount = 0;
   let shake = 0, combo = 0, comboTimer = 0, slowmo = 0, whiteFlash = 0, pendingLevelUp = false;
   let levelupDelay = 0, goldFlash = 0, comboPop = 0;
+  let autoPotion = meta.settings.autoPotion !== false;   // 물약 자동 사용(O 키/설정 토글)
 
   // 레벨업 순간 연출(버스트 + 골드 플래시 + 문구). 오버레이는 잠시 뒤 열림.
   function onLevelGain() {
@@ -227,12 +228,12 @@ export function boot() {
       else if (pt.shock){ pt.r += (pt.rMax - pt.r) * 0.12; }
       if(--pt.life<=0) pt.alive=false; }
     for (const f of world.floaters){ if(!f.alive)continue; f.y+=f.vy; if(--f.life<=0) f.alive=false; }
-    // 물약 자동 사용: HP 25% 이하 / MP 20% 이하일 때 보유분을 자동 소비
-    if (rs.potions.hp > 0 && world.player.hp <= world.player.maxHp*0.25) {
+    // 물약 자동 사용(옵션 ON): HP 25% 이하 / MP 20% 이하일 때 보유분을 자동 소비
+    if (autoPotion && rs.potions.hp > 0 && world.player.hp <= world.player.maxHp*0.25) {
       world.player.hp = Math.min(world.player.maxHp, world.player.hp + world.player.maxHp*0.5); rs.potions.hp--;
       world.spawnFloater({ x:world.player.x, y:world.player.y-26, text:'🧪 HP 물약!', color:'#ff6b8a', life:44, max:44, vy:-0.6 }); audio.sfx('upgrade');
     }
-    if (rs.potions.mp > 0 && (rs.mp||0) <= rs.stats.maxMp*0.2) {
+    if (autoPotion && rs.potions.mp > 0 && (rs.mp||0) <= rs.stats.maxMp*0.2) {
       rs.mp = Math.min(rs.stats.maxMp, (rs.mp||0) + rs.stats.maxMp*0.6); rs.potions.mp--;
       world.spawnFloater({ x:world.player.x, y:world.player.y-26, text:'🔷 MP 물약!', color:'#4db3ff', life:44, max:44, vy:-0.6 }); audio.sfx('pick');
     }
@@ -327,20 +328,23 @@ export function boot() {
         ctx.fillStyle = f.color; ctx.fillText(f.text, f.x-camX, f.y-camY); ctx.restore();
       }
       drawHud(ctx, rs, world, frameCount);
+      // 상단 중앙: 필드명(위) → 콤보(아래) 순으로 배치(겹침 방지)
+      R.text(ctx, `— ${bio.name} —`, canvas.width/2, 28, { size:13, align:'center', color:'#9ab' });
       if (combo > 2) {
         const cs = 22 * (1 + comboPop*0.6);
         const cc = combo>=30?'#ff4d6d':combo>=20?'#ff6a3d':combo>=10?'#ff9f45':'#ffd166';
         ctx.save(); ctx.font = `800 ${cs}px system-ui`; ctx.textAlign = 'center';
-        ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.strokeText(`COMBO x${combo}`, canvas.width/2, 50);
-        ctx.fillStyle = cc; ctx.fillText(`COMBO x${combo}`, canvas.width/2, 50); ctx.restore();
+        ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.strokeText(`COMBO x${combo}`, canvas.width/2, 58);
+        ctx.fillStyle = cc; ctx.fillText(`COMBO x${combo}`, canvas.width/2, 58); ctx.restore();
       }
-      R.text(ctx, bio.name, 16, 106, { size:12, color:'#9ab' });
-      R.text(ctx, input.isAutopilot()?'AUTO (P: 수동)':'수동 WASD (P: 오토)', canvas.width-16, 24, { size:12, align:'right', color:'#8aa' });
+      // 우측 상단: AUTO(이동) + 물약자동 토글
+      R.text(ctx, input.isAutopilot()?'AUTO 이동 (P)':'수동 이동 (P)', canvas.width-16, 20, { size:12, align:'right', color: input.isAutopilot()?'#8effc7':'#8aa' });
+      R.text(ctx, autoPotion?'물약자동 ON (O)':'물약자동 OFF (O)', canvas.width-16, 38, { size:12, align:'right', color: autoPotion?'#ffb3c0':'#889' });
       // 우측 상단: 현재 장착 스킬 아이콘 + 레벨
       { const isz=32, pad=7, x0=canvas.width-12-isz; let idx=0;
         for (const id of Object.keys(rs.ownedSkills)) { const s=getSkill(id); if (!s) continue;
           if (s.evolveInto && rs.ownedSkills[s.evolveInto]) continue;   // 진화형 보유 시 원본 숨김(최고 단계만)
-          const yy=40+idx*(isz+pad); idx++;
+          const yy=60+idx*(isz+pad); idx++;
           drawSkillIcon(ctx, s, x0, yy, isz);
           // 쿨타임 시계: 남은 재충전을 어두운 부채꼴로(12시부터 시계방향), 다 차면 사라짐
           const st = sstate[id];
@@ -384,7 +388,8 @@ export function boot() {
   }
 
   addEventListener('keydown', e => {
-    if (overlay?.type==='levelup') { const i='123'.indexOf(e.key); if (i>=0) selectChoice(i); }
+    if (overlay?.type==='levelup') { const i='123'.indexOf(e.key); if (i>=0) selectChoice(i); return; }
+    if (e.key.toLowerCase()==='o') { autoPotion = !autoPotion; meta.settings.autoPotion = autoPotion; saveMeta(meta); }
   });
   canvas.addEventListener('pointerdown', (e) => {
     if (scene==='gameover') { toTitle(); return; }

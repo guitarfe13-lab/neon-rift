@@ -29,7 +29,8 @@ export function drawHud(ctx, rs, world, frame = 0) {
   bar(ctx, 16, 43, 220, 7, rs.xp / (8*Math.pow(rs.level,1.55)+4), '#42e6ff');
   text(ctx, `Lv ${rs.level}`, 244, 40, { size:13, color:'#42e6ff' });
   text(ctx, `⏱ ${(rs.timeMs/1000|0)}s   ⭐ ${rs.stage}   💰 ${rs.gold}`, 16, 70, { size:13 });
+  // 물약: 좌측 세로 정렬(HP 위 / MP 아래) + 보유 개수
   const po = rs.potions || { hp:0, mp:0 };
-  drawPotion(ctx, 18, 80, 15, 22, '#ff4d6d'); text(ctx, `×${po.hp}`, 38, 96, { size:13, weight:'800', color:'#ffb3c0' });
-  drawPotion(ctx, 84, 80, 15, 22, '#4db3ff'); text(ctx, `×${po.mp}`, 104, 96, { size:13, weight:'800', color:'#a9d8ff' });
+  drawPotion(ctx, 18, 80, 15, 22, '#ff4d6d');  text(ctx, `×${po.hp}`, 40, 96,  { size:14, weight:'800', color:'#ffb3c0' });
+  drawPotion(ctx, 18, 108, 15, 22, '#4db3ff'); text(ctx, `×${po.mp}`, 40, 124, { size:14, weight:'800', color:'#a9d8ff' });
 }

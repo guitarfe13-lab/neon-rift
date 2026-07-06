@@ -131,6 +131,7 @@ export function showSettings({ meta, save, onBack }) {
   };
   p.appendChild(toggle('음소거', 'muted'));
   p.appendChild(toggle('오토파일럿 기본', 'autopilot'));
+  p.appendChild(toggle('물약 자동 사용', 'autoPotion'));
   const back = el('button', 'btn', '뒤로'); back.onclick = onBack; p.appendChild(back);
   root().appendChild(p);
 }
