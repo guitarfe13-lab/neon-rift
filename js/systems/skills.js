@@ -40,7 +40,7 @@ const RUNTIME = {
       world.spawnProjectile({ x:p.x, y:p.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,
         radius:5, dmg:rt.damage, pierce:rt.pierce||0, life:rt.life||120, crit:Math.random()<(rs.stats.crit||0),
         color: skill.color||'#ffe14d', element: el }); }
-    FX.spawnMuzzle(world, p.x, p.y, skill.color);
+    FX.spawnMuzzle(world, p.x, p.y, skill.color, el);
     if (onFire) onFire();
   },
   // 관통 빔: 고속·다관통·짧은 수명(줄기 형태).
@@ -53,7 +53,7 @@ const RUNTIME = {
     world.spawnProjectile({ x:p.x, y:p.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,
       radius:6, dmg:rt.damage, pierce:rt.pierce??99, life:36, crit:Math.random()<(rs.stats.crit||0),
       color: skill.color||'#7cf9ff', beam:true, len: rt.speed*3.2, element: skill.tags && skill.tags[0] });
-    FX.spawnMuzzle(world, p.x, p.y, skill.color);
+    FX.spawnMuzzle(world, p.x, p.y, skill.color, skill.tags && skill.tags[0]);
     if (onFire) onFire();
   },
   // 궤도 오브: rt.count개를 플레이어 주위로 회전. 적별 재타격 쿨다운(e._orbCd)로 제어.
@@ -109,7 +109,7 @@ const RUNTIME = {
     const a = Math.atan2(t.y-d.y, t.x-d.x);
     world.spawnProjectile({ x:d.x, y:d.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,
       radius:4, dmg:rt.damage, pierce:rt.pierce||0, life:100, crit:false, color: skill.color||'#8effc7', element: skill.tags && skill.tags[0] });
-    FX.spawnMuzzle(world, d.x, d.y, skill.color);
+    FX.spawnMuzzle(world, d.x, d.y, skill.color, skill.tags && skill.tags[0]);
   },
   // 패시브: 전투 동작 없음(스탯은 levelup에서 반영).
   passive() {},

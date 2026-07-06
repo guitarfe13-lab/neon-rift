@@ -276,7 +276,7 @@ export function boot() {
     updateProjectiles(world);
     // 투사체 트레일(직선 투사체만, 저빈도)
     if (frameCount % 2 === 0 && world.particles.length < 550) {
-      for (const p of world.projectiles) { if (p.alive && !p.orbit && !p.beam) FX.spawnTrail(world, p.x, p.y, p.color); }
+      for (const p of world.projectiles) { if (p.alive && !p.orbit && !p.beam) FX.spawnTrail(world, p.x, p.y, p.color, p.element); }
     }
     // 투사체-적 충돌
     for (const p of world.projectiles) { if (!p.alive || p.dmg<=0) continue;
