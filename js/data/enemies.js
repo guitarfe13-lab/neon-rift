@@ -14,6 +14,6 @@ export const ENEMIES = {
   // 폭탄체: 사망 시 붉은 탄막 링을 사방으로 터뜨린다(cell 스프라이트 재사용).
   bomber:   { id:'bomber',   name:'폭탄체', shape:'circle',   sprite:'cell',   spriteScale:0.95, color:'#ff7a3d', hp:12, speed:1.0, radius:15, damage:9,  xp:8,  gold:6, behavior:'bomber', drop:{ mana:0.2, hp:0.04 } },
   // 광폭체: 거대·단단·강한 근접(golem 스프라이트 확대 재사용).
-  brute:    { id:'brute',    name:'광폭체', shape:'square',   sprite:'golem',  spriteScale:1.25, color:'#c05cff', hp:60, speed:0.55, radius:24, damage:16, xp:14, gold:10, drop:{ mana:0.35, hp:0.12, coins:3, skill:0.02 } },
+  brute:    { id:'brute',    name:'광폭체', shape:'square',   sprite:'golem',  spriteScale:1.25, color:'#c05cff', hp:60, speed:0.55, radius:24, damage:16, xp:14, gold:10, drop:{ mana:0.35, hp:0.12, coins:3 } },
 };
 export function getEnemy(id) { return ENEMIES[id]; }

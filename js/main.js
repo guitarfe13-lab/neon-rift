@@ -181,9 +181,8 @@ export function boot() {
       for (let i=0;i<8;i++) world.spawnPickup({ x:e.x+j()*3, y:e.y+j()*3, kind:'coin', value:gold, radius:6 });
       for (let i=0;i<2;i++) world.spawnPickup({ x:e.x+j()*3, y:e.y+j()*3, kind:'mana', value:60, radius:6 });
     }
-    // 히든 스킬: 보스 8%, 엘리트/특수 몹은 drop.skill(≤2~3%), 그 외 없음 (모두 10% 미만)
-    const skillChance = e.boss ? 0.08 : (dr.skill || (e.elite ? 0.03 : 0));
-    if (rng.next() < skillChance) world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'skill', value:1, radius:9 });
+    // 히든 스킬: 보스 전용 드랍(8%). 일반 몹·엘리트는 드랍하지 않는다.
+    if (e.boss && rng.next() < 0.08) world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'skill', value:1, radius:9 });
   }
   // 히든 스킬 획득: 직업 풀과 무관한 무작위 미보유 스킬을 즉시 부여(= 히든).
   function grantHiddenSkill() {
@@ -245,7 +244,12 @@ export function boot() {
     // 이동
     const mv = input.moveVector(world), sp = rs.stats.moveSpeed * MOVE_SCALE;
     world.player.x += mv.x * sp; world.player.y += mv.y * sp;
-    if (mv.x) world.player.face = mv.x < 0 ? Math.PI : 0;                 // 이동 방향으로 좌우
+    // 좌우 반전은 사람처럼: 반대 방향 이동이 15프레임(0.25s) 유지될 때만 전환(자동조작 잔떨림 방지)
+    if (mv.x) {
+      const want = mv.x < 0 ? Math.PI : 0;
+      if (want === (world.player.face || 0)) world.player._faceT = 0;
+      else if ((world.player._faceT = (world.player._faceT || 0) + 1) >= 15) { world.player.face = want; world.player._faceT = 0; }
+    }
     if (world.player._atk > 0) world.player._atk--;                      // 공격 애니메이션 타이머
     // 보스 아레나: 플레이어 무한 후퇴 방지(원형 경계 안으로 제한)
     const ar = dir.getArena();

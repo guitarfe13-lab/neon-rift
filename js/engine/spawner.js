@@ -4,6 +4,7 @@ import { getBoss } from '../data/bosses.js';
 
 export function makeDirector(rng, biomes) {
   let t = 0, timer = 0, biomeIdx = 0, biomeStart = 0, bossRef = null, arena = null;
+  let midbossFor = -1;   // 중간보스 등장 여부를 판정한 바이옴 인덱스(바이옴당 1회만 굴림)
   const biome = () => biomes[biomeIdx % biomes.length];
 
   // 경과 시간 + 플레이어 레벨에 따라 적 hp/피해 스케일(레벨↑ → 몹도 강해짐).
@@ -39,10 +40,28 @@ export function makeDirector(rng, biomes) {
       skillTier: Math.min(3, biomeIdx + cycle),   // 진행할수록 보스 스킬 광역·강력(0~3)
       x: arena.x, y: arena.y - 170 });
   }
+  // 중간보스(악시온): 바이옴 중반에 50% 확률 등장(나올 때도, 안 나올 때도). 아레나·바이옴 진행과 무관.
+  function spawnMidboss(world, level) {
+    const mb = getBoss('axion'); const lv = Math.max(0, level - 1);
+    const cycle = Math.floor(biomeIdx / biomes.length);
+    const scale = (1 + biomeIdx * 0.5 + lv * 0.06) * (1 + cycle * 0.15);
+    const hp = Math.round(mb.hp * scale);
+    const ang = rng.next() * Math.PI * 2;
+    world.spawnEnemy({ ...mb, hp, maxHp: hp,
+      damage: Math.round(mb.damage * (1 + lv * 0.06 + cycle * 0.1)),
+      skillTier: Math.min(2, biomeIdx + cycle),
+      x: world.player.x + Math.cos(ang) * 420, y: world.player.y + Math.sin(ang) * 420 });
+    world.spawnFloater({ x: world.player.x, y: world.player.y - 60,
+      text: '⚠ 네온의 집행자 악시온 출현!', color: '#7dffce', life: 80, max: 80, vy: -0.25, crit: true });
+  }
   function update(dt, world, level = 1) {
     t += dt;
     if (bossRef && !bossRef.alive) { bossRef = null; arena = null; biomeIdx++; biomeStart = t; } // 보스 처치 → 다음 바이옴
     const b = biome();
+    if (midbossFor !== biomeIdx && !bossRef && t - biomeStart >= b.durationMs * 0.55) {
+      midbossFor = biomeIdx;
+      if (rng.next() < 0.5) spawnMidboss(world, level);
+    }
     if (!bossRef && t - biomeStart >= b.durationMs) { spawnBoss(world, level); return; }
     const rate = bossRef ? 1500 : Math.max(220, 900 - (t - biomeStart) / 500);
     timer += dt;

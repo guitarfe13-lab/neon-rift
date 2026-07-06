@@ -186,6 +186,13 @@ p { color:var(--mut); }
 .sk-card p { margin:0; font-size:14px; color:var(--mut); line-height:1.6; }
 .sk-tip { margin-top:8px !important; font-size:13px !important; color:#d0b878 !important; }
 .sk-meta { margin-top:8px; font-size:12.5px; color:#8592a8; }
+/* 히든 스킬: 보일 듯 말 듯 블러(이름·설명·수치). 배지와 획득 안내만 선명. */
+.sk-card.hidden { border-style:dashed; border-color:rgba(255,140,255,0.35); }
+.sk-card.hidden .sk-head h3, .sk-card.hidden > p, .sk-card.hidden .sk-tip,
+.sk-card.hidden .sk-badges .sk-badge:not(.hid), .sk-card.hidden .sk-meta:not(.sk-hid-note) {
+  filter:blur(4px); opacity:0.75; user-select:none; pointer-events:none; }
+.sk-badge.hid { color:#ff9cff; border-color:rgba(255,156,255,0.55); }
+.sk-hid-note { color:#ff9cff !important; }
 
 @media (max-width:600px){ section { padding:40px 0; } .nav .links a { font-size:13px; } }
 @media (prefers-reduced-motion: reduce){ html { scroll-behavior:auto; } .btn:hover, .game-card:hover { transform:none; } }
