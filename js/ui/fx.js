@@ -20,12 +20,18 @@ function burstSparks(world, x, y, c, n, crit) {
   for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 + Math.random(), s = 1.2 + Math.random() * 2.2;
     world.spawnParticle({ spark: true, x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: crit ? 16 : 12, color: (crit && i % 3 === 0) ? '#fff' : c }); }
 }
-// 한 점에서 뻗는 지그재그 번개 줄기(여러 꺾인 세그먼트).
+// 한 점에서 뻗는 지그재그 번개 줄기: 진행 수직 방향으로 좌우 번갈아 꺾여 '⚡' 형태.
 function boltRay(world, x, y, ang, len, color) {
-  const seg = 3; let px = x, py = y; const ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len;
-  for (let i = 1; i <= seg; i++) { const t = i / seg; let nx = x + (ex - x) * t, ny = y + (ey - y) * t;
-    if (i < seg) { nx += (Math.random() - 0.5) * 8; ny += (Math.random() - 0.5) * 8; }
-    world.spawnParticle({ bolt: true, x1: px, y1: py, x2: nx, y2: ny, life: 8, color }); px = nx; py = ny; }
+  const seg = 4, nx = Math.cos(ang + Math.PI / 2), ny = Math.sin(ang + Math.PI / 2);
+  let px = x, py = y;
+  for (let i = 1; i <= seg; i++) {
+    const t = i / seg;
+    let qx = x + Math.cos(ang) * len * t, qy = y + Math.sin(ang) * len * t;
+    if (i < seg) { const off = (i % 2 ? 1 : -1) * (len * 0.22 + Math.random() * len * 0.16);   // 좌우 교차
+      qx += nx * off; qy += ny * off; }
+    world.spawnParticle({ bolt: true, x1: px, y1: py, x2: qx, y2: qy, life: 8, color });
+    px = qx; py = qy;
+  }
 }
 
 // 투사체 트레일(원소별 잔상).
@@ -85,14 +91,19 @@ export function spawnImpact(world, x, y, el, crit) {
   if (crit) world.spawnParticle({ shock: true, x, y, r: 4, rMax: 28, life: 13, color: '#fff' });
 }
 
-// 연쇄 번개: 두 점 사이를 여러 꺾인 세그먼트로.
+// 연쇄 번개: 두 점 사이를 진행 수직 방향으로 좌우 번갈아 꺾이는 지그재그로(거리 비례 세그먼트).
 export function spawnChainArc(world, x1, y1, x2, y2, color) {
-  const seg = 4; let px = x1, py = y1;
+  const dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1;
+  const nx = -dy / d, ny = dx / d;                                   // 수직 단위벡터
+  const seg = Math.max(4, Math.min(7, Math.round(d / 26)));          // 멀수록 더 많이 꺾임
+  let px = x1, py = y1;
   for (let i = 1; i <= seg; i++) {
-    const t = i / seg; let nx = x1 + (x2 - x1) * t, ny = y1 + (y2 - y1) * t;
-    if (i < seg) { nx += (Math.random() - 0.5) * 18; ny += (Math.random() - 0.5) * 18; }
-    world.spawnParticle({ x1: px, y1: py, x2: nx, y2: ny, bolt: true, color: color || '#c9a3ff', life: 8 });
-    px = nx; py = ny;
+    const t = i / seg;
+    let qx = x1 + dx * t, qy = y1 + dy * t;
+    if (i < seg) { const off = (i % 2 ? 1 : -1) * (7 + Math.random() * 14);   // 좌우 교차 지그재그
+      qx += nx * off; qy += ny * off; }
+    world.spawnParticle({ x1: px, y1: py, x2: qx, y2: qy, bolt: true, color: color || '#c9a3ff', life: 8 });
+    px = qx; py = qy;
   }
 }
 
