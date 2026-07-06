@@ -16,7 +16,7 @@ function drawPotion(ctx, x, y, w, h, color) {
   roundRect(ctx, x, by, w, bh, w*0.34); ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=1.4; ctx.stroke();
   ctx.restore();
 }
-export function drawHud(ctx, rs, world, frame = 0) {
+export function drawHud(ctx, rs, world, frame = 0, souls = 0) {
   const p = world.player;
   const blinkOn = Math.floor(frame / 8) % 2 === 0;   // 저잔량 경고 점멸
   const hpPct = p.hp / p.maxHp, hpLow = hpPct <= 0.3;
@@ -28,7 +28,7 @@ export function drawHud(ctx, rs, world, frame = 0) {
   text(ctx, `MP ${Math.max(0,Math.floor(rs.mp ?? 0))}/${Math.round(maxMp)}`, 20, 38, { size:10, color: mpLow && blinkOn ? '#ffdada' : '#eaf2ff' });
   bar(ctx, 16, 43, 220, 7, rs.xp / (8*Math.pow(rs.level,1.55)+4), '#42e6ff');
   text(ctx, `Lv ${rs.level}`, 244, 40, { size:13, color:'#42e6ff' });
-  text(ctx, `⏱ ${(rs.timeMs/1000|0)}s   ⭐ ${rs.stage}   💰 ${rs.gold}`, 16, 70, { size:13 });
+  text(ctx, `⏱ ${(rs.timeMs/1000|0)}s   ⭐ ${rs.stage}   💰 ${rs.gold}   💠 ${souls}`, 16, 70, { size:13 });
   // 물약: 좌측 세로 정렬(HP 위 / MP 아래) + 보유 개수
   const po = rs.potions || { hp:0, mp:0 };
   drawPotion(ctx, 18, 80, 15, 22, '#ff4d6d');  text(ctx, `×${po.hp}`, 40, 96,  { size:14, weight:'800', color:'#ffb3c0' });

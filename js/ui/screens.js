@@ -87,7 +87,7 @@ export function showMetaShop({ meta, save, onBack }) {
       const nm = kind === 'hp' ? '체력 물약' : '마나 물약', ic = kind === 'hp' ? '🧪' : '🔷';
       const row = el('div', 'shop-row');
       row.innerHTML = `<div>${ic} <b>${nm}</b> <span class="lvl">보유 ${meta.potions?.[kind]||0} · 저잔량 시 자동 사용</span></div>`;
-      const btn = el('button', 'btn small', `구매 (${potionCost(kind)})`);
+      const btn = el('button', 'btn small', `+10 구매 (${potionCost(kind)})`);
       btn.disabled = !canBuyPotion(meta, kind);
       btn.onclick = () => { buyPotion(meta, kind); save(); render(); };
       row.appendChild(btn); list.appendChild(row);

@@ -36,6 +36,10 @@ export const SKILLS = {
   holy_lance: { id:'holy_lance', name:'신성 창', type:'projectile', tags:['holy'], color:'#ffe58a', mpCost:4,
     base:{ damage:14, count:1, speed:9, cooldown:54, pierce:3 },
     scale:{ damage:+7, cooldown:-4 }, maxLevel:8 },
+  // 얼음창: 정령술사 기본 원거리(관통 얼음 투사체).
+  ice_lance: { id:'ice_lance', name:'얼음창', type:'projectile', tags:['ice'], color:'#a9e8ff', mpCost:2,
+    base:{ damage:11, count:1, speed:9, cooldown:38, pierce:2 },
+    scale:{ damage:+5, count:[1,1,1,2,2,3], cooldown:-3 }, maxLevel:8 },
 
   // ── 빔 ──
   laser: { id:'laser', name:'레이저', type:'beam', tags:['arcane'], color:'#7cf9ff', mpCost:3,

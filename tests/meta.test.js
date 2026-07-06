@@ -28,10 +28,10 @@ test('기본 캐릭터(blade)는 해금 대상 아님', () => {
   const m = defaultMeta(); m.souls = 1e9;
   assert.equal(canUnlockChar(m, 'blade'), false);
 });
-test('물약 구매: 소울 차감 + 보유량 증가', () => {
+test('물약 구매: 소울 차감 + 10개 묶음 지급', () => {
   const m = defaultMeta(); m.souls = 1000;
   const c = potionCost('hp'); buyPotion(m, 'hp');
-  assert.equal(m.potions.hp, 1); assert.equal(m.souls, 1000 - c);
+  assert.equal(m.potions.hp, 10); assert.equal(m.souls, 1000 - c);
 });
 test('소울 부족이면 물약 구매 불가', () => {
   const m = defaultMeta(); m.souls = 0;

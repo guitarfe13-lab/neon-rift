@@ -16,7 +16,7 @@ export const CHARACTERS = {
     base: base({ maxHp:100, maxMp:90, mpRegen:0.28, damage:11, atkSpeed:1.25, crit:0.12, moveSpeed:2.6 }), startingSkill:'laser', passive:'eagle',
     skillPool:['laser','rail','arcane_bolt','spread_shot','spirit','twin_shot','ice_shard'] },
   elementalist: { id:'elementalist', name:'정령술사', shape:'square', sprite:'crystal', color:'#5cd0ff', desc:'광역 오라·지속. 높은 MP.', unlockCost:500,
-    base: base({ maxHp:125, maxMp:130, mpRegen:0.34, damage:10, area:1.25, moveSpeed:2.2 }), startingSkill:'frost_aura', passive:'attune',
-    skillPool:['frost_aura','holy_field','venom_cloud','frost_ring','chain_spark','flame_aura','holy_lance'] },
+    base: base({ maxHp:125, maxMp:130, mpRegen:0.34, damage:10, area:1.25, moveSpeed:2.2 }), startingSkill:'ice_lance', passive:'attune',
+    skillPool:['ice_lance','frost_aura','holy_field','venom_cloud','frost_ring','chain_spark','flame_aura','holy_lance'] },
 };
 export function getCharacter(id) { return CHARACTERS[id]; }

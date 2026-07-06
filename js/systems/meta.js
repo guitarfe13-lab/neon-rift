@@ -18,15 +18,16 @@ export function buyUpgrade(meta, id) {
   return meta;
 }
 
-// 물약(자동 사용 소모품): 소울로 구매해 보유량 누적, 런 중 저잔량 시 자동 소비.
-const POTION_COST = { hp: 30, mp: 24 };
+// 물약(자동 사용 소모품): 소울로 10개 묶음 구매. 런 중 저잔량 시 자동 소비.
+export const POTION_BATCH = 10;
+const POTION_COST = { hp: 25, mp: 20 };   // 묶음(10개) 가격
 export function potionCost(kind) { return POTION_COST[kind] ?? null; }
 export function canBuyPotion(meta, kind) { const c = potionCost(kind); return c != null && meta.souls >= c; }
 export function buyPotion(meta, kind) {
   if (!canBuyPotion(meta, kind)) return meta;
   meta.souls -= potionCost(kind);
   if (!meta.potions) meta.potions = { hp: 0, mp: 0 };
-  meta.potions[kind] = (meta.potions[kind] || 0) + 1;
+  meta.potions[kind] = (meta.potions[kind] || 0) + POTION_BATCH;
   return meta;
 }
 

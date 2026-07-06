@@ -327,7 +327,7 @@ export function boot() {
         ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(0,0,0,0.75)'; ctx.strokeText(f.text, f.x-camX, f.y-camY);
         ctx.fillStyle = f.color; ctx.fillText(f.text, f.x-camX, f.y-camY); ctx.restore();
       }
-      drawHud(ctx, rs, world, frameCount);
+      drawHud(ctx, rs, world, frameCount, meta.souls);
       // 상단 중앙: 필드명(위) → 콤보(아래) 순으로 배치(겹침 방지)
       R.text(ctx, `— ${bio.name} —`, canvas.width/2, 28, { size:13, align:'center', color:'#9ab' });
       if (combo > 2) {
