@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>플레이 — NEON RIFT</title>
+  <meta name="description" content="NEON RIFT를 바로 플레이하세요. 설치 없는 브라우저 액션 로그라이크 방치형 RPG.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0b12'/%3E%3Cpath d='M16 5l9 11-9 11-9-11z' fill='%2342e6ff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./css/style.css">
+  <style>
+    /* 플레이 페이지: 상단 홈바 + 그 아래 게임 영역(스크롤 없음). */
+    body { margin:0; background:#0a0b12; }
+    #play-bar { height:46px; display:flex; align-items:center; gap:14px; padding:0 14px;
+      background:rgba(8,10,18,0.92); border-bottom:1px solid rgba(66,230,255,0.22); }
+    #play-bar a.home { color:#a9b6cd; font:600 14px system-ui; text-decoration:none; }
+    #play-bar a.home:hover { color:#eaf2ff; }
+    #play-bar .title { color:#42e6ff; font:800 15px system-ui; letter-spacing:-0.02em;
+      text-shadow:0 0 14px rgba(66,230,255,0.5); }
+    #play-bar .spacer { margin-left:auto; }
+    #play-bar a.guide { color:#a9b6cd; font:600 13px system-ui; text-decoration:none; }
+    #app { height:calc(100vh - 46px); }
+  </style>
+</head>
+<body>
+  <header id="play-bar">
+    <a class="home" href="/">← 홈</a>
+    <span class="title">NEON RIFT</span>
+    <span class="spacer"></span>
+    <a class="guide" href="/guide.html">공략 보기</a>
+  </header>
+  <div id="app">
+    <canvas id="game" width="960" height="540"></canvas>
+    <div id="ui-root"></div>
+  </div>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

@@ -2,15 +2,111 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>NEON RIFT</title>
-  <link rel="stylesheet" href="./css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEON RIFT — 브라우저 액션 로그라이크 방치형 RPG (무료)</title>
+  <meta name="description" content="NEON RIFT는 설치 없이 브라우저에서 바로 즐기는 무료 액션 로그라이크 방치형 RPG입니다. 스킬을 조합해 자동 전투를 벌이고, 진화시키고, 보스를 무너뜨리세요.">
+  <link rel="canonical" href="https://neon-rift.example.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="NEON RIFT — 브라우저 액션 로그라이크 방치형 RPG">
+  <meta property="og:description" content="설치 없이 바로 플레이하는 무료 네온 액션 로그라이크. 스킬 조합·진화·보스전.">
+  <meta property="og:url" content="https://neon-rift.example.com/">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0b12'/%3E%3Cpath d='M16 5l9 11-9 11-9-11z' fill='%2342e6ff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./css/site.css">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"VideoGame","name":"NEON RIFT","genre":["로그라이크","방치형 RPG","액션"],
+   "gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any",
+   "offers":{"@type":"Offer","price":"0","priceCurrency":"KRW"},
+   "description":"설치 없이 브라우저에서 즐기는 무료 액션 로그라이크 방치형 RPG."}
+  </script>
 </head>
 <body>
-  <div id="app">
-    <canvas id="game" width="960" height="540"></canvas>
-    <div id="ui-root"></div>
+  <nav class="nav">
+    <div class="wrap">
+      <span class="brand">◆ NEON RIFT</span>
+      <div class="links">
+        <a href="/play.html">플레이</a>
+        <a href="/guide.html">공략</a>
+        <a href="#features">특징</a>
+        <a href="#faq">FAQ</a>
+        <a class="btn primary small" href="/play.html">지금 시작</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero wrap">
+    <h1>NEON RIFT</h1>
+    <p class="tag">브라우저에서 즉시 즐기는 액션 로그라이크 방치형 RPG</p>
+    <p class="lead">설치도, 회원가입도 필요 없습니다. 스킬을 조합해 자동 전투를 벌이고, 조건을 채워 스킬을 <b>진화</b>시키고,
+      회차마다 강해지는 <b>보스</b>를 무너뜨리세요. 숫자가 커지는 쾌감은 덤.</p>
+    <div class="cta">
+      <a class="btn pink" href="/play.html">▶ 지금 플레이</a>
+      <a class="btn ghost" href="/guide.html">공략 보기</a>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <span class="ad-label">광고</span>
+    <div class="ad-slot" data-ad-slot="1111111111" data-ad-format="auto"></div>
   </div>
-  <script type="module" src="./js/main.js"></script>
+
+  <section id="features" class="wrap">
+    <h2 class="section-title">게임 특징</h2>
+    <p class="section-sub">바닐라 웹 기술로 만든 가볍고 빠른 네온 액션. PC·모바일 브라우저에서 부드럽게 돌아갑니다.</p>
+    <div class="grid">
+      <div class="card"><div class="ico">⚔️</div><h3>자동 전투 · 방치 성장</h3>
+        <p>캐릭터가 스스로 싸웁니다. 이동만 신경 쓰고, 쏟아지는 적을 정리하며 쑥쑥 성장하는 손맛을 즐기세요.</p></div>
+      <div class="card"><div class="ico">✨</div><h3>스킬 진화</h3>
+        <p>29종 이상의 스킬. 특정 조건(패시브·레벨)을 만족하면 더 강력한 진화형으로 변모합니다.</p></div>
+      <div class="card"><div class="ico">👑</div><h3>보스전</h3>
+        <p>회차가 거듭될수록 강해지는 보스. 전용 광역 스킬과 페이즈 패턴으로 압박해 옵니다.</p></div>
+      <div class="card"><div class="ico">💠</div><h3>메타 성장</h3>
+        <p>소울로 영구 강화를 사고, 모은 황금코인을 소울로 환전하고, 새 캐릭터를 해금하세요.</p></div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <h2 class="section-title">이렇게 플레이해요</h2>
+    <p class="section-sub">1분이면 충분합니다. 자세한 공략은 <a href="/guide.html">공략 페이지</a>에서.</p>
+    <div class="steps">
+      <div class="step"><h3>캐릭터 선택</h3><p>검사·마법사·궁수·정령술사 중 플레이 스타일에 맞는 캐릭터를 고릅니다.</p></div>
+      <div class="step"><h3>이동만 조작</h3><p>WASD 또는 방향키/터치로 이동. 공격은 자동, 여러분은 위치 선정에 집중합니다.</p></div>
+      <div class="step"><h3>레벨업 3택</h3><p>레벨업마다 새 스킬·강화·패시브 중 하나를 골라 나만의 빌드를 완성합니다.</p></div>
+      <div class="step"><h3>진화 & 보스</h3><p>조건을 채워 스킬을 진화시키고, 보스를 잡아 다음 바이옴으로 나아갑니다.</p></div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <span class="ad-label">광고</span>
+    <div class="ad-slot" data-ad-slot="2222222222" data-ad-format="auto"></div>
+  </div>
+
+  <section id="faq" class="wrap">
+    <h2 class="section-title">자주 묻는 질문</h2>
+    <div class="faq" style="max-width:760px;margin:0 auto">
+      <details open><summary>정말 무료인가요?</summary><p>네. NEON RIFT는 브라우저에서 무료로 플레이할 수 있습니다. 별도 결제나 설치가 없습니다.</p></details>
+      <details><summary>설치가 필요한가요?</summary><p>아니요. 웹 페이지에 접속하는 즉시 플레이됩니다. 앱스토어·다운로드가 필요 없습니다.</p></details>
+      <details><summary>진행 상황이 저장되나요?</summary><p>메타 성장(소울·해금·업그레이드)은 브라우저의 로컬 저장소에 자동 저장됩니다. 계정은 없으며, 같은 브라우저에서 이어집니다.</p></details>
+      <details><summary>모바일에서도 되나요?</summary><p>네. 최신 모바일 브라우저를 지원합니다. 화면이 넓은 가로 모드를 권장합니다.</p></details>
+      <details><summary>소리를 끌 수 있나요?</summary><p>화면 우측 하단의 소리 버튼(또는 <span class="kbd">M</span> 키)으로 언제든 음소거할 수 있습니다.</p></details>
+    </div>
+  </section>
+
+  <section class="wrap" style="text-align:center">
+    <h2 class="section-title">준비됐나요?</h2>
+    <p class="section-sub">지금 바로 리프트에 뛰어드세요.</p>
+    <a class="btn pink" href="/play.html">▶ NEON RIFT 플레이</a>
+  </section>
+
+  <footer class="footer">
+    <div class="wrap">
+      <div>
+        <a href="/play.html">플레이</a> · <a href="/guide.html">공략</a> · <a href="/privacy.html">개인정보 처리방침</a>
+      </div>
+      <span class="copy">© 2026 NEON RIFT · 바닐라 웹으로 제작</span>
+    </div>
+  </footer>
+
+  <script src="/js/ads.js" defer></script>
 </body>
 </html>

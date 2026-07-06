@@ -1,0 +1,113 @@
+/* NEON RIFT 콘텐츠 페이지(랜딩·공략·개인정보) 스타일. 게임 화면(style.css)과 별개. */
+:root {
+  --bg:#0a0b12; --bg2:#0e1020; --surface:#141830; --ink:#e6edfb; --mut:#a9b6cd;
+  --neon:#42e6ff; --pink:#ff4d9d; --gold:#ffd166; --line:rgba(120,150,200,0.18);
+}
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { margin:0; background:
+    radial-gradient(1200px 600px at 50% -10%, #16204a 0%, transparent 60%),
+    radial-gradient(900px 500px at 90% 10%, #2a1040 0%, transparent 55%), var(--bg);
+  color:var(--ink); font-family:system-ui,"Segoe UI","Malgun Gothic",sans-serif; line-height:1.7;
+  -webkit-font-smoothing:antialiased; }
+a { color:var(--neon); text-decoration:none; } a:hover { text-decoration:underline; }
+img { max-width:100%; }
+.wrap { width:min(1080px,92vw); margin:0 auto; }
+section { padding:56px 0; }
+h1,h2,h3 { line-height:1.2; text-wrap:balance; }
+p { color:var(--mut); }
+
+/* 상단 내비 */
+.nav { position:sticky; top:0; z-index:20; backdrop-filter:blur(8px);
+  background:rgba(8,10,18,0.78); border-bottom:1px solid var(--line); }
+.nav .wrap { display:flex; align-items:center; gap:18px; height:58px; }
+.brand { font-weight:800; letter-spacing:-0.02em; color:var(--neon); font-size:19px;
+  text-shadow:0 0 16px rgba(66,230,255,0.5); }
+.nav .links { margin-left:auto; display:flex; gap:18px; align-items:center; }
+.nav .links a { color:var(--mut); font-weight:600; font-size:14px; }
+.nav .links a:hover { color:var(--ink); text-decoration:none; }
+
+/* 버튼 */
+.btn { display:inline-flex; align-items:center; gap:8px; border:1px solid rgba(66,230,255,0.4);
+  background:rgba(20,26,44,0.9); color:var(--ink); padding:13px 22px; border-radius:11px;
+  font-size:15px; font-weight:700; cursor:pointer; transition:transform .08s, box-shadow .2s, background .2s; }
+.btn:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(66,230,255,0.25); text-decoration:none; }
+.btn.primary { background:linear-gradient(135deg,#2a8cff,#8b5cff); border-color:transparent; }
+.btn.pink { background:linear-gradient(135deg,#ff4d9d,#ff8a3d); border-color:transparent; }
+.btn.ghost { background:transparent; }
+.btn.small { padding:8px 14px; font-size:13px; }
+
+/* 히어로 */
+.hero { text-align:center; padding:72px 0 40px; }
+.hero h1 { font-size:clamp(44px,9vw,84px); margin:0 0 8px; letter-spacing:-0.04em;
+  background:none; color:var(--neon); text-shadow:0 0 30px rgba(66,230,255,0.55), 0 0 60px rgba(255,77,157,0.25); }
+.hero .tag { font-size:clamp(16px,2.6vw,21px); color:var(--ink); margin:0 auto 6px; max-width:40ch; }
+.hero .lead { max-width:56ch; margin:10px auto 26px; }
+.hero .cta { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+
+/* 특징 카드 */
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; }
+.card { background:linear-gradient(180deg,var(--surface),rgba(14,16,32,0.6));
+  border:1px solid var(--line); border-radius:16px; padding:22px; }
+.card h3 { margin:6px 0 8px; font-size:18px; color:var(--ink); }
+.card .ico { font-size:26px; }
+.card p { margin:0; font-size:14.5px; }
+
+.section-title { text-align:center; font-size:clamp(26px,4vw,34px); margin:0 0 8px; color:var(--ink); }
+.section-sub { text-align:center; color:var(--mut); margin:0 auto 30px; max-width:52ch; }
+
+/* 단계(플레이 방법) */
+.steps { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; counter-reset:s; }
+.step { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; position:relative; }
+.step::before { counter-increment:s; content:counter(s); position:absolute; top:-14px; left:18px;
+  width:30px; height:30px; display:grid; place-items:center; border-radius:9px; font-weight:800;
+  color:#08111e; background:var(--neon); box-shadow:0 4px 12px rgba(66,230,255,0.4); }
+.step h3 { margin:8px 0 6px; font-size:16px; color:var(--ink); }
+.step p { margin:0; font-size:14px; }
+
+/* FAQ */
+.faq details { border:1px solid var(--line); border-radius:12px; background:var(--surface);
+  padding:2px 18px; margin-bottom:10px; }
+.faq summary { cursor:pointer; font-weight:700; padding:14px 0; list-style:none; color:var(--ink); }
+.faq summary::-webkit-details-marker { display:none; }
+.faq summary::after { content:'+'; float:right; color:var(--neon); font-weight:800; }
+.faq details[open] summary::after { content:'−'; }
+.faq details p { padding-bottom:14px; margin:0; }
+
+/* 광고 슬롯 */
+.ad-slot { margin:28px auto; min-height:100px; display:block; text-align:center; }
+.ad-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  min-height:110px; border:1px dashed rgba(120,150,200,0.35); border-radius:12px; color:#7b88a0;
+  background:repeating-linear-gradient(45deg,rgba(255,255,255,0.02) 0 12px,transparent 12px 24px); }
+.ad-placeholder span { font-weight:700; letter-spacing:0.02em; }
+.ad-placeholder small { font-size:12px; }
+.ad-label { display:block; text-align:center; font-size:11px; color:#66748c; letter-spacing:0.08em; margin-bottom:4px; text-transform:uppercase; }
+
+/* 공략/개인정보 본문 */
+.doc { max-width:760px; margin:0 auto; }
+.doc h1 { font-size:clamp(30px,5vw,42px); margin:6px 0 4px; color:var(--ink); }
+.doc h2 { font-size:22px; margin:34px 0 10px; color:var(--neon); }
+.doc h3 { font-size:17px; margin:20px 0 6px; color:var(--ink); }
+.doc p, .doc li { color:var(--mut); }
+.doc ul { padding-left:20px; } .doc li { margin:6px 0; }
+.doc code { background:rgba(255,255,255,0.08); padding:2px 6px; border-radius:5px; font-size:0.92em; color:#dbe6ff; }
+.doc .updated { color:#6f7c93; font-size:13px; }
+.kbd { display:inline-block; min-width:22px; text-align:center; padding:2px 7px; border-radius:6px;
+  border:1px solid rgba(120,150,200,0.4); background:#1b2140; font-weight:700; color:#dbe6ff; font-size:13px; }
+
+/* 푸터 */
+.footer { border-top:1px solid var(--line); padding:30px 0; margin-top:20px; }
+.footer .wrap { display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between; }
+.footer a { color:var(--mut); font-size:14px; }
+.footer .copy { color:#6f7c93; font-size:13px; }
+
+/* 동의 배너 */
+#consent-banner { position:fixed; left:0; right:0; bottom:0; z-index:100;
+  background:rgba(10,12,22,0.97); border-top:1px solid rgba(66,230,255,0.3);
+  padding:14px clamp(14px,4vw,40px); display:flex; gap:16px; align-items:center; flex-wrap:wrap;
+  box-shadow:0 -8px 30px rgba(0,0,0,0.5); }
+#consent-banner p { margin:0; flex:1; min-width:260px; font-size:13.5px; color:var(--ink); }
+#consent-banner .consent-btns { display:flex; gap:8px; }
+
+@media (max-width:600px){ section { padding:40px 0; } .nav .links a { font-size:13px; } }
+@media (prefers-reduced-motion: reduce){ html { scroll-behavior:auto; } .btn:hover { transform:none; } }

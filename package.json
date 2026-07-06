@@ -1,1 +1,13 @@
-{ "name": "neon-rift", "version": "0.1.0", "type": "module", "private": true }
+{
+  "name": "neon-rift",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "NEON RIFT — 브라우저 액션 로그라이크 방치형 RPG (바닐라 ES모듈·무빌드·의존성0)",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node serve.mjs",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=18" }
+}
