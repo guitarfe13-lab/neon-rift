@@ -79,6 +79,14 @@ export function boot() {
   const resumeAudio = () => audio.resume();
   addEventListener('pointerdown', resumeAudio, { once: true });
   addEventListener('keydown', resumeAudio, { once: true });
+  // 우측 하단 소리 끄기/켜기 버튼(모든 화면 위에 상시 표시)
+  const muteBtn = document.createElement('button');
+  muteBtn.className = 'mute-btn'; muteBtn.title = '소리 끄기/켜기 (M)';
+  const syncMute = () => { muteBtn.textContent = meta.settings.muted ? '🔇' : '🔊'; };
+  const toggleMute = () => { meta.settings.muted = !meta.settings.muted; audio.setVolumes(meta.settings); saveMeta(meta); syncMute(); };
+  syncMute(); muteBtn.onclick = toggleMute;
+  document.getElementById('app').appendChild(muteBtn);
+  addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'm') toggleMute(); });
   // 이미지 에셋 미리 로드(있으면 사용, 없으면 코드 스프라이트 유지)
   preload([
     ...Object.keys(CHARACTERS).map((id) => `assets/sprites/${id}.png`),
