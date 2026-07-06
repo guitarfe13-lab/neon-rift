@@ -7,6 +7,8 @@ function base(overrides) {
 // skillPool: 해당 직업이 레벨업으로 얻을 수 있는 신규 스킬(무작위 아님, 직업별 고정).
 export const CHARACTERS = {
   blade: { id:'blade', name:'검사', shape:'triangle', sprite:'knight', color:'#42e6ff', desc:'높은 체력·근접 물리. MP 거의 안 씀.',
+    // 스프라이트시트: assets/sprites/blade_sheet.png(4열×3행=12칸). idle=대기, attack=공격 발동 시.
+    sheet:{ cols:4, rows:3, fps:7, anims:{ idle:[0,11], attack:[1,2,6] } },
     base: base({ maxHp:160, maxMp:40, mpRegen:0.1, damage:12, moveSpeed:2.4 }), startingSkill:'strike', passive:'bulwark',
     skillPool:['strike','blade_orbit','spread_shot','orbit_blade','rail','turret','twin_shot','quake'] },
   mage: { id:'mage', name:'마법사', shape:'diamond', sprite:'mage', color:'#c98bff', desc:'유리 대포·강한 마법. MP 소모 큼.', unlockCost:200,

@@ -29,11 +29,23 @@ function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${(n>
 
 // 엔티티 렌더: 이미지 에셋(assets/sprites/<id>.png)이 있으면 그걸로, 없으면 코드 스프라이트로.
 // 크기 확대 + 접지 그림자 + 은은한 네온 글로우로 '떠 있는 느낌' 제거.
-function drawEntity(ctx, ent, x, y, r, color, t, angle, flash) {
-  const img = getSprite('assets/sprites/' + ent.id);
+function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
+  live = live || ent;
+  let img = null, frame = null;
+  if (ent.sheet) {   // 스프라이트시트 애니메이션(<id>_sheet, 4열×3행 등)
+    const si = getSprite('assets/sprites/' + ent.id + '_sheet');
+    if (si) { const sh = ent.sheet;
+      const anim = (live._atk > 0 && sh.anims.attack) ? sh.anims.attack : (sh.anims.idle || [0]);
+      const per = Math.max(1, Math.round(60 / (sh.fps || 8)));
+      const idx = anim[Math.floor(t / per) % anim.length];
+      const fw = si.width / sh.cols, fh = si.height / sh.rows;
+      img = si; frame = { sx:(idx % sh.cols)*fw, sy:Math.floor(idx / sh.cols)*fh, fw, fh, scale: sh.scale||1 }; }
+  }
+  if (!img) img = getSprite('assets/sprites/' + ent.id);
   if (img) {
-    const sc = 4.6 * (ent.spriteScale || 1);                   // 엔티티별 배율(보스 크게·슬라임 작게)
-    const w = r * sc, h = w * (img.height / img.width || 1);
+    const iw = frame ? frame.fw : img.width, ih = frame ? frame.fh : img.height;
+    const sc = 4.6 * (ent.spriteScale || 1) * (frame ? frame.scale : 1); // 엔티티별 배율
+    const w = r * sc, h = w * (ih / iw || 1);
     const bob = Math.sin(t * 0.15 + x * 0.02) * r * 0.05;
     const foot = y + r * 1.2;                                   // 접지선을 아래로(뜬 느낌 완화)
     const sw = r * 1.05 * (ent.spriteScale || 1);              // 그림자 폭도 배율 반영
@@ -49,7 +61,8 @@ function drawEntity(ctx, ent, x, y, r, color, t, angle, flash) {
     ctx.save(); ctx.translate(x, bob);
     if (Math.cos(angle) < 0) ctx.scale(-1, 1);                  // 진행/조준 방향으로 좌우 반전
     if (flash) { ctx.shadowBlur = 24; ctx.shadowColor = '#fff'; }
-    ctx.drawImage(img, -w / 2, foot - h, w, h);
+    if (frame) ctx.drawImage(img, frame.sx, frame.sy, frame.fw, frame.fh, -w / 2, foot - h, w, h);
+    else ctx.drawImage(img, -w / 2, foot - h, w, h);
     ctx.restore();
   } else {
     drawSprite(ctx, ent.sprite, x, y, r, color, t, angle);
@@ -221,6 +234,8 @@ export function boot() {
     // 이동
     const mv = input.moveVector(world), sp = rs.stats.moveSpeed * MOVE_SCALE;
     world.player.x += mv.x * sp; world.player.y += mv.y * sp;
+    if (mv.x) world.player.face = mv.x < 0 ? Math.PI : 0;                 // 이동 방향으로 좌우
+    if (world.player._atk > 0) world.player._atk--;                      // 공격 애니메이션 타이머
     // 보스 아레나: 플레이어 무한 후퇴 방지(원형 경계 안으로 제한)
     const ar = dir.getArena();
     if (ar) { const dx=world.player.x-ar.x, dy=world.player.y-ar.y, dd=Math.hypot(dx,dy);
@@ -248,7 +263,7 @@ export function boot() {
       if (Math.hypot(hz.x-world.player.x, hz.y-world.player.y) < hz.radius+world.player.radius) { hurtPlayer(hz.damage*0.1); hz.alive=false; }
     }
     // 스킬 실행 + 투사체 이동 (발사 시 슛 사운드, 과다 방지 스로틀)
-    updateSkills(world, rs, rng, sstate, damageEnemy, () => { if (frameCount % 5 === 0) audio.sfx('shoot'); });
+    updateSkills(world, rs, rng, sstate, damageEnemy, () => { world.player._atk = 14; if (frameCount % 5 === 0) audio.sfx('shoot'); });
     updateProjectiles(world);
     // 투사체 트레일(직선 투사체만, 저빈도)
     if (frameCount % 2 === 0 && world.particles.length < 550) {
@@ -368,7 +383,7 @@ export function boot() {
         else R.neonCircle(ctx, p.x-camX, p.y-camY, p.radius, p.color||'#ffe14d'); }
       // 플레이어(피격 무적 중 깜빡임)
       if (!(world.player.invuln>0 && frameCount%6<3))
-        drawEntity(ctx, ch, world.player.x-camX, world.player.y-camY, world.player.radius, ch.color, frameCount, 0, false);
+        drawEntity(ctx, ch, world.player.x-camX, world.player.y-camY, world.player.radius, ch.color, frameCount, world.player.face||0, false, world.player);
       for (const f of world.floaters) if (f.alive) {
         const age = f.max ? (f.max - f.life)/f.max : 0;
         const size = (f.crit?28:13) * Math.max(1, 1.5 - 0.5*Math.min(1, age*2.5));  // 초반 팝(크리 크게)
