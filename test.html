@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>트렌디 로그라이크 방치형 RPG</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
+        }
+        #ui-overlay {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+        #upgrade-panel {
+            margin-top: 16px;
+            display: flex;
+            gap: 12px;
+        }
+        .btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.5);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="ui-overlay">
+            <div>골드: <span id="gold-txt">0</span>G</div>
+            <div>스테이지: <span id="stage-txt">1</span></div>
+        </div>
+        <canvas id="gameCanvas" width="800" height="450"></canvas>
+    </div>
+
+    <div id="upgrade-panel">
+        <button class="btn" onclick="upgrade('attack')">공격 속도 증가 (비용: <span id="cost-atk">10</span>G)</button>
+        <button class="btn" onclick="upgrade('bullet')">투사체 추가 (비용: <span id="cost-bullet">50</span>G)</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 게임 상태 관리
+        const game = {
+            gold: 0,
+            stage: 1,
+            spawnTimer: 0,
+            spawnInterval: 90,
+            killedInStage: 0,
+            requiredKills: 10
+        };
+
+        // 플레이어 오브젝트
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 20,
+            color: '#60a5fa',
+            attackCooldown: 0,
+            // 업그레이드 가능한 능력치
+            stats: {
+                atkSpeed: 30, // 낮을수록 빠름
+                bulletCount: 1
+            },
+            costs: {
+                attack: 10,
+                bullet: 50
+            }
+        };
+
+        const bullets = [];
+        const enemies = [];
+        const particles = [];
+
+        // 데미지 텍스트 파티클 효과
+        function createParticle(x, y, text, color = '#f59e0b') {
+            particles.push({ x, y, text, color, alpha: 1, vy: -1 });
+        }
+
+        // 업그레이드 로직
+        function upgrade(type) {
+            if (type === 'attack' && game.gold >= player.costs.attack) {
+                game.gold -= player.costs.attack;
+                player.stats.atkSpeed = Math.max(10, player.stats.atkSpeed - 3);
+                player.costs.attack = Math.floor(player.costs.attack * 1.5);
+            } else if (type === 'bullet' && game.gold >= player.costs.bullet) {
+                game.gold -= player.costs.bullet;
+                player.stats.bulletCount += 1;
+                player.costs.bullet = Math.floor(player.costs.bullet * 2.5);
+            }
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById('gold-txt').innerText = game.gold;
+            document.getElementById('stage-txt').innerText = game.stage;
+            document.getElementById('cost-atk').innerText = player.costs.attack;
+            document.getElementById('cost-bullet').innerText = player.costs.bullet;
+        }
+
+        // 몹 생성
+        function spawnEnemy() {
+            const radius = 15;
+            let x, y;
+
+            // 화면 외곽에서 무작위 스폰
+            if (Math.random() < 0.5) {
+                x = Math.random() < 0.5 ? -radius : canvas.width + radius;
+                y = Math.random() * canvas.height;
+            } else {
+                x = Math.random() * canvas.width;
+                y = Math.random() < 0.5 ? -radius : canvas.height + radius;
+            }
+
+            const hp = 1 + Math.floor(game.stage * 1.5);
+            enemies.push({ x, y, radius, hp, maxHp: hp, speed: 1 + (game.stage * 0.1), color: '#f87171' });
+        }
+
+        // 메인 게임 루프
+        function loop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. 플레이어 그리기 (네온 효과 스타일)
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = player.color;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fillStyle = player.color;
+            ctx.fill();
+            ctx.shadowBlur = 0; // 다른 오브젝트 그림자 초기화
+
+            // 2. 자동 공격 로직 (가장 가까운 적 타겟팅)
+            if (player.attackCooldown > 0) player.attackCooldown--;
+
+            if (player.attackCooldown === 0 && enemies.length > 0) {
+                // 가장 가까운 적 찾기
+                let target = enemies[0];
+                let minDist = Infinity;
+                enemies.forEach(e => {
+                    const dist = Math.hypot(e.x - player.x, e.y - player.y);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        target = e;
+                    }
+                });
+
+                const angle = Math.atan2(target.y - player.y, target.x - player.x);
+
+                // 멀티플 샷 구현 (스킬 개수에 부채꼴 모양으로 발사)
+                const spread = 0.2;
+                for (let i = 0; i < player.stats.bulletCount; i++) {
+                    const finalAngle = angle + (i - (player.stats.bulletCount - 1) / 2) * spread;
+                    bullets.push({
+                        x: player.x,
+                        y: player.y,
+                        vx: Math.cos(finalAngle) * 7,
+                        vy: Math.sin(finalAngle) * 7,
+                        radius: 5
+                    });
+                }
+                player.attackCooldown = player.stats.atkSpeed;
+            }
+
+            // 3. 투사체 업데이트 및 그리기
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.x += b.vx;
+                b.y += b.vy;
+
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#fde047';
+                ctx.fill();
+
+                // 화면 밖으로 나가면 제거
+                if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+                    bullets.splice(i, 1);
+                }
+            }
+
+            // 4. 적 업데이트 및 그리기
+            game.spawnTimer++;
+            if (game.spawnTimer >= game.spawnInterval) {
+                spawnEnemy();
+                game.spawnTimer = 0;
+            }
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i];
+                const angle = Math.atan2(player.y - e.y, player.x - e.x);
+                e.x += Math.cos(angle) * e.speed;
+                e.y += Math.sin(angle) * e.speed;
+
+                // 적 체력바 및 본체 그리기
+                ctx.beginPath();
+                ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
+                ctx.fillStyle = e.color;
+                ctx.fill();
+
+                // 뱀파이어 서바이벌 풍 투사체 충돌 체크
+                for (let j = bullets.length - 1; j >= 0; j--) {
+                    const b = bullets[j];
+                    if (Math.hypot(e.x - b.x, e.y - b.y) < e.radius + b.radius) {
+                        bullets.splice(j, 1);
+                        e.hp--;
+                        createParticle(e.x, e.y - 10, "-1", '#ef4444');
+
+                        if (e.hp <= 0) {
+                            const reward = game.stage * 2;
+                            game.gold += reward;
+                            game.killedInStage++;
+                            createParticle(e.x, e.y, `+${reward}G`, '#f59e0b');
+                            enemies.splice(i, 1);
+
+                            // 스테이지 클리어 조건
+                            if (game.killedInStage >= game.requiredKills) {
+                                game.stage++;
+                                game.killedInStage = 0;
+                                game.requiredKills += 5;
+                                game.spawnInterval = Math.max(30, game.spawnInterval - 10);
+                                createParticle(player.x, player.y - 30, "STAGE CLEAR!", '#10b981');
+                            }
+                            updateUI();
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 5. 데미지/골드 텍스트 이펙트 그리기
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.y += p.vy;
+                p.alpha -= 0.02;
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.font = "bold 14px sans-serif";
+                ctx.fillText(p.text, p.x, p.y);
+                ctx.restore();
+
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        // 초기 실행
+        updateUI();
+        loop();
+    </script>
+</body>
+</html>

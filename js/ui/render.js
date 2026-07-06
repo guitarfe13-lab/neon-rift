@@ -1,0 +1,30 @@
+// 네온 캔버스 드로잉 헬퍼. shadowBlur로 글로우.
+export function clear(ctx, w, h) { ctx.clearRect(0, 0, w, h); }
+export function neonCircle(ctx, x, y, r, color) {
+  ctx.save(); ctx.shadowBlur = 16; ctx.shadowColor = color;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill(); ctx.restore();
+}
+export function neonShape(ctx, x, y, r, shape, color, rot = 0) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.shadowBlur = 16; ctx.shadowColor = color;
+  ctx.fillStyle = color; ctx.beginPath();
+  if (shape === 'circle') ctx.arc(0, 0, r, 0, Math.PI * 2);
+  else {
+    const sides = shape === 'triangle' ? 3 : shape === 'diamond' ? 4 : 4;
+    const off = shape === 'square' ? Math.PI / 4 : -Math.PI / 2;
+    for (let i = 0; i < sides; i++) {
+      const a = off + (i / sides) * Math.PI * 2;
+      const px = Math.cos(a) * r, py = Math.sin(a) * r;
+      i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.closePath();
+  }
+  ctx.fill(); ctx.restore();
+}
+export function bar(ctx, x, y, w, h, pct, color) {
+  ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = color; ctx.fillRect(x, y, w * Math.max(0, Math.min(1, pct)), h); ctx.restore();
+}
+export function text(ctx, str, x, y, { color = '#eaf2ff', size = 14, align = 'left', weight = '600' } = {}) {
+  ctx.save(); ctx.fillStyle = color; ctx.font = `${weight} ${size}px system-ui`; ctx.textAlign = align;
+  ctx.fillText(str, x, y); ctx.restore();
+}
