@@ -165,5 +165,27 @@ p { color:var(--mut); }
 .shot-text ul { margin:10px 0 0; padding-left:18px; } .shot-text li { color:var(--mut); margin:5px 0; font-size:14px; }
 @media (max-width:760px){ .shot-row { grid-template-columns:1fr; gap:14px; } .shot-row:nth-child(even) .shot-fig { order:0; } }
 
+/* ── 스토리 블록 ── */
+.story { max-width:720px; margin:0 auto; background:linear-gradient(180deg,rgba(20,26,52,0.7),rgba(10,13,28,0.5));
+  border:1px solid var(--line); border-left:1px solid var(--line); border-radius:16px; padding:26px 30px; position:relative; }
+.story::before { content:'“'; position:absolute; top:2px; left:14px; font-size:56px; color:rgba(66,230,255,0.35); line-height:1; }
+.story p { color:#c6d2e6; font-size:16px; margin:0; line-height:1.85; }
+.story .sig { display:block; margin-top:12px; color:#7f8ca4; font-size:13px; text-align:right; }
+
+/* ── 스킬노트 ── */
+.sk-group { margin-bottom:34px; }
+.sk-group h2 { font-size:22px; margin:0 0 14px; }
+.sk-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; }
+.sk-card { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 18px; }
+.sk-head { display:flex; align-items:center; gap:9px; }
+.sk-dot { width:11px; height:11px; border-radius:50%; background:var(--acc); box-shadow:0 0 10px var(--acc); flex:none; }
+.sk-head h3 { margin:0; font-size:17px; color:var(--ink); }
+.sk-badges { display:flex; flex-wrap:wrap; gap:6px; margin:11px 0 10px; }
+.sk-badge { font-size:11px; color:#9fb0c8; background:rgba(255,255,255,0.05); border:1px solid var(--line); border-radius:20px; padding:2px 9px; }
+.sk-badge.evo { color:#8ffcff; border-color:rgba(143,252,255,0.5); }
+.sk-card p { margin:0; font-size:14px; color:var(--mut); line-height:1.6; }
+.sk-tip { margin-top:8px !important; font-size:13px !important; color:#d0b878 !important; }
+.sk-meta { margin-top:8px; font-size:12.5px; color:#8592a8; }
+
 @media (max-width:600px){ section { padding:40px 0; } .nav .links a { font-size:13px; } }
 @media (prefers-reduced-motion: reduce){ html { scroll-behavior:auto; } .btn:hover, .game-card:hover { transform:none; } }
