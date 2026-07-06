@@ -60,7 +60,7 @@ function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
     // 스프라이트(발이 접지선에 오도록 위로)
     ctx.save(); ctx.translate(x, bob);
     if (Math.cos(angle) < 0) ctx.scale(-1, 1);                  // 진행/조준 방향으로 좌우 반전
-    if (flash) { ctx.shadowBlur = 24; ctx.shadowColor = '#fff'; }
+    if (flash) { ctx.shadowBlur = 24; ctx.shadowColor = flash === true ? '#fff' : flash; }   // true=피격 흰색, 문자열=지정 색(빈사 등)
     if (frame) ctx.drawImage(img, frame.sx, frame.sy, frame.fw, frame.fh, -w / 2, foot - h, w, h);
     else ctx.drawImage(img, -w / 2, foot - h, w, h);
     ctx.restore();
@@ -168,13 +168,14 @@ export function boot() {
     const gold = Math.round(e.gold * rs.stats.goldGain);
     const dr = e.drop || {};
     world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'xp',   value:e.xp, radius:6 });
-    world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'coin', value:gold, radius:6 });
+    // 코인: 절반 확률로 2배 값 하나(기대 골드 동일, 바닥 아이템 수 절반 → 산만함 감소)
+    if (rng.next() < 0.5) world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'coin', value:gold*2, radius:6 });
     // 추가 코인(탱커/광폭체 등 + 엘리트)
     const extraCoins = (dr.coins || 0) + (e.elite ? 2 : 0);
     for (let i=0;i<extraCoins;i++) world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'coin', value:gold, radius:6 });
-    // 마나/HP: 몬스터별 확률
-    if (e.boss || rng.next() < (dr.mana ?? 0.25)) world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'mana', value: e.boss?70:(6+Math.floor(rng.next()*7)), radius:6 });
-    if (e.boss || rng.next() < (dr.hp ?? 0.05))  world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'hp',   value: e.boss?70:(14+Math.floor(rng.next()*12)), radius:7 });
+    // 마나/HP: 몬스터별 확률(기본값 하향 — 바닥 정리)
+    if (e.boss || rng.next() < (dr.mana ?? 0.12)) world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'mana', value: e.boss?70:(6+Math.floor(rng.next()*7)), radius:6 });
+    if (e.boss || rng.next() < (dr.hp ?? 0.03))  world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'hp',   value: e.boss?70:(14+Math.floor(rng.next()*12)), radius:7 });
     // 보스: 대량 드롭
     if (e.boss) {
       for (let i=0;i<8;i++) world.spawnPickup({ x:e.x+j()*3, y:e.y+j()*3, kind:'coin', value:gold, radius:6 });
@@ -396,7 +397,9 @@ export function boot() {
         else R.gem(ctx, gx, gy, g.radius, '#7cff6b'); }
       for (const hz of world.hazards) if (hz.alive && inView(hz.x, hz.y, 40)) R.neonCircle(ctx, hz.x-camX, hz.y-camY, hz.radius, hz.color||'#ff5c5c');
       for (const e of world.enemies) { if (!e.alive || !inView(e.x, e.y, 160)) continue;
-        drawEntity(ctx, e, e.x-camX, e.y-camY, e.radius, e.flash>0?'#ffffff':e.color, frameCount, Math.atan2(world.player.y-e.y, world.player.x-e.x), e.flash>0);
+        // 보스 빈사(HP 20% 이하): 붉은색 점멸(본체 색 + 붉은 글로우)
+        const dying = e.boss && e.hp <= e.maxHp*0.2 && (frameCount>>3)%2===0;
+        drawEntity(ctx, e, e.x-camX, e.y-camY, e.radius, e.flash>0?'#ffffff':(dying?'#ff2a2a':e.color), frameCount, Math.atan2(world.player.y-e.y, world.player.x-e.x), e.flash>0 ? true : (dying ? '#ff2a2a' : false));
         // 머리 위 HP 바(피격으로 hp<maxHp일 때, 보스 제외 — 보스는 하단 바)
         if (!e.boss && e.hp < e.maxHp) {
           const bw = Math.max(22, e.radius*2.2), bh = 4, bx = e.x-camX-bw/2, by = e.y-camY - e.radius*2.8 - 6;
@@ -450,8 +453,9 @@ export function boot() {
       const boss = dir.getBossRef();
       if (boss && boss.alive) {
         const bx = canvas.width/2-180, by = canvas.height-40, bw = 360, bh = 14;
-        R.text(ctx, `👑 ${boss.name}`, canvas.width/2, canvas.height-46, { size:14, align:'center', color:'#ff9ee0' });
-        R.bar(ctx, bx, by, bw, bh, boss.hp/boss.maxHp, '#ff5cc8');
+        const bossDying = boss.hp <= boss.maxHp*0.2 && (frameCount>>3)%2===0;   // 빈사: 붉은 점멸
+        R.text(ctx, `👑 ${boss.name}`, canvas.width/2, canvas.height-46, { size:14, align:'center', color: bossDying?'#ff5c5c':'#ff9ee0' });
+        R.bar(ctx, bx, by, bw, bh, boss.hp/boss.maxHp, bossDying?'#ff2a2a':'#ff5cc8');
         // 보스 스킬 시전 시 HP 바 상단에 스킬명 표시(끝에 페이드아웃)
         if (boss._skillName && boss._skillNameT > 0) {
           ctx.save(); ctx.globalAlpha = Math.min(1, boss._skillNameT / 22);

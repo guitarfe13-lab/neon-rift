@@ -11,7 +11,7 @@ export function makeDirector(rng, biomes) {
     const e = getEnemy(id); const min = atMs / 60000; const lv = Math.max(0, level - 1);
     return { ...e,
       hp: Math.round(e.hp * (1 + min * 0.6 + lv * 0.13)),
-      speed: e.speed * (1 + min * 0.05 + lv * 0.02),   // 레벨↑ → 이동속도도 조금씩↑
+      speed: e.speed * (1.1 + min * 0.05 + lv * 0.05),   // 기본 +10%, 레벨↑마다 +5%(체감되게)
       damage: Math.round(e.damage * (1 + lv * 0.09)) };   // 레벨↑ → 몬스터 공격력 강화(밸런스)
   }
   function spawnOne(world, level) {
