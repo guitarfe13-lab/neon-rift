@@ -373,8 +373,14 @@ export function boot() {
           R.gem(ctx, gx, gy, pr, '#ff8cff'); R.text(ctx, '✦', gx, gy+4, { size:11, align:'center', color:'#fff', weight:'800' }); }
         else R.gem(ctx, gx, gy, g.radius, '#7cff6b'); }
       for (const hz of world.hazards) if (hz.alive) R.neonCircle(ctx, hz.x-camX, hz.y-camY, hz.radius, hz.color||'#ff5c5c');
-      for (const e of world.enemies) if (e.alive)
+      for (const e of world.enemies) { if (!e.alive) continue;
         drawEntity(ctx, e, e.x-camX, e.y-camY, e.radius, e.flash>0?'#ffffff':e.color, frameCount, Math.atan2(world.player.y-e.y, world.player.x-e.x), e.flash>0);
+        // 머리 위 HP 바(피격으로 hp<maxHp일 때, 보스 제외 — 보스는 하단 바)
+        if (!e.boss && e.hp < e.maxHp) {
+          const bw = Math.max(22, e.radius*2.2), bh = 4, bx = e.x-camX-bw/2, by = e.y-camY - e.radius*2.8 - 6;
+          ctx.save(); ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(bx-1, by-1, bw+2, bh+2); ctx.restore();
+          R.bar(ctx, bx, by, bw, bh, e.hp/e.maxHp, '#ff4d6d');
+        } }
       for (const p of world.projectiles) { if (!p.alive) continue;
         if (p.beam) { const n=Math.hypot(p.vx,p.vy)||1, ux=p.vx/n, uy=p.vy/n;
           const ax=p.x-camX, ay=p.y-camY, bx=p.x-ux*p.len-camX, by=p.y-uy*p.len-camY;
