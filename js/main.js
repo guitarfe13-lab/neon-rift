@@ -71,7 +71,7 @@ export function boot() {
     ...BIOMES.map((b) => `assets/bg/${b.id}.png`),
   ]);
   let scene = 'title', overlay = null, world, rs, dir, rng, sstate, frameCount = 0;
-  let shake = 0, combo = 0, comboTimer = 0, slowmo = 0, whiteFlash = 0;
+  let shake = 0, combo = 0, comboTimer = 0, slowmo = 0, whiteFlash = 0, pendingLevelUp = false;
 
   function startRun(charId = 'blade') {
     clearScreens();
@@ -102,10 +102,12 @@ export function boot() {
       audio.sfx(e.boss ? 'boss' : 'kill');
       spawnDrops(e);
       combo++; comboTimer = 90;
-      shake = Math.min(12, shake + (e.boss ? 9 : 1.5));
-      const bursts = e.boss ? 44 : 6;
-      for (let i=0;i<bursts;i++){ const a=(i/bursts)*Math.PI*2 + Math.random(); const s=(e.boss?2.5:1.5)+Math.random()*(e.boss?4:2.5);
+      shake = Math.min(12, shake + (e.boss ? 9 : 2.6));
+      const bursts = e.boss ? 44 : 8;
+      for (let i=0;i<bursts;i++){ const a=(i/bursts)*Math.PI*2 + Math.random(); const s=(e.boss?2.5:1.6)+Math.random()*(e.boss?4:2.6);
         world.spawnParticle({ x:e.x, y:e.y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:e.boss?26:14, color: i%3===0?'#fff':e.color, spark:true }); }
+      // 일반 몹: 약한 충격파 링
+      if (!e.boss) world.spawnParticle({ x:e.x, y:e.y, r:e.radius*0.7, rMax:e.radius*2.6, life:12, color:e.color, shock:true });
       // 보스 처치 연출: 슬로우모션 + 충격파 + 화면 플래시 + 강한 셰이크
       if (e.boss) {
         slowmo = 78; whiteFlash = 14; shake = 18;
@@ -134,7 +136,7 @@ export function boot() {
       world.spawnFloater({ x:world.player.x, y:world.player.y-22, text:`+${g.value} MP`, color:'#4db3ff', life:36, vy:-0.7 }); audio.sfx('pick'); }
     else if (g.kind === 'hp') { world.player.hp = Math.min(world.player.maxHp, world.player.hp + g.value);
       world.spawnFloater({ x:world.player.x, y:world.player.y-22, text:`+${g.value} HP`, color:'#ff6b8a', life:36, vy:-0.7 }); audio.sfx('upgrade'); }
-    else { if (frameCount%3===0) audio.sfx('pick'); if (addXp(rs, g.value*rs.stats.xpGain).leveled) openLevelUp(); }
+    else { if (frameCount%3===0) audio.sfx('pick'); if (addXp(rs, g.value*rs.stats.xpGain).leveled) pendingLevelUp = true; }
   }
 
   function cleanupSkillState() {
@@ -209,6 +211,8 @@ export function boot() {
       if(--pt.life<=0) pt.alive=false; }
     for (const f of world.floaters){ if(!f.alive)continue; f.y+=f.vy; if(--f.life<=0) f.alive=false; }
     world.despawnDead();
+    // 레벨업 창은 보스 처치 슬로우모션(폭발 연출)이 끝난 뒤에 연다.
+    if (pendingLevelUp && slowmo <= 0 && !overlay) { pendingLevelUp = false; openLevelUp(); }
     if (world.player.hp <= 0) gameOver();
   }
 
