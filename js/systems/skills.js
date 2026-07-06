@@ -38,8 +38,8 @@ const RUNTIME = {
     const p = world.player; const t = nearestEnemy(world, p.x, p.y); if (!t) return;
     const a = Math.atan2(t.y-p.y, t.x-p.x);
     world.spawnProjectile({ x:p.x, y:p.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,
-      radius:7, dmg:rt.damage, pierce:rt.pierce??99, life:36, crit:Math.random()<(rs.stats.crit||0),
-      color: skill.color||'#7cf9ff' });
+      radius:6, dmg:rt.damage, pierce:rt.pierce??99, life:36, crit:Math.random()<(rs.stats.crit||0),
+      color: skill.color||'#7cf9ff', beam:true, len: rt.speed*3.2 });
   },
   // 궤도 오브: rt.count개를 플레이어 주위로 회전. 적별 재타격 쿨다운(e._orbCd)로 제어.
   orbital(world, rs, rt, skill, st) {

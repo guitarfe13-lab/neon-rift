@@ -29,6 +29,12 @@ export function neonShape(ctx, x, y, r, shape, color, rot = 0) {
   }
   ctx.fill(); ctx.restore();
 }
+// 네온 선분(빔 등). 방향을 가진 직선 형태로 그린다.
+export function neonLine(ctx, x1, y1, x2, y2, width, color) {
+  ctx.save(); ctx.shadowBlur = 14; ctx.shadowColor = color; ctx.strokeStyle = color;
+  ctx.lineWidth = width; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
 export function bar(ctx, x, y, w, h, pct, color) {
   ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(x, y, w, h);
   ctx.fillStyle = color; ctx.fillRect(x, y, w * Math.max(0, Math.min(1, pct)), h); ctx.restore();

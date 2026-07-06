@@ -4,9 +4,11 @@ import { makeRng } from './core/rng.js';
 import { loadMeta, saveMeta } from './core/storage.js';
 import { createWorld } from './engine/entities.js';
 import { makeDirector } from './engine/spawner.js';
+import { stepEnemy, onEnemyDeath } from './engine/enemyAI.js';
 import { applyHit } from './engine/combat.js';
 import { computeStats } from './engine/stats.js';
 import { getCharacter } from './data/characters.js';
+import { BIOMES } from './data/biomes.js';
 import { updateSkills, updateProjectiles } from './systems/skills.js';
 import { addXp, rollChoices, applyChoice } from './systems/levelup.js';
 import { makeInput } from './core/input.js';
@@ -29,7 +31,7 @@ export function boot() {
       ownedSkills:{ [ch.startingSkill]:1 }, passives:{}, metaUpgrades: meta.upgrades, stats:{} };
     rs.stats = computeStats({ charId, metaUpgrades: meta.upgrades, runMods: [] });
     world.player.maxHp = rs.stats.maxHp; world.player.hp = rs.stats.maxHp;
-    dir = makeDirector(rng, { enemySet:['grunt'] });
+    dir = makeDirector(rng, BIOMES);
     sstate = {}; scene = 'run'; overlay = null;
   }
 
@@ -40,7 +42,8 @@ export function boot() {
     d = Math.max(1, Math.round(d));
     const res = applyHit(e, d);
     world.spawnFloater({ x:e.x, y:e.y-10, text:String(d), color:crit?'#ffe14d':'#fff', life:40, vy:-0.8 });
-    if (res.killed) { rs.gold += Math.round(e.gold*rs.stats.goldGain); world.spawnPickup({ x:e.x, y:e.y, xp:e.xp, radius:6 }); }
+    if (res.killed) { rs.gold += Math.round(e.gold*rs.stats.goldGain); world.spawnPickup({ x:e.x, y:e.y, xp:e.xp, radius:6 });
+      onEnemyDeath(e, world, rng); }
   }
 
   function cleanupSkillState() {
@@ -60,17 +63,22 @@ export function boot() {
     // 이동
     const mv = input.moveVector(world), sp = rs.stats.moveSpeed;
     world.player.x += mv.x * sp; world.player.y += mv.y * sp;
-    // 스폰 + 적 이동/접촉 피해
-    dir.update(dt, rs.timeMs, world, 1);
+    // 스폰 + 적 이동(행동 AI)/접촉 피해
+    dir.update(dt, world);
     for (const e of world.enemies) { if (!e.alive) continue;
       if (e._orbCd > 0) e._orbCd--;
-      const a = Math.atan2(world.player.y-e.y, world.player.x-e.x);
-      e.x += Math.cos(a)*e.speed; e.y += Math.sin(a)*e.speed;
+      stepEnemy(e, world, rng);
       if (Math.hypot(e.x-world.player.x, e.y-world.player.y) < e.radius+world.player.radius) {
         if ((world.player.invuln||0)<=0){ world.player.hp -= e.damage*0.1; world.player.invuln=8; }
       }
     }
     if (world.player.invuln>0) world.player.invuln--;
+    // 적 투사체(hazard) 이동/플레이어 피격
+    for (const hz of world.hazards) { if (!hz.alive) continue;
+      hz.x += hz.vx; hz.y += hz.vy; if (--hz.life <= 0) { hz.alive=false; continue; }
+      if (Math.hypot(hz.x-world.player.x, hz.y-world.player.y) < hz.radius+world.player.radius) {
+        if ((world.player.invuln||0)<=0){ world.player.hp -= hz.damage*0.1; world.player.invuln=8; } hz.alive=false; }
+    }
     // 스킬 실행 + 투사체 이동
     updateSkills(world, rs, rng, sstate, damageEnemy);
     updateProjectiles(world);
@@ -113,7 +121,12 @@ export function boot() {
       const ch = getCharacter(rs.charId);
       const camX = world.player.x - canvas.width/2;
       const camY = world.player.y - canvas.height/2;
-      R.grid(ctx, canvas.width, canvas.height, camX, camY);
+      // 바이옴 배경(방사형 그라디언트) + 팔레트 그리드
+      const bio = dir.biome();
+      const bg = ctx.createRadialGradient(canvas.width/2, canvas.height*0.45, 0, canvas.width/2, canvas.height*0.45, canvas.width*0.72);
+      bg.addColorStop(0, bio.palette[0]); bg.addColorStop(1, bio.palette[1]);
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      R.grid(ctx, canvas.width, canvas.height, camX, camY, 48, bio.grid);
       // 파티클(오라 링 / 연쇄 볼트)
       for (const pt of world.particles) { if (!pt.alive) continue;
         ctx.save(); ctx.globalAlpha = Math.max(0, pt.life/8); ctx.strokeStyle = pt.color||'#5cf'; ctx.lineWidth = 2;
@@ -122,12 +135,22 @@ export function boot() {
         ctx.restore();
       }
       for (const g of world.pickups) if (g.alive) R.neonCircle(ctx, g.x-camX, g.y-camY, g.radius, '#7cff6b');
+      for (const hz of world.hazards) if (hz.alive) R.neonCircle(ctx, hz.x-camX, hz.y-camY, hz.radius, hz.color||'#ff5c5c');
       for (const e of world.enemies) if (e.alive) R.neonShape(ctx, e.x-camX, e.y-camY, e.radius, e.shape, e.color);
-      for (const p of world.projectiles) if (p.alive) R.neonCircle(ctx, p.x-camX, p.y-camY, p.radius, p.color||'#ffe14d');
+      for (const p of world.projectiles) { if (!p.alive) continue;
+        if (p.beam) { const n=Math.hypot(p.vx,p.vy)||1, ux=p.vx/n, uy=p.vy/n;
+          R.neonLine(ctx, p.x-camX, p.y-camY, p.x-ux*p.len-camX, p.y-uy*p.len-camY, p.radius*1.7, p.color||'#7cf9ff'); }
+        else R.neonCircle(ctx, p.x-camX, p.y-camY, p.radius, p.color||'#ffe14d'); }
       R.neonShape(ctx, world.player.x-camX, world.player.y-camY, world.player.radius, ch.shape, ch.color);
       for (const f of world.floaters) if (f.alive) R.text(ctx, f.text, f.x-camX, f.y-camY, { color:f.color, size:13, align:'center' });
       drawHud(ctx, rs, world);
+      R.text(ctx, bio.name, 16, 84, { size:12, color:'#9ab' });
       R.text(ctx, input.isAutopilot()?'AUTO (P: 수동)':'수동 WASD (P: 오토)', canvas.width-16, 24, { size:12, align:'right', color:'#8aa' });
+      const boss = dir.getBossRef();
+      if (boss && boss.alive) {
+        R.text(ctx, `👑 ${boss.name}`, canvas.width/2, canvas.height-46, { size:14, align:'center', color:'#ff9ee0' });
+        R.bar(ctx, canvas.width/2-180, canvas.height-40, 360, 14, boss.hp/boss.maxHp, '#ff5cc8');
+      }
     }
     if (overlay?.type==='levelup') drawLevelUp();
     if (scene==='gameover') { R.text(ctx,'GAME OVER',canvas.width/2,canvas.height/2-20,{size:44,align:'center',color:'#ff4d9d'});
