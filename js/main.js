@@ -437,8 +437,22 @@ export function boot() {
           ctx.fillText(String(rs.ownedSkills[id]), x0+isz-5, yy+isz-1); ctx.restore(); } }
       const boss = dir.getBossRef();
       if (boss && boss.alive) {
+        const bx = canvas.width/2-180, by = canvas.height-40, bw = 360, bh = 14;
         R.text(ctx, `👑 ${boss.name}`, canvas.width/2, canvas.height-46, { size:14, align:'center', color:'#ff9ee0' });
-        R.bar(ctx, canvas.width/2-180, canvas.height-40, 360, 14, boss.hp/boss.maxHp, '#ff5cc8');
+        R.bar(ctx, bx, by, bw, bh, boss.hp/boss.maxHp, '#ff5cc8');
+        // 보스 초상: HP 바 앞(좌측) 구형 원 안에 보스 이미지(없으면 코드 스프라이트)
+        const pr = 22, pcx = bx - pr - 8, pcy = by + bh/2;
+        ctx.save();
+        ctx.beginPath(); ctx.arc(pcx, pcy, pr, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(10,12,22,0.92)'; ctx.shadowColor = '#ff5cc8'; ctx.shadowBlur = 12; ctx.fill(); ctx.shadowBlur = 0;
+        ctx.save(); ctx.beginPath(); ctx.arc(pcx, pcy, pr-2, 0, Math.PI*2); ctx.clip();
+        const bi = getSprite('assets/sprites/' + boss.id);
+        if (bi) { const sc = Math.max((pr-2)*2/bi.width, (pr-2)*2/bi.height), iw = bi.width*sc, ih = bi.height*sc;
+          ctx.drawImage(bi, pcx-iw/2, pcy-ih/2, iw, ih); }
+        else drawSprite(ctx, boss.sprite, pcx, pcy, pr-5, boss.color, frameCount, 0);
+        ctx.restore();
+        ctx.beginPath(); ctx.arc(pcx, pcy, pr, 0, Math.PI*2); ctx.lineWidth = 2.5; ctx.strokeStyle = '#ff9ee0'; ctx.stroke();
+        ctx.restore();
       }
     }
     ctx.filter = 'none';   // 이후(플래시·GAME OVER 텍스트)는 선명하게
