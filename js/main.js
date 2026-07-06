@@ -11,6 +11,7 @@ import { getCharacter, CHARACTERS } from './data/characters.js';
 import { ENEMIES } from './data/enemies.js';
 import { BOSSES } from './data/bosses.js';
 import { BIOMES } from './data/biomes.js';
+import { getSkill } from './data/skills.js';
 import { updateSkills, updateProjectiles } from './systems/skills.js';
 import { addXp, rollChoices, applyChoice } from './systems/levelup.js';
 import { makeInput } from './core/input.js';
@@ -18,6 +19,7 @@ import { makeAudio } from './core/audio.js';
 import { drawHud } from './ui/hud.js';
 import { showTitle, showLoadout, showMetaShop, showSettings, clearScreens } from './ui/screens.js';
 import { drawSprite } from './ui/sprites.js';
+import { drawSkillIcon, roundRect } from './ui/skillIcons.js';
 import { getImage, preload } from './ui/assets.js';
 import * as R from './ui/render.js';
 
@@ -233,6 +235,17 @@ export function boot() {
   }
 
   function openLevelUp(){ audio.sfx('levelup'); overlay = { type:'levelup', choices: rollChoices(rs, rng, 3) }; }
+  // 레벨업 선택지 카드 위치(그리기·클릭 공용)
+  function choiceRect(i){ const bw=Math.min(540, canvas.width-64), bh=66, gap=14, y0=178;
+    return { x:canvas.width/2-bw/2, y:y0+i*(bh+gap), w:bw, h:bh }; }
+  function choiceSkill(c){
+    if (c.kind==='passive') return { type:'passive', color:'#ffd166' };
+    return getSkill(c.kind==='evolve' ? c.into : c.id) || { type:'passive', color:'#8cf' };
+  }
+  function selectChoice(i){
+    if (!overlay || overlay.type!=='levelup' || !overlay.choices[i]) return;
+    audio.sfx('upgrade'); applyChoice(rs, overlay.choices[i]); cleanupSkillState(); overlay=null;
+  }
   function gameOver(){
     scene='gameover'; audio.sfx('death');
     const stage = Math.max(1, (rs.timeMs/30000|0)+1);
@@ -312,6 +325,14 @@ export function boot() {
       }
       R.text(ctx, bio.name, 16, 84, { size:12, color:'#9ab' });
       R.text(ctx, input.isAutopilot()?'AUTO (P: 수동)':'수동 WASD (P: 오토)', canvas.width-16, 24, { size:12, align:'right', color:'#8aa' });
+      // 우측 상단: 현재 장착 스킬 아이콘 + 레벨
+      { const isz=32, pad=7, x0=canvas.width-12-isz; let idx=0;
+        for (const id of Object.keys(rs.ownedSkills)) { const s=getSkill(id); if (!s) continue;
+          const yy=40+idx*(isz+pad); idx++;
+          drawSkillIcon(ctx, s, x0, yy, isz);
+          ctx.save(); ctx.fillStyle='rgba(0,0,0,0.75)'; ctx.beginPath(); ctx.arc(x0+isz-5, yy+isz-5, 9, 0, 7); ctx.fill();
+          ctx.fillStyle='#fff'; ctx.font='800 11px system-ui'; ctx.textAlign='center';
+          ctx.fillText(String(rs.ownedSkills[id]), x0+isz-5, yy+isz-1); ctx.restore(); } }
       const boss = dir.getBossRef();
       if (boss && boss.alive) {
         R.text(ctx, `👑 ${boss.name}`, canvas.width/2, canvas.height-46, { size:14, align:'center', color:'#ff9ee0' });
@@ -328,25 +349,33 @@ export function boot() {
       R.text(ctx,'클릭하면 다시 시작',canvas.width/2,canvas.height/2+24,{size:16,align:'center'}); }
   }
   function drawLevelUp(){
-    ctx.save(); ctx.fillStyle='rgba(4,6,14,0.74)'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore();
+    ctx.save(); ctx.fillStyle='rgba(4,6,14,0.76)'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore();
     ctx.save(); ctx.shadowBlur=22; ctx.shadowColor='#ffd166'; ctx.fillStyle='#ffe14d';
-    ctx.font='800 30px system-ui'; ctx.textAlign='center'; ctx.fillText('⬆ LEVEL UP', canvas.width/2, 116); ctx.restore();
-    R.text(ctx,'하나를 선택하세요 (1 / 2 / 3)',canvas.width/2,146,{size:14,align:'center',color:'#9fb'});
+    ctx.font='800 30px system-ui'; ctx.textAlign='center'; ctx.fillText('⬆ LEVEL UP', canvas.width/2, 112); ctx.restore();
+    R.text(ctx,'스킬을 클릭하거나 1 / 2 / 3 키로 선택',canvas.width/2,142,{size:13,align:'center',color:'#9fb'});
     overlay.choices.forEach((c,i)=>{
-      const y=196+i*50, isEvo=c.kind==='evolve';
-      ctx.save(); ctx.fillStyle=isEvo?'rgba(255,225,77,0.14)':'rgba(66,230,255,0.08)';
-      ctx.strokeStyle=isEvo?'#ffe14d':'rgba(120,150,200,0.4)'; ctx.lineWidth=1.5;
-      const bw=Math.min(560,canvas.width-80);
-      ctx.beginPath(); ctx.roundRect(canvas.width/2-bw/2, y-26, bw, 40, 8); ctx.fill(); ctx.stroke(); ctx.restore();
-      R.text(ctx,`${i+1}.  ${c.label}`,canvas.width/2,y,{size:17,align:'center',color:isEvo?'#ffe14d':'#eaf2ff',weight:'700'});
+      const R0=choiceRect(i), isEvo=c.kind==='evolve';
+      ctx.save(); ctx.fillStyle=isEvo?'rgba(255,225,77,0.12)':'rgba(20,28,48,0.92)';
+      ctx.strokeStyle=isEvo?'#ffe14d':'rgba(120,150,200,0.5)'; ctx.lineWidth=1.8;
+      roundRect(ctx, R0.x, R0.y, R0.w, R0.h, 10); ctx.fill(); ctx.stroke(); ctx.restore();
+      const isz=R0.h-16; drawSkillIcon(ctx, choiceSkill(c), R0.x+10, R0.y+8, isz);
+      R.text(ctx, `${i+1}`, R0.x+R0.w-18, R0.y+24, { size:14, align:'center', color:'#7fa', weight:'800' });
+      R.text(ctx, c.label, R0.x+isz+24, R0.y+R0.h/2+6, { size:16, align:'left', color:isEvo?'#ffe14d':'#eaf2ff', weight:'700' });
     });
   }
 
   addEventListener('keydown', e => {
-    if (overlay?.type==='levelup') { const i='123'.indexOf(e.key);
-      if (i>=0 && overlay.choices[i]){ audio.sfx('upgrade'); applyChoice(rs, overlay.choices[i]); cleanupSkillState(); overlay=null; } }
+    if (overlay?.type==='levelup') { const i='123'.indexOf(e.key); if (i>=0) selectChoice(i); }
   });
-  canvas.addEventListener('pointerdown', () => { if (scene==='gameover') toTitle(); });
+  canvas.addEventListener('pointerdown', (e) => {
+    if (scene==='gameover') { toTitle(); return; }
+    if (overlay?.type==='levelup') {
+      const rct = canvas.getBoundingClientRect();
+      const px=(e.clientX-rct.left)*canvas.width/rct.width, py=(e.clientY-rct.top)*canvas.height/rct.height;
+      for (let i=0;i<overlay.choices.length;i++){ const R0=choiceRect(i);
+        if (px>=R0.x && px<=R0.x+R0.w && py>=R0.y && py<=R0.y+R0.h) { selectChoice(i); break; } }
+    }
+  });
 
   // 씬 내비게이션
   function toTitle(){ scene='title'; clearScreens(); showTitle({ meta, onPlay:toLoadout, onShop:toShop, onSettings:toSettings }); }
