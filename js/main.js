@@ -157,8 +157,8 @@ export function boot() {
       for (let i=0;i<8;i++) world.spawnPickup({ x:e.x+j()*3, y:e.y+j()*3, kind:'coin', value:gold, radius:6 });
       for (let i=0;i<2;i++) world.spawnPickup({ x:e.x+j()*3, y:e.y+j()*3, kind:'mana', value:60, radius:6 });
     }
-    // 히든 스킬: 보스 35%, 엘리트/특수 몹은 drop.skill, 그 외 없음
-    const skillChance = e.boss ? 0.35 : (dr.skill || (e.elite ? 0.03 : 0));
+    // 히든 스킬: 보스 8%, 엘리트/특수 몹은 drop.skill(≤2~3%), 그 외 없음 (모두 10% 미만)
+    const skillChance = e.boss ? 0.08 : (dr.skill || (e.elite ? 0.03 : 0));
     if (rng.next() < skillChance) world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'skill', value:1, radius:9 });
   }
   // 히든 스킬 획득: 직업 풀과 무관한 무작위 미보유 스킬을 즉시 부여(= 히든).
