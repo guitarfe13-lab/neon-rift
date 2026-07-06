@@ -127,7 +127,8 @@ export function boot() {
   // 중앙 피해 처리: 스킬 데미지 × 공격력 배수 × (MP·편차) → 콤보에 따라 크리 확률↑.
   function damageEnemy(e, skillDmg, element) {
     e.hitStreak = (e.hitStreak || 0) + 1; e.hitTimer = 90;   // 연속 피격 스트릭(1.5s 창)
-    const critChance = Math.min(0.8, (rs.stats.crit || 0) + combo * 0.006 + (e.hitStreak - 1) * 0.02); // 콤보 + 연속 피격↑
+    // 크리 억제(밸런스): 상한 55%, 콤보/집중타격 계수 하향 + 집중타격 기여 상한 20%. 크리는 보너스이지 기본이 아니게.
+    const critChance = Math.min(0.55, (rs.stats.crit || 0) + combo * 0.004 + Math.min(0.2, (e.hitStreak - 1) * 0.012));
     const crit = Math.random() < critChance;
     const mpBonus = 1 + ((rs.mp || 0) / (rs.stats.maxMp || 1)) * 0.05;        // MP 높을수록 소폭↑
     let d = skillDmg * (rs.stats.damage / rs.baseDamage) * mpBonus * (0.88 + Math.random() * 0.24); // ±12% 편차(각도/변동)

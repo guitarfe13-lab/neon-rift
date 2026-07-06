@@ -12,7 +12,7 @@ export function makeDirector(rng, biomes) {
     return { ...e,
       hp: Math.round(e.hp * (1 + min * 0.6 + lv * 0.13)),
       speed: e.speed * (1 + min * 0.05 + lv * 0.02),   // 레벨↑ → 이동속도도 조금씩↑
-      damage: Math.round(e.damage * (1 + lv * 0.05)) };
+      damage: Math.round(e.damage * (1 + lv * 0.09)) };   // 레벨↑ → 몬스터 공격력 강화(밸런스)
   }
   function spawnOne(world, level) {
     const b = biome(); const id = rng.pick(b.enemySet); const st = enemyStatsAt(id, t, level);
@@ -35,7 +35,7 @@ export function makeDirector(rng, biomes) {
     // 플레이어 현재 위치를 중심으로 아레나 고정(무한 후퇴 방지). 보스는 화면 안에 등장.
     arena = { x: world.player.x, y: world.player.y, r: 360 };
     bossRef = world.spawnEnemy({ ...boss, hp, maxHp: hp, name: prefix + boss.name,
-      damage: Math.round(boss.damage * (1 + lv * 0.04 + cycle * 0.1)),
+      damage: Math.round(boss.damage * (1 + lv * 0.07 + cycle * 0.12)),
       x: arena.x, y: arena.y - 170 });
   }
   function update(dt, world, level = 1) {
