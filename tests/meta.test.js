@@ -10,7 +10,7 @@ test('골드→소울: 환산은 GOLD_PER_SOUL로 내림', () => {
   assert.equal(goldToSouls(GOLD_PER_SOUL * 3 + 4), 3);
 });
 test('골드→소울: 교환 시 골드 차감·소울 증가, 잔돈 유지', () => {
-  const m = defaultMeta(); m.gold = 34; m.souls = 5;   // 34골드 = 3소울 + 4잔돈
+  const m = defaultMeta(); m.gold = GOLD_PER_SOUL * 3 + 4; m.souls = 5;   // 3소울 + 4잔돈
   exchangeGold(m, 3);
   assert.equal(m.souls, 8); assert.equal(m.gold, 4);
 });

@@ -32,7 +32,7 @@ export function buyPotion(meta, kind) {
 }
 
 // 황금코인 → 소울 교환. 게임오버 때 적립된 meta.gold를 소울로 환전(GOLD_PER_SOUL:1).
-export const GOLD_PER_SOUL = 10;
+export const GOLD_PER_SOUL = 1000;
 export function goldToSouls(gold) { return Math.floor(Math.max(0, gold || 0) / GOLD_PER_SOUL); }
 export function exchangeGold(meta, souls) {   // souls = 교환할 소울 개수
   const n = Math.min(Math.floor(souls) || 0, goldToSouls(meta.gold));

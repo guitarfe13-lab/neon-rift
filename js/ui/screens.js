@@ -83,8 +83,8 @@ export function showMetaShop({ meta, save, onBack }) {
     const gRow = el('div', 'shop-row'); const avail = goldToSouls(meta.gold);
     gRow.innerHTML = `<div>💰 <b>골드 → 소울 교환</b> <span class="lvl">${GOLD_PER_SOUL}골드 = 1소울 · 최대 +${avail.toLocaleString()}소울</span></div>`;
     const gBtns = el('div'); gBtns.style.cssText = 'display:flex; gap:6px';
-    const b10 = el('button', 'btn small', '+10 소울'); b10.disabled = avail < 10;
-    b10.onclick = () => { exchangeGold(meta, 10); save(); render(); };
+    const b10 = el('button', 'btn small', '+1 소울'); b10.disabled = avail < 1;
+    b10.onclick = () => { exchangeGold(meta, 1); save(); render(); };
     const bAll = el('button', 'btn small', `전부 교환 (+${avail.toLocaleString()})`); bAll.disabled = avail < 1;
     bAll.onclick = () => { exchangeAllGold(meta); save(); render(); };
     gBtns.appendChild(b10); gBtns.appendChild(bAll); gRow.appendChild(gBtns); list.appendChild(gRow);
