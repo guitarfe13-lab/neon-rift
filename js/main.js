@@ -104,7 +104,8 @@ export function boot() {
 
   // 중앙 피해 처리: 스킬 데미지 × 공격력 배수 × (MP·편차) → 콤보에 따라 크리 확률↑.
   function damageEnemy(e, skillDmg) {
-    const critChance = Math.min(0.7, (rs.stats.crit || 0) + combo * 0.006);   // 콤보↑ → 크리 확률↑
+    e.hitStreak = (e.hitStreak || 0) + 1; e.hitTimer = 90;   // 연속 피격 스트릭(1.5s 창)
+    const critChance = Math.min(0.8, (rs.stats.crit || 0) + combo * 0.006 + (e.hitStreak - 1) * 0.02); // 콤보 + 연속 피격↑
     const crit = Math.random() < critChance;
     const mpBonus = 1 + ((rs.mp || 0) / (rs.stats.maxMp || 1)) * 0.05;        // MP 높을수록 소폭↑
     let d = skillDmg * (rs.stats.damage / rs.baseDamage) * mpBonus * (0.88 + Math.random() * 0.24); // ±12% 편차(각도/변동)
@@ -160,14 +161,19 @@ export function boot() {
     else { if (frameCount%3===0) audio.sfx('pick'); if (addXp(rs, g.value*rs.stats.xpGain).leveled) onLevelGain(); }
   }
 
-  // 플레이어 피격(적 크리 가능). raw = 적 피해 × 0.1.
+  // 플레이어 피격(적 크리 가능, 연속 피격 시 크리 확률↑). raw = 적 피해 × 0.1.
   function hurtPlayer(raw) {
     if ((world.player.invuln || 0) > 0) return;
-    const crit = Math.random() < 0.13;
+    const p = world.player;
+    p.hurtStreak = (p.hurtStreak || 0) + 1; p.hurtTimer = 120;   // 연속 피격 스트릭(2s 창)
+    const critChance = Math.min(0.7, 0.1 + (p.hurtStreak - 1) * 0.03);   // 연속으로 맞을수록↑
+    const crit = Math.random() < critChance;
     const d = raw * (crit ? 1.6 : 1);
-    world.player.hp -= d; world.player.invuln = 8;
+    p.hp -= d; p.invuln = 8;
     shake = Math.min(14, shake + (crit ? 9 : 6)); audio.sfx('hurt');
-    if (crit) world.spawnFloater({ x:world.player.x, y:world.player.y-22, text:`Critical -${Math.max(1,Math.round(d))}`, color:'#ff3b3b', life:52, max:52, vy:-0.7, crit:true });
+    const shown = Math.max(1, Math.round(d));
+    world.spawnFloater({ x:p.x, y:p.y-22, text: crit ? `Critical -${shown}` : `-${shown}`,
+      color: crit ? '#ff3b3b' : '#ff9a9a', life: crit?52:34, max: crit?52:34, vy:-0.7, crit });
   }
 
   function cleanupSkillState() {
@@ -198,12 +204,14 @@ export function boot() {
     for (const e of world.enemies) { if (!e.alive) continue;
       if (e._orbCd > 0) e._orbCd--;
       if (e.flash > 0) e.flash--;
+      if (e.hitTimer > 0 && --e.hitTimer === 0) e.hitStreak = 0;   // 연속 피격 스트릭 소멸
       stepEnemy(e, world, rng);
       if (ar && e.boss) { const dx=e.x-ar.x, dy=e.y-ar.y, dd=Math.hypot(dx,dy);
         if (dd > ar.r+70) { e.x=ar.x+dx/dd*(ar.r+70); e.y=ar.y+dy/dd*(ar.r+70); } }
       if (Math.hypot(e.x-world.player.x, e.y-world.player.y) < e.radius+world.player.radius) hurtPlayer(e.damage*0.1);
     }
     if (world.player.invuln>0) world.player.invuln--;
+    if (world.player.hurtTimer > 0 && --world.player.hurtTimer === 0) world.player.hurtStreak = 0; // 연속 피격 스트릭 소멸
     if (comboTimer>0) comboTimer--; else combo=0;
     if (levelupDelay>0) levelupDelay--;
     comboPop *= 0.85;
