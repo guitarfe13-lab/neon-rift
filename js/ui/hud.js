@@ -1,6 +1,31 @@
 // 인게임 HUD.
 import { bar, text, gem } from './render.js';
 import { roundRect } from './skillIcons.js';
+import { getSprite } from './assets.js';
+import { drawSprite } from './sprites.js';
+import { getCharacter } from '../data/characters.js';
+
+// 캐릭터 초상: 구형 원 안에 캐릭터 이미지(단일 → 시트 첫 프레임 → 코드 스프라이트 폴백).
+function drawPortrait(ctx, ch, cx, cy, r, t) {
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(10,12,22,0.92)'; ctx.shadowColor = ch.color; ctx.shadowBlur = 12; ctx.fill(); ctx.shadowBlur = 0;
+  ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r-2, 0, Math.PI*2); ctx.clip();
+  const single = getSprite('assets/sprites/' + ch.id);
+  const sheetImg = !single && ch.sheet ? getSprite('assets/sprites/' + ch.id + '_sheet') : null;
+  if (single) {                                   // 전신 이미지: 상단정렬(머리/상반신이 보이게)
+    const sc = Math.max((r-2)*2/single.width, (r-2)*2/single.height), iw = single.width*sc, ih = single.height*sc;
+    ctx.drawImage(single, cx-iw/2, cy-r, iw, ih);
+  } else if (sheetImg) {                           // 시트 대기 첫 프레임
+    const sh = ch.sheet, idx = (sh.anims.idle && sh.anims.idle[0]) || 0;
+    const fw = sheetImg.width/sh.cols, fh = sheetImg.height/sh.rows, fx = (idx%sh.cols)*fw, fy = Math.floor(idx/sh.cols)*fh;
+    const sc = Math.max((r-2)*2/fw, (r-2)*2/fh), dw = fw*sc, dh = fh*sc;
+    ctx.drawImage(sheetImg, fx, fy, fw, fh, cx-dw/2, cy-r, dw, dh);
+  } else drawSprite(ctx, ch.sprite, cx, cy, r-5, ch.color, t, 0);
+  ctx.restore();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.lineWidth = 2.5; ctx.strokeStyle = ch.color; ctx.stroke();
+  ctx.restore();
+}
 
 // 포션 병 아이콘: 코르크 + 유리병 + 하단 액체 채움.
 function drawPotion(ctx, x, y, w, h, color) {
@@ -19,15 +44,19 @@ function drawPotion(ctx, x, y, w, h, color) {
 export function drawHud(ctx, rs, world, frame = 0, souls = 0) {
   const p = world.player;
   const blinkOn = Math.floor(frame / 8) % 2 === 0;   // 저잔량 경고 점멸
+  // 캐릭터 초상(HP/MP 바 앞) → 바들은 우측으로 이동
+  const ch = getCharacter(rs.charId);
+  if (ch) drawPortrait(ctx, ch, 40, 32, 26, frame);
+  const BX = 76, BW = 208;                          // 바 시작 x / 폭(초상 자리 확보)
   const hpPct = p.hp / p.maxHp, hpLow = hpPct <= 0.3;
-  bar(ctx, 16, 14, 220, 13, hpPct, hpLow ? (blinkOn ? '#ff2a2a' : '#5a1018') : '#ff4d6d');
-  text(ctx, `HP ${Math.max(0,Math.ceil(p.hp))}/${Math.round(p.maxHp)}`, 20, 24, { size:11, color: hpLow && blinkOn ? '#ffdada' : '#eaf2ff' });
+  bar(ctx, BX, 14, BW, 13, hpPct, hpLow ? (blinkOn ? '#ff2a2a' : '#5a1018') : '#ff4d6d');
+  text(ctx, `HP ${Math.max(0,Math.ceil(p.hp))}/${Math.round(p.maxHp)}`, BX+4, 24, { size:11, color: hpLow && blinkOn ? '#ffdada' : '#eaf2ff' });
   const maxMp = rs.stats.maxMp || 1;
   const mpPct = (rs.mp ?? 0) / maxMp, mpLow = mpPct <= 0.3;
-  bar(ctx, 16, 30, 220, 9, mpPct, mpLow ? (blinkOn ? '#ff2a2a' : '#3a1420') : '#4db3ff');
-  text(ctx, `MP ${Math.max(0,Math.floor(rs.mp ?? 0))}/${Math.round(maxMp)}`, 20, 38, { size:10, color: mpLow && blinkOn ? '#ffdada' : '#eaf2ff' });
-  bar(ctx, 16, 43, 220, 7, rs.xp / (8*Math.pow(rs.level,1.55)+4), '#42e6ff');
-  text(ctx, `Lv ${rs.level}`, 244, 49, { size:13, color:'#42e6ff', weight:'800' });   // 경험치 바 옆
+  bar(ctx, BX, 30, BW, 9, mpPct, mpLow ? (blinkOn ? '#ff2a2a' : '#3a1420') : '#4db3ff');
+  text(ctx, `MP ${Math.max(0,Math.floor(rs.mp ?? 0))}/${Math.round(maxMp)}`, BX+4, 38, { size:10, color: mpLow && blinkOn ? '#ffdada' : '#eaf2ff' });
+  bar(ctx, BX, 43, BW, 7, rs.xp / (8*Math.pow(rs.level,1.55)+4), '#42e6ff');
+  text(ctx, `Lv ${rs.level}`, BX+BW+8, 49, { size:13, color:'#42e6ff', weight:'800' });   // 경험치 바 옆
   const c = (n) => Math.round(n).toLocaleString('en-US');                              // 천단위 콤마
   const info = `⏱ ${c(rs.timeMs/1000)}s   ⭐ ${c(rs.stage)}   💰 ${c(rs.gold)}   `;
   text(ctx, info, 16, 74, { size:13 });
