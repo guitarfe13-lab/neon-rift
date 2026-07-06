@@ -90,12 +90,18 @@ export function makeAudio(settings) {
   }
   function playBgm() {
     if (!ensure() || started) return; started = true;
-    try {
-      bgmEl = new Audio('assets/bgm/track1.mp3'); bgmEl.loop = true;
-      const src = ctx.createMediaElementSource(bgmEl); src.connect(bgmGain);
-      bgmEl.addEventListener('error', startFallback);
-      bgmEl.play().catch(startFallback);
-    } catch { startFallback(); }
+    // mp3(사용자 교체용) → wav(기본 동봉) → 프로시저럴 폴백 순으로 시도.
+    const sources = ['assets/bgm/track1.mp3', 'assets/bgm/track1.wav'];
+    let i = 0;
+    const tryNext = () => {
+      if (i >= sources.length) { startFallback(); return; }
+      const el = new Audio(sources[i++]); el.loop = true; let settled = false;
+      const next = () => { if (settled) return; settled = true; tryNext(); };
+      el.addEventListener('error', next, { once: true });
+      try { ctx.createMediaElementSource(el).connect(bgmGain); } catch {}
+      el.play().then(() => { settled = true; bgmEl = el; }).catch(next);
+    };
+    tryNext();
   }
   function stopBgm() { if (bgmEl) bgmEl.pause(); if (fallbackTimer) { clearInterval(fallbackTimer); fallbackTimer = null; } }
 

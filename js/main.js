@@ -15,6 +15,7 @@ import { makeInput } from './core/input.js';
 import { makeAudio } from './core/audio.js';
 import { drawHud } from './ui/hud.js';
 import { showTitle, showLoadout, showMetaShop, showSettings, clearScreens } from './ui/screens.js';
+import { drawSprite } from './ui/sprites.js';
 import * as R from './ui/render.js';
 
 export function boot() {
@@ -175,14 +176,15 @@ export function boot() {
       }
       for (const g of world.pickups) if (g.alive) R.neonCircle(ctx, g.x-camX, g.y-camY, g.radius, '#7cff6b');
       for (const hz of world.hazards) if (hz.alive) R.neonCircle(ctx, hz.x-camX, hz.y-camY, hz.radius, hz.color||'#ff5c5c');
-      for (const e of world.enemies) if (e.alive) R.neonShape(ctx, e.x-camX, e.y-camY, e.radius, e.shape, e.flash>0?'#ffffff':e.color);
+      for (const e of world.enemies) if (e.alive)
+        drawSprite(ctx, e.sprite, e.x-camX, e.y-camY, e.radius, e.flash>0?'#ffffff':e.color, frameCount, Math.atan2(world.player.y-e.y, world.player.x-e.x));
       for (const p of world.projectiles) { if (!p.alive) continue;
         if (p.beam) { const n=Math.hypot(p.vx,p.vy)||1, ux=p.vx/n, uy=p.vy/n;
           R.neonLine(ctx, p.x-camX, p.y-camY, p.x-ux*p.len-camX, p.y-uy*p.len-camY, p.radius*1.7, p.color||'#7cf9ff'); }
         else R.neonCircle(ctx, p.x-camX, p.y-camY, p.radius, p.color||'#ffe14d'); }
       // 플레이어(피격 무적 중 깜빡임)
       if (!(world.player.invuln>0 && frameCount%6<3))
-        R.neonShape(ctx, world.player.x-camX, world.player.y-camY, world.player.radius, ch.shape, ch.color);
+        drawSprite(ctx, ch.sprite, world.player.x-camX, world.player.y-camY, world.player.radius, ch.color, frameCount, 0);
       for (const f of world.floaters) if (f.alive) R.text(ctx, f.text, f.x-camX, f.y-camY, { color:f.color, size:f.crit?18:13, align:'center', weight:f.crit?'800':'600' });
       drawHud(ctx, rs, world);
       if (combo > 2) R.text(ctx, `COMBO x${combo}`, canvas.width/2, 46, { size:22, align:'center', color:'#ffd166', weight:'800' });
