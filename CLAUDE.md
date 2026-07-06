@@ -8,8 +8,9 @@
 - **git 저장소**: `github.com/guitarfe13-lab/neon-rift`, `main`에 푸시. 윈도우 SSL은 `git config http.sslBackend schannel`로 해결됨(리포에 설정 고정).
 - **자동푸시 훅 없음**(lotto-ai 전용). 각 Phase 체크포인트마다 수동 커밋·푸시.
 - 배포는 **정적 호스팅**(가장 저렴) 또는 **Node 프로덕션 서버 `node server.mjs`**(의존성0, CloudType/Render, `npm start`). 빌드 산출물 없음.
-- **사이트 구조**: `index.html`=랜딩(콘텐츠·광고), `play.html`=게임, `guide.html`=공략, `privacy.html`=개인정보. 게임 자체는 `play.html`.
-- **수익화(AdSense)**: `js/ads.js`의 `ADSENSE_CLIENT` 한 곳만 교체하면 활성화(승인 전엔 미리보기 박스). `ads.txt`·도메인 placeholder(`neon-rift.example.com`) 교체 필요. **itch.io엔 본인 AdSense 불가**. 상세: `docs/DEPLOY.md`.
+- **멀티게임 포털**: `index.html`=포털 홈(게임 그리드, `js/site.js`가 `js/data/games.js`로 렌더), `neon-rift.html`=게임 상세(유튜브 임베드+스크린샷 설명), `play.html`=게임 실행, `guide.html`=공략, `privacy.html`=개인정보(공통). **새 게임 추가 = `games.js` 항목 + 상세 페이지 복사**(절차: `docs/DEPLOY.md`).
+- **미디어**: 유튜브는 상세의 `data-yt`에 영상ID(lite 임베드), 스크린샷은 `assets/screens/`, 카드 썸네일은 `assets/thumbs/`(각 README). 파일 없으면 자리표시.
+- **수익화(AdSense)**: `js/ads.js`의 `ADSENSE_CLIENT` 한 곳만 교체하면 활성화(승인 전엔 미리보기 박스). `ads.txt`·도메인 placeholder(`neon-arcade.example.com`) 교체 필요. **itch.io엔 본인 AdSense 불가**. 상세: `docs/DEPLOY.md`.
 
 ## 실행 · 테스트
 - **개발 서버**: `node serve.mjs` → http://localhost:8080 (의존성 0. `file://`은 ES모듈 CORS로 막히므로 반드시 http로).

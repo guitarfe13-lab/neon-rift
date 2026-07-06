@@ -109,5 +109,61 @@ p { color:var(--mut); }
 #consent-banner p { margin:0; flex:1; min-width:260px; font-size:13.5px; color:var(--ink); }
 #consent-banner .consent-btns { display:flex; gap:8px; }
 
+/* ── 포털: 게임 그리드 ── */
+.game-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:20px; }
+.game-card { display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--line);
+  border-radius:16px; overflow:hidden; text-decoration:none; color:var(--ink);
+  transition:transform .1s, box-shadow .2s, border-color .2s; }
+.game-card:hover { transform:translateY(-4px); border-color:rgba(66,230,255,0.5);
+  box-shadow:0 14px 34px rgba(0,0,0,0.45); text-decoration:none; }
+.game-card.soon { opacity:0.7; cursor:default; }
+.game-card.soon:hover { transform:none; box-shadow:none; border-color:var(--line); }
+.game-thumb { aspect-ratio:16/10; display:grid; place-items:center; position:relative;
+  background:radial-gradient(120% 120% at 30% 0%, #1a2350 0%, #0c0f22 70%); }
+.game-thumb .ph { color:#7b88a0; font-size:13px; }
+.game-thumb .badge { position:absolute; top:10px; left:10px; font-size:11px; font-weight:800;
+  padding:3px 9px; border-radius:20px; letter-spacing:0.04em; }
+.badge.live { background:rgba(66,230,255,0.16); color:#8fe9ff; border:1px solid rgba(66,230,255,0.5); }
+.badge.soon { background:rgba(255,255,255,0.08); color:#aab; border:1px solid var(--line); }
+.game-body { padding:16px 18px 18px; display:flex; flex-direction:column; gap:6px; flex:1; }
+.game-body h3 { margin:0; font-size:19px; letter-spacing:-0.02em; }
+.game-body .gt { font-size:13px; font-weight:700; }
+.game-body p { margin:2px 0 0; font-size:14px; }
+.game-tags { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+.game-tags span { font-size:11px; color:#9fb0c8; background:rgba(255,255,255,0.05);
+  border:1px solid var(--line); border-radius:20px; padding:2px 9px; }
+.game-body .play-line { margin-top:12px; font-weight:800; font-size:14px; }
+
+/* ── 상세: 유튜브 lite 임베드 ── */
+.yt-embed { position:relative; aspect-ratio:16/9; border-radius:14px; overflow:hidden; cursor:pointer;
+  background:#05070f center/cover no-repeat; border:1px solid var(--line); }
+.yt-embed.empty { cursor:default; display:grid; place-items:center;
+  background:repeating-linear-gradient(45deg,rgba(255,255,255,0.02) 0 14px,transparent 14px 28px); }
+.yt-embed .yt-ph { color:#8592a8; font-size:14px; text-align:center; padding:0 20px; }
+.yt-embed .yt-play { position:absolute; inset:0; margin:auto; width:74px; height:52px; border:none;
+  border-radius:14px; background:rgba(255,30,80,0.92); cursor:pointer; display:grid; place-items:center;
+  box-shadow:0 8px 24px rgba(0,0,0,0.5); transition:transform .1s, background .2s; }
+.yt-embed .yt-play:hover { transform:scale(1.06); background:#ff1e50; }
+.yt-embed .yt-play::after { content:''; border-style:solid; border-width:11px 0 11px 19px;
+  border-color:transparent transparent transparent #fff; margin-left:4px; }
+.yt-embed::before { content:''; position:absolute; inset:0; background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,0.45)); pointer-events:none; }
+.yt-embed.empty::before, .yt-embed.playing::before { display:none; }
+.yt-embed iframe { width:100%; height:100%; border:0; display:block; }
+
+/* ── 상세: 스크린샷 설명 섹션 ── */
+.shots { display:flex; flex-direction:column; gap:44px; margin-top:8px; }
+.shot-row { display:grid; grid-template-columns:1.1fr 1fr; gap:26px; align-items:center; }
+.shot-row:nth-child(even) .shot-fig { order:2; }
+.shot-fig { margin:0; }
+.shot { aspect-ratio:16/9; border-radius:14px; overflow:hidden; border:1px solid var(--line);
+  background:radial-gradient(120% 120% at 30% 0%, #16204a 0%, #0a0d1c 72%); display:grid; place-items:center; }
+.shot img { width:100%; height:100%; object-fit:cover; display:block; }
+.shot .ph { color:#7b88a0; font-size:13px; text-align:center; padding:0 16px; }
+.shot-fig figcaption { margin-top:8px; font-size:12.5px; color:#6f7c93; text-align:center; }
+.shot-text h3 { margin:0 0 8px; font-size:20px; color:var(--ink); }
+.shot-text p { margin:0; font-size:15px; }
+.shot-text ul { margin:10px 0 0; padding-left:18px; } .shot-text li { color:var(--mut); margin:5px 0; font-size:14px; }
+@media (max-width:760px){ .shot-row { grid-template-columns:1fr; gap:14px; } .shot-row:nth-child(even) .shot-fig { order:0; } }
+
 @media (max-width:600px){ section { padding:40px 0; } .nav .links a { font-size:13px; } }
-@media (prefers-reduced-motion: reduce){ html { scroll-behavior:auto; } .btn:hover { transform:none; } }
+@media (prefers-reduced-motion: reduce){ html { scroll-behavior:auto; } .btn:hover, .game-card:hover { transform:none; } }

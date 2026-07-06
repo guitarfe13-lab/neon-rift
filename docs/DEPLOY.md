@@ -1,20 +1,33 @@
-# NEON RIFT 배포 · 수익화 가이드
+# NEON ARCADE 배포 · 수익화 가이드
 
-게임은 **무빌드·의존성0 정적 클라이언트**입니다. 런타임에 Node가 반드시 필요한 것은 아니지만, "웹서비스 운영 + 광고"를 위해 콘텐츠 페이지와 Node 프로덕션 서버를 함께 갖췄습니다.
+**멀티게임 포털**입니다. 각 게임은 무빌드·의존성0 정적 클라이언트이고, 홈은 `js/data/games.js` 데이터로 게임 목록을 렌더합니다. 런타임에 Node가 필수는 아니지만, "웹서비스 운영 + 광고"를 위해 콘텐츠 페이지와 Node 프로덕션 서버를 갖췄습니다.
 
 ## 사이트 구성
 
 | 경로 | 역할 |
 |---|---|
-| `index.html` | 랜딩(소개·특징·FAQ·광고) — SEO/AdSense 콘텐츠 |
-| `play.html` | 실제 게임 화면(광고 없음, 오조작 방지) |
-| `guide.html` | 공략(콘텐츠 분량 확보 → AdSense 승인에 유리) |
-| `privacy.html` | 개인정보 처리방침(AdSense 필수) |
+| `index.html` | **포털 홈**(게임 카드 그리드 + 소개 + 광고). 그리드는 `js/site.js`가 `games.js`로 렌더 |
+| `neon-rift.html` | NEON RIFT **상세**(히어로 + 유튜브 임베드 + 스크린샷 상세설명 + 광고) — SEO/AdSense 콘텐츠 |
+| `play.html` | NEON RIFT 실행 화면(광고 없음, 오조작 방지) |
+| `guide.html` | NEON RIFT 공략(콘텐츠 분량 → AdSense 승인에 유리) |
+| `privacy.html` | 개인정보 처리방침(포털 공통, AdSense 필수) |
 | `404.html` | 없는 페이지 |
-| `ads.txt` / `robots.txt` / `sitemap.xml` | 광고 인증 / 크롤링 / 색인 |
+| `js/data/games.js` | **게임 목록·포털 이름 데이터**(SITE, GAMES) |
+| `js/site.js` | 홈 그리드 렌더 + 유튜브 lite 임베드 + 스크린샷 자리표시 + 브랜드 주입 |
 | `js/ads.js` | AdSense 로더 + 동의 배너(설정 전엔 미리보기 박스) |
-| `server.mjs` | 프로덕션 Node 서버(의존성0) |
-| `serve.mjs` | 개발 서버(8080) |
+| `assets/thumbs/` · `assets/screens/` | 카드 썸네일 · 게임플레이 스크린샷(넣는 법은 각 README) |
+| `ads.txt` / `robots.txt` / `sitemap.xml` | 광고 인증 / 크롤링 / 색인 |
+| `server.mjs` · `serve.mjs` | 프로덕션(의존성0) · 개발(8080) 서버 |
+
+## 새 게임 추가하기
+1. 게임 파일(정적)을 추가하고 실행 페이지를 만든다(예: `game2/` 폴더 + `game2-play.html`).
+2. **상세 페이지**: `neon-rift.html`을 복사해 히어로·유튜브(`data-yt`)·스크린샷(`data-shot`)·설명을 교체.
+3. **홈 노출**: `js/data/games.js`의 `GAMES`에 항목 한 줄 추가(`status:'live'`, `detail`/`play` 경로, `youtube`, `thumb`, `tags`).
+4. `assets/thumbs/`에 카드 썸네일, `assets/screens/`에 스크린샷을 넣는다. `sitemap.xml`에 URL 등록.
+
+## 게임플레이 영상 · 스크린샷
+- **유튜브**: 상세 페이지 `<div class="yt-embed" data-yt="영상ID">`에 ID를 넣으면 클릭 시 재생(no-cookie, lite). 비우면 "준비 중" 표시.
+- **스크린샷**: `assets/screens/README.md` 참고. 파일을 넣으면 자리표시가 실제 캡처로 바뀜.
 
 ## 배포 방법
 
