@@ -13,16 +13,18 @@ import { updateSkills, updateProjectiles } from './systems/skills.js';
 import { addXp, rollChoices, applyChoice } from './systems/levelup.js';
 import { makeInput } from './core/input.js';
 import { drawHud } from './ui/hud.js';
+import { showTitle, showLoadout, showMetaShop, showSettings, clearScreens } from './ui/screens.js';
 import * as R from './ui/render.js';
 
 export function boot() {
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const meta = loadMeta();
-  const input = makeInput(canvas);
-  let scene = 'run', overlay = null, world, rs, dir, rng, sstate, frameCount = 0;
+  const input = makeInput(canvas, meta.settings.autopilot);
+  let scene = 'title', overlay = null, world, rs, dir, rng, sstate, frameCount = 0;
 
   function startRun(charId = 'blade') {
+    clearScreens();
     rng = makeRng('run-' + (meta.best.timeMs + (frameCount % 1000)));
     world = createWorld();
     world.player.x = canvas.width/2; world.player.y = canvas.height/2;
@@ -117,7 +119,7 @@ export function boot() {
 
   function render() {
     R.clear(ctx, canvas.width, canvas.height);
-    if (scene==='run' || scene==='gameover') {
+    if ((scene==='run' || scene==='gameover') && world) {
       const ch = getCharacter(rs.charId);
       const camX = world.player.x - canvas.width/2;
       const camY = world.player.y - canvas.height/2;
@@ -166,11 +168,18 @@ export function boot() {
     if (overlay?.type==='levelup') { const i='123'.indexOf(e.key);
       if (i>=0 && overlay.choices[i]){ applyChoice(rs, overlay.choices[i]); cleanupSkillState(); overlay=null; } }
   });
-  canvas.addEventListener('pointerdown', () => { if (scene==='gameover') startRun(rs.charId); });
+  canvas.addEventListener('pointerdown', () => { if (scene==='gameover') toTitle(); });
+
+  // 씬 내비게이션
+  function toTitle(){ scene='title'; clearScreens(); showTitle({ meta, onPlay:toLoadout, onShop:toShop, onSettings:toSettings }); }
+  function toLoadout(){ scene='loadout'; showLoadout({ meta, onStart:beginRun, onBack:toTitle }); }
+  function toShop(){ scene='shop'; showMetaShop({ meta, save:()=>saveMeta(meta), onBack:toTitle }); }
+  function toSettings(){ scene='settings'; showSettings({ meta, save:()=>saveMeta(meta), onBack:toTitle }); }
+  function beginRun(id){ startRun(id); }
 
   const loop = makeLoop({ update, render, step: 1000/60 });
-  startRun();
+  toTitle();
   requestAnimationFrame(function frame(t){ loop.tick(t); requestAnimationFrame(frame); });
-  return { startRun };
+  return { startRun, toTitle };
 }
 if (typeof window !== 'undefined') window.addEventListener('DOMContentLoaded', boot);

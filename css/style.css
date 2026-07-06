@@ -7,3 +7,39 @@ html, body { margin:0; height:100%; background:var(--bg); color:var(--ink);
   radial-gradient(circle at 50% 45%, #141830 0%, #0a0b12 70%); border-radius:10px; }
 #ui-root { position:absolute; inset:0; pointer-events:none; }
 #ui-root > * { pointer-events:auto; }
+
+/* 오버레이 화면 */
+.screen { position:absolute; inset:0; display:flex; flex-direction:column; gap:16px;
+  padding:32px; overflow:auto; background:rgba(6,8,16,0.82); backdrop-filter:blur(4px); }
+.screen.center { align-items:center; justify-content:center; text-align:center; }
+.game-logo { font-size:clamp(40px,8vw,72px); font-weight:800; letter-spacing:-0.03em; margin:0;
+  color:var(--neon); text-shadow:0 0 24px rgba(66,230,255,0.6); }
+.subtitle { margin:0; color:#aab; }
+.screen-title { font-size:28px; margin:0 0 8px; color:var(--neon); }
+.muted { color:#889; margin:0; }
+.souls { color:#8be0ff; font-weight:700; margin:0 0 8px; }
+.btn-col { display:flex; flex-direction:column; gap:10px; width:min(280px,80vw); margin-top:8px; }
+.btn-row { display:flex; gap:10px; justify-content:center; margin-top:8px; }
+.btn { border:1px solid rgba(66,230,255,0.4); background:rgba(20,26,44,0.9); color:var(--ink);
+  padding:12px 20px; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer;
+  transition:transform .08s, box-shadow .2s, background .2s; }
+.btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 6px 18px rgba(66,230,255,0.25); background:rgba(28,36,60,0.95); }
+.btn:disabled { opacity:0.4; cursor:not-allowed; }
+.btn.primary { background:linear-gradient(135deg,#2a8cff,#8b5cff); border-color:transparent; }
+.btn.small { padding:7px 12px; font-size:13px; }
+.card-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;
+  width:min(760px,92vw); }
+.card { text-align:left; background:rgba(18,24,40,0.9); border:1px solid rgba(120,150,200,0.25);
+  border-radius:12px; padding:14px; cursor:pointer; color:var(--ink); }
+.card.sel { border-color:var(--neon); box-shadow:0 0 0 2px rgba(66,230,255,0.4) inset; }
+.card.locked { opacity:0.55; }
+.card-name { font-size:18px; font-weight:700; }
+.card-desc { font-size:12.5px; color:#aab; margin:6px 0; }
+.card-meta { font-size:12px; color:#8be0ff; }
+.shop-list { display:flex; flex-direction:column; gap:8px; width:min(560px,94vw); margin:0 auto; }
+.shop-row { display:flex; align-items:center; justify-content:space-between; gap:12px;
+  background:rgba(18,24,40,0.85); border:1px solid rgba(120,150,200,0.18); border-radius:10px; padding:10px 14px; }
+.shop-row .lvl { color:#889; font-size:12px; font-weight:400; }
+.set-row { display:flex; align-items:center; justify-content:space-between; gap:16px;
+  width:min(460px,92vw); margin:0 auto; padding:8px 0; }
+.set-row input[type=range] { width:200px; }

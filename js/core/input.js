@@ -1,7 +1,7 @@
 // 입력 + 오토파일럿 조향(가장 가까운 위협 반대 + 근접 XP 유도).
-export function makeInput(canvas) {
+export function makeInput(canvas, autopilotInit = true) {
   const keys = new Set(); const pointer = { x: 0, y: 0, down: false };
-  let autopilot = true;
+  let autopilot = autopilotInit;
   addEventListener('keydown', e => { keys.add(e.key.toLowerCase()); if (e.key.toLowerCase()==='p') autopilot=!autopilot; });
   addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
   canvas.addEventListener('pointermove', e => { const r = canvas.getBoundingClientRect();
