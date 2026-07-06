@@ -96,6 +96,7 @@ export function boot() {
   ]);
   let scene = 'title', overlay = null, world, rs, dir, rng, sstate, frameCount = 0;
   let shake = 0, combo = 0, comboTimer = 0, slowmo = 0, whiteFlash = 0, pendingLevelUp = false;
+  let announce = null, lastBoss = null;   // 보스 출현 중앙 경고 배너 {text,color,life,max}
   let levelupDelay = 0, goldFlash = 0, comboPop = 0;
   let autoPotion = meta.settings.autoPotion !== false;   // 물약 자동 사용(O 키/설정 토글)
 
@@ -123,6 +124,7 @@ export function boot() {
     rs.oaths = meta.relics?.oath || 0;                                      // 신성의 맹세(부활) 반입
     dir = makeDirector(rng, BIOMES);
     sstate = {}; scene = 'run'; overlay = null;
+    announce = null; lastBoss = null;
   }
 
   // 중앙 피해 처리: 스킬 데미지 × 공격력 배수 × (MP·편차) → 콤보에 따라 크리 확률↑.
@@ -258,6 +260,10 @@ export function boot() {
       if (dd > ar.r) { world.player.x = ar.x + dx/dd*ar.r; world.player.y = ar.y + dy/dd*ar.r; } }
     // 스폰 + 적 이동(행동 AI)/접촉 피해 (플레이어 레벨을 넘겨 몹 능력치 동반 상향)
     dir.update(dt, world, rs.level);
+    // 보스 출현 감지 → 화면 중앙 대형 경고 배너(위협감·경고)
+    { const bref = dir.getBossRef();
+      if (bref && bref !== lastBoss) { announce = { text: `${bref.name} 출현!`, color: bref.color || '#ff5cc8', life: 170, max: 170 }; audio.sfx('boss'); shake = Math.min(14, shake + 8); }
+      lastBoss = bref; }
     for (const e of world.enemies) { if (!e.alive) continue;
       if (e._orbCd > 0) e._orbCd--;
       if (e.flash > 0) e.flash--;
@@ -428,8 +434,9 @@ export function boot() {
       for (const p of world.projectiles) { if (!p.alive) continue;
         if (p.beam) { const n=Math.hypot(p.vx,p.vy)||1, ux=p.vx/n, uy=p.vy/n;
           const ax=p.x-camX, ay=p.y-camY, bx=p.x-ux*p.len-camX, by=p.y-uy*p.len-camY;
-          ctx.save(); ctx.globalAlpha=0.4; R.neonLine(ctx, ax,ay,bx,by, p.radius*3.0, p.color||'#7cf9ff'); ctx.restore(); // 글로우
-          R.neonLine(ctx, ax,ay,bx,by, p.radius*1.1, '#ffffff'); }                                                     // 코어
+          // 슬림 레이저: 얇은 글로우 + 가는 흰 코어(화살과 구분). 판정(radius)은 그대로.
+          ctx.save(); ctx.globalAlpha=0.35; R.neonLine(ctx, ax,ay,bx,by, p.radius*1.4, p.color||'#7cf9ff'); ctx.restore(); // 글로우
+          R.neonLine(ctx, ax,ay,bx,by, Math.max(1.6, p.radius*0.4), '#ffffff'); }                                        // 코어
         else R.neonCircle(ctx, p.x-camX, p.y-camY, p.radius, p.color||'#ffe14d'); }
       // 플레이어(피격 무적 중 깜빡임)
       if (!(world.player.invuln>0 && frameCount%6<3))
@@ -497,6 +504,25 @@ export function boot() {
       }
     }
     ctx.filter = 'none';   // 이후(플래시·GAME OVER 텍스트)는 선명하게
+    // 보스 출현 경고 배너: 화면 중앙 대형 표시(페이드인 → 유지 → 페이드아웃, 렌더 프레임 감쇠)
+    if (announce && announce.life > 0 && scene === 'run') {
+      const t = announce.max - announce.life;                       // 경과 프레임
+      const alpha = Math.min(1, t / 10, announce.life / 34);        // 인/아웃 페이드
+      const pop = t < 12 ? 1.55 - 0.55 * (t / 12) : 1;              // 등장 순간 확대→안착
+      const cy = canvas.height * 0.34;
+      ctx.save(); ctx.globalAlpha = alpha;
+      // 가독성 밴드 + 위/아래 경고선
+      ctx.fillStyle = 'rgba(6,4,10,0.55)'; ctx.fillRect(0, cy - 52, canvas.width, 104);
+      ctx.fillStyle = 'rgba(255,60,60,0.85)'; ctx.fillRect(0, cy - 52, canvas.width, 2); ctx.fillRect(0, cy + 50, canvas.width, 2);
+      // WARNING 소제목 + 보스명(보스 색 네온)
+      ctx.textAlign = 'center';
+      ctx.font = '800 13px system-ui'; ctx.fillStyle = '#ff5c5c'; ctx.fillText('⚠  W A R N I N G  ⚠', canvas.width / 2, cy - 26);
+      ctx.font = `900 ${Math.round(38 * pop)}px system-ui`;
+      ctx.shadowColor = announce.color; ctx.shadowBlur = 26;
+      ctx.fillStyle = announce.color; ctx.fillText(announce.text, canvas.width / 2, cy + 18);
+      ctx.shadowBlur = 0; ctx.restore();
+      announce.life--;
+    }
     // 보스 처치 화면 플래시(렌더 프레임마다 감쇠 — 슬로우모션 영향 안 받음)
     if (whiteFlash > 0) { ctx.save(); ctx.globalAlpha = (whiteFlash/14)*0.6; ctx.fillStyle='#fff';
       ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore(); whiteFlash--; }
