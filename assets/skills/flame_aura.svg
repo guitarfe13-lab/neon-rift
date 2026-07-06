@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<defs><filter id="g" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="1.5" result="b"></feGaussianBlur><feMerge><feMergeNode in="b"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge></filter></defs>
+<g filter="url(#g)" fill="none" stroke="#ff7a3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="32" cy="32" r="13" stroke-width="2" opacity=".5"></circle><circle cx="32" cy="32" r="6" fill="#4d2512"></circle><line x1="47.0" y1="32.0" x2="54.0" y2="32.0" stroke-width="2.5"></line><line x1="42.6" y1="42.6" x2="47.6" y2="47.6" stroke-width="2.5"></line><line x1="32.0" y1="47.0" x2="32.0" y2="54.0" stroke-width="2.5"></line><line x1="21.4" y1="42.6" x2="16.4" y2="47.6" stroke-width="2.5"></line><line x1="17.0" y1="32.0" x2="10.0" y2="32.0" stroke-width="2.5"></line><line x1="21.4" y1="21.4" x2="16.4" y2="16.4" stroke-width="2.5"></line><line x1="32.0" y1="17.0" x2="32.0" y2="10.0" stroke-width="2.5"></line><line x1="42.6" y1="21.4" x2="47.6" y2="16.4" stroke-width="2.5"></line>
+</g></svg>
