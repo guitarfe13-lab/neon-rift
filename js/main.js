@@ -98,11 +98,15 @@ export function boot() {
     R.clear(ctx, canvas.width, canvas.height);
     if (scene==='run' || scene==='gameover') {
       const ch = getCharacter(rs.charId);
-      for (const g of world.pickups) if (g.alive) R.neonCircle(ctx, g.x, g.y, g.radius, '#7cff6b');
-      for (const e of world.enemies) if (e.alive) R.neonShape(ctx, e.x, e.y, e.radius, e.shape, e.color);
-      for (const p of world.projectiles) if (p.alive) R.neonCircle(ctx, p.x, p.y, p.radius, '#ffe14d');
-      R.neonShape(ctx, world.player.x, world.player.y, world.player.radius, ch.shape, ch.color);
-      for (const f of world.floaters) if (f.alive) R.text(ctx, f.text, f.x, f.y, { color:f.color, size:13, align:'center' });
+      // 카메라: 플레이어를 항상 화면 중앙에 두고 월드를 상대 좌표로 렌더.
+      const camX = world.player.x - canvas.width/2;
+      const camY = world.player.y - canvas.height/2;
+      R.grid(ctx, canvas.width, canvas.height, camX, camY);
+      for (const g of world.pickups) if (g.alive) R.neonCircle(ctx, g.x-camX, g.y-camY, g.radius, '#7cff6b');
+      for (const e of world.enemies) if (e.alive) R.neonShape(ctx, e.x-camX, e.y-camY, e.radius, e.shape, e.color);
+      for (const p of world.projectiles) if (p.alive) R.neonCircle(ctx, p.x-camX, p.y-camY, p.radius, '#ffe14d');
+      R.neonShape(ctx, world.player.x-camX, world.player.y-camY, world.player.radius, ch.shape, ch.color);
+      for (const f of world.floaters) if (f.alive) R.text(ctx, f.text, f.x-camX, f.y-camY, { color:f.color, size:13, align:'center' });
       drawHud(ctx, rs, world);
       R.text(ctx, input.isAutopilot()?'AUTO (P: 수동)':'수동 WASD (P: 오토)', canvas.width-16, 24, { size:12, align:'right', color:'#8aa' });
     }

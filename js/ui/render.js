@@ -1,5 +1,14 @@
 // 네온 캔버스 드로잉 헬퍼. shadowBlur로 글로우.
 export function clear(ctx, w, h) { ctx.clearRect(0, 0, w, h); }
+// 카메라 오프셋에 따라 스크롤되는 배경 그리드(이동감 표현).
+export function grid(ctx, w, h, camX, camY, spacing = 48, color = 'rgba(66,230,255,0.07)') {
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.beginPath();
+  const ox = -(((camX % spacing) + spacing) % spacing);
+  const oy = -(((camY % spacing) + spacing) % spacing);
+  for (let x = ox; x <= w; x += spacing) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
+  for (let y = oy; y <= h; y += spacing) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
+  ctx.stroke(); ctx.restore();
+}
 export function neonCircle(ctx, x, y, r, color) {
   ctx.save(); ctx.shadowBlur = 16; ctx.shadowColor = color;
   ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill(); ctx.restore();
