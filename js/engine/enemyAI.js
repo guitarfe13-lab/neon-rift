@@ -7,7 +7,7 @@ export const MOVE_SCALE = 0.5;
 // 적 투사체(플레이어에게 피해) 발사. 아군 투사체와 구분되도록 붉은색(스킬탄은 크고 주황빛).
 function fireHazard(world, x, y, ang, speed, damage, opt) {
   world.spawnHazard({ x, y, vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed,
-    radius: opt?.radius || 7, damage, life:220, color: opt?.color || '#ff2e2e' });
+    radius: opt?.radius || 7, damage, life: opt?.life || 220, color: opt?.color || '#ff2e2e' });
 }
 
 // 보스 전용 스킬: 상시 탄막과 별개 쿨다운. skillTier(0~3, 진행도)가 높을수록 링 수·탄 수·데미지↑(광역·강력).
@@ -86,6 +86,8 @@ export function onEnemyDeath(e, world, rng) {
     for (let i=0;i<(e.splitCount||2);i++){ const a=rng.next()*Math.PI*2;
       world.spawnEnemy({ ...mini, x:e.x+Math.cos(a)*14, y:e.y+Math.sin(a)*14, maxHp:mini.hp }); }
   } else if (e.behavior === 'bomber') {
-    for (let i=0;i<10;i++){ const a=i/10*Math.PI*2; fireHazard(world, e.x, e.y, a, 2.6, e.damage); } // 사망 폭발 탄막
+    // 사망 폭발: 빠르게 퍼지는 짧은 수명 탄막(폭발감) + 충격파 링
+    for (let i=0;i<10;i++){ const a=i/10*Math.PI*2 + rng.next()*0.2; fireHazard(world, e.x, e.y, a, 5.2, e.damage, { life:80 }); }
+    world.spawnParticle({ x:e.x, y:e.y, r:e.radius*0.6, rMax:e.radius*4.5, life:14, color:'#ff7a3d', shock:true });
   }
 }
