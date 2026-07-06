@@ -314,7 +314,7 @@ export function boot() {
         ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(0,0,0,0.75)'; ctx.strokeText(f.text, f.x-camX, f.y-camY);
         ctx.fillStyle = f.color; ctx.fillText(f.text, f.x-camX, f.y-camY); ctx.restore();
       }
-      drawHud(ctx, rs, world);
+      drawHud(ctx, rs, world, frameCount);
       if (combo > 2) {
         const cs = 22 * (1 + comboPop*0.6);
         const cc = combo>=30?'#ff4d6d':combo>=20?'#ff6a3d':combo>=10?'#ff9f45':'#ffd166';
@@ -330,6 +330,12 @@ export function boot() {
           if (s.evolveInto && rs.ownedSkills[s.evolveInto]) continue;   // 진화형 보유 시 원본 숨김(최고 단계만)
           const yy=40+idx*(isz+pad); idx++;
           drawSkillIcon(ctx, s, x0, yy, isz);
+          // 쿨타임 시계: 남은 재충전을 어두운 부채꼴로(12시부터 시계방향), 다 차면 사라짐
+          const st = sstate[id];
+          if (st && st.cdMax && st.timer > 0) { const frac=Math.max(0,Math.min(1, st.timer/st.cdMax));
+            const cx=x0+isz/2, cy=yy+isz/2, a0=-Math.PI/2;
+            ctx.save(); ctx.globalAlpha=0.5; ctx.fillStyle='#000';
+            ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy, isz*0.54, a0, a0+frac*Math.PI*2); ctx.closePath(); ctx.fill(); ctx.restore(); }
           ctx.save(); ctx.fillStyle='rgba(0,0,0,0.75)'; ctx.beginPath(); ctx.arc(x0+isz-5, yy+isz-5, 9, 0, 7); ctx.fill();
           ctx.fillStyle='#fff'; ctx.font='800 11px system-ui'; ctx.textAlign='center';
           ctx.fillText(String(rs.ownedSkills[id]), x0+isz-5, yy+isz-1); ctx.restore(); } }

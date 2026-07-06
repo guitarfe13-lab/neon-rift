@@ -30,7 +30,7 @@ const RUNTIME = {
   projectile(world, rs, rt, skill, st, rng, onDamage, onFire) {
     if ((st.timer -= 1) > 0) return;
     if (!payMp(rs, skill, st)) return;
-    st.timer = cd(rt, rs.stats);
+    st.timer = st.cdMax = cd(rt, rs.stats);
     const p = world.player; const t = nearestEnemy(world, p.x, p.y); if (!t) return;
     const base = Math.atan2(t.y-p.y, t.x-p.x);
     const count = (rt.count||1) * (rs.stats.projectiles||1);
@@ -44,7 +44,7 @@ const RUNTIME = {
   beam(world, rs, rt, skill, st, rng, onDamage, onFire) {
     if ((st.timer -= 1) > 0) return;
     if (!payMp(rs, skill, st)) return;
-    st.timer = cd(rt, rs.stats);
+    st.timer = st.cdMax = cd(rt, rs.stats);
     const p = world.player; const t = nearestEnemy(world, p.x, p.y); if (!t) return;
     const a = Math.atan2(t.y-p.y, t.x-p.x);
     world.spawnProjectile({ x:p.x, y:p.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,
@@ -65,20 +65,21 @@ const RUNTIME = {
     for (const o of st.orbs){ o.dmg = rt.damage; o.orbit.r = R; } // 레벨 반영
   },
   // 오라: 범위 내 적에게 tick마다 지속 피해.
+  // 오라(광역): 쿨타임마다 한 번 '펼침' — 범위 내 전체 타격 + 확장 링 펄스. 재충전 동안 대기.
   aura(world, rs, rt, skill, st, rng, onDamage) {
     if ((st.timer -= 1) > 0) return;
     if (!payMp(rs, skill, st)) return;
-    st.timer = rt.cooldown; // aura의 cooldown = 피해 간격
+    st.timer = st.cdMax = rt.cooldown; // aura의 cooldown = 재사용 대기
     const p = world.player; const R = (rt.radius||70) * (rs.stats.area||1);
     for (const e of world.enemies){ if(!e.alive) continue;
       if ((e.x-p.x)**2+(e.y-p.y)**2 <= R*R) onDamage(e, rt.damage, false); }
-    world.spawnParticle({ x:p.x, y:p.y, r:R, life:8, color: skill.color||'#5cf', ring:true });
+    world.spawnParticle({ x:p.x, y:p.y, r:R*0.35, rMax:R, life:18, color: skill.color||'#5cf', shock:true }); // 확장 펄스
   },
   // 연쇄: 쿨다운마다 가장 가까운 적에서 인접 적으로 rt.count회 도약하며 피해.
   chain(world, rs, rt, skill, st, rng, onDamage) {
     if ((st.timer -= 1) > 0) return;
     if (!payMp(rs, skill, st)) return;
-    st.timer = cd(rt, rs.stats);
+    st.timer = st.cdMax = cd(rt, rs.stats);
     const p = world.player; let node = nearestEnemy(world, p.x, p.y); if (!node) return;
     const hit = new Set(); let fx=p.x, fy=p.y;
     for (let i=0;i<(rt.count||3) && node;i++){
@@ -96,7 +97,7 @@ const RUNTIME = {
     }
     if ((st.timer -= 1) > 0) return;
     if (!payMp(rs, skill, st)) return;
-    st.timer = cd(rt, rs.stats);
+    st.timer = st.cdMax = cd(rt, rs.stats);
     const d = st.drone; const t = nearestEnemy(world, d.x, d.y); if (!t) return;
     const a = Math.atan2(t.y-d.y, t.x-d.x);
     world.spawnProjectile({ x:d.x, y:d.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,

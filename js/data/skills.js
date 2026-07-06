@@ -48,17 +48,17 @@ export const SKILLS = {
     base:{ damage:6, count:3 }, scale:{ damage:+3, count:[3,3,4,4,5,6] }, maxLevel:8 },
 
   // ── 오라(틱당 MP) ──
-  frost_aura: { id:'frost_aura', name:'서리 오라', type:'aura', tags:['ice'], color:'#5cd0ff', mpCost:1,
-    base:{ damage:4, radius:72, cooldown:20 }, scale:{ damage:+3, radius:+8 }, maxLevel:8,
+  frost_aura: { id:'frost_aura', name:'서리 오라', type:'aura', tags:['ice'], color:'#5cd0ff', mpCost:3,
+    base:{ damage:13, radius:76, cooldown:84 }, scale:{ damage:+6, radius:+8 }, maxLevel:8,
     evolveInto:'blizzard', evolveReq:{ passive:'giant', level:8 } },
-  flame_aura: { id:'flame_aura', name:'화염 오라', type:'aura', tags:['fire'], color:'#ff7a3d', mpCost:1,
-    base:{ damage:5, radius:70, cooldown:18 }, scale:{ damage:+3, radius:+8 }, maxLevel:8 },
-  holy_field: { id:'holy_field', name:'신성 장판', type:'aura', tags:['holy'], color:'#ffe58a', mpCost:1,
-    base:{ damage:5, radius:64, cooldown:24 }, scale:{ damage:+4, radius:+9 }, maxLevel:8 },
-  venom_cloud: { id:'venom_cloud', name:'맹독 구름', type:'aura', tags:['poison'], color:'#9cff8b', mpCost:1,
-    base:{ damage:3, radius:80, cooldown:14 }, scale:{ damage:+2, radius:+7 }, maxLevel:8 },
+  flame_aura: { id:'flame_aura', name:'화염 오라', type:'aura', tags:['fire'], color:'#ff7a3d', mpCost:3,
+    base:{ damage:13, radius:74, cooldown:78 }, scale:{ damage:+6, radius:+8 }, maxLevel:8 },
+  holy_field: { id:'holy_field', name:'신성 장판', type:'aura', tags:['holy'], color:'#ffe58a', mpCost:3,
+    base:{ damage:18, radius:70, cooldown:96 }, scale:{ damage:+8, radius:+9 }, maxLevel:8 },
+  venom_cloud: { id:'venom_cloud', name:'맹독 구름', type:'aura', tags:['poison'], color:'#9cff8b', mpCost:2,
+    base:{ damage:8, radius:84, cooldown:60 }, scale:{ damage:+4, radius:+7 }, maxLevel:8 },
   quake: { id:'quake', name:'대지 진동', type:'aura', tags:['physical'], color:'#d9b38c', mpCost:0,
-    base:{ damage:6, radius:90, cooldown:30 }, scale:{ damage:+4, radius:+8 }, maxLevel:8 },
+    base:{ damage:22, radius:96, cooldown:120 }, scale:{ damage:+9, radius:+8 }, maxLevel:8 },
 
   // ── 연쇄 ──
   chain_spark: { id:'chain_spark', name:'연쇄 번개', type:'chain', tags:['lightning'], color:'#b28bff', mpCost:4,
@@ -82,8 +82,8 @@ export const SKILLS = {
     base:{ damage:30, speed:18, cooldown:26, pierce:99 }, scale:{ damage:+14 }, maxLevel:5 },
   saw_storm: { id:'saw_storm', name:'톱날 폭풍(진화)', type:'orbital', tags:['physical'], color:'#ffb0ee', mpCost:0,
     base:{ damage:18, count:6 }, scale:{ damage:+9, count:[6,7,8] }, maxLevel:5 },
-  blizzard: { id:'blizzard', name:'눈보라(진화)', type:'aura', tags:['ice'], color:'#bfefff', mpCost:2,
-    base:{ damage:12, radius:120, cooldown:12 }, scale:{ damage:+7, radius:+10 }, maxLevel:5 },
+  blizzard: { id:'blizzard', name:'눈보라(진화)', type:'aura', tags:['ice'], color:'#bfefff', mpCost:4,
+    base:{ damage:28, radius:130, cooldown:66 }, scale:{ damage:+12, radius:+10 }, maxLevel:5 },
   tempest: { id:'tempest', name:'폭풍우(진화)', type:'chain', tags:['lightning'], color:'#d0b8ff', mpCost:5,
     base:{ damage:22, count:7, cooldown:30 }, scale:{ damage:+11 }, maxLevel:5 },
 };
