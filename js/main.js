@@ -446,6 +446,12 @@ export function boot() {
           R.neonLine(ctx, ax,ay,bx,by, Math.max(1.6, p.radius*0.4), '#ffffff'); }                                        // 코어
         else if (p.pshape === 'lance' && (p.vx || p.vy))   // 창 계열: 진행 방향 뾰족한 창촉
           R.lance(ctx, p.x-camX, p.y-camY, Math.atan2(p.vy, p.vx), p.radius, p.color||'#a9e8ff');
+        // 궤도/드론 스킬: 이름에 맞는 전용 모양
+        else if (p.pshape === 'blade')   R.bladeOrb(ctx, p.x-camX, p.y-camY, (p.oa||0) + Math.PI/2, p.radius, p.color);        // 회전 검(궤도 접선 방향)
+        else if (p.pshape === 'saw')     R.sawOrb(ctx, p.x-camX, p.y-camY, frameCount*0.45, p.radius, p.color);                 // 톱날(고속 자전)
+        else if (p.pshape === 'crystal') R.crystalOrb(ctx, p.x-camX, p.y-camY, (p.oa||0), p.radius, p.color);                   // 얼음 결정(바깥 지향)
+        else if (p.pshape === 'turret')  R.turretOrb(ctx, p.x-camX, p.y-camY, p._aim ?? ((p.oa||0)+Math.PI/2), p.radius, p.color); // 포탑(조준 포신)
+        else if (p.pshape === 'wisp')    R.wispOrb(ctx, p.x-camX, p.y-camY, frameCount, p.radius, p.color);                     // 정령 위습(맥동)
         else R.neonCircle(ctx, p.x-camX, p.y-camY, p.radius, p.color||'#ffe14d'); }
       // 플레이어(피격 무적 중 깜빡임)
       if (!(world.player.invuln>0 && frameCount%6<3))

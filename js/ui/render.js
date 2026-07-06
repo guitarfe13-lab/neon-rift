@@ -45,6 +45,75 @@ export function lance(ctx, x, y, ang, r, color) {
   ctx.closePath(); ctx.fill();
   ctx.restore();
 }
+// ── 궤도/드론 스킬 전용 모양(이름에 맞는 형태) ──
+// 회전 검: 길쭉한 양날 검신 + 흰 날 하이라이트 + 작은 코등이.
+export function bladeOrb(ctx, x, y, rot, r, color) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  const L = r * 3.0, W = r * 0.72;
+  ctx.shadowBlur = 12; ctx.shadowColor = color; ctx.fillStyle = color;
+  ctx.beginPath(); ctx.moveTo(L * 0.62, 0); ctx.lineTo(0, W); ctx.lineTo(-L * 0.38, W * 0.45);
+  ctx.lineTo(-L * 0.38, -W * 0.45); ctx.lineTo(0, -W); ctx.closePath(); ctx.fill();     // 검신
+  ctx.shadowBlur = 0; ctx.fillStyle = '#fff';
+  ctx.fillRect(-L * 0.30, -W * 0.12, L * 0.82, W * 0.24);                                // 날 하이라이트
+  ctx.fillStyle = color; ctx.fillRect(-L * 0.46, -W * 0.9, L * 0.10, W * 1.8);           // 코등이
+  ctx.restore();
+}
+// 톱날: 이빨 달린 원판(안쪽 구멍 + 중심점).
+export function sawOrb(ctx, x, y, rot, r, color) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.shadowBlur = 12; ctx.shadowColor = color; ctx.fillStyle = color;
+  const teeth = 8; ctx.beginPath();
+  for (let i = 0; i < teeth * 2; i++) {
+    const a = (i / (teeth * 2)) * Math.PI * 2, rr = i % 2 ? r * 1.35 : r * 0.95;
+    const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0; ctx.globalCompositeOperation = 'destination-out';
+  ctx.beginPath(); ctx.arc(0, 0, r * 0.42, 0, Math.PI * 2); ctx.fill();                  // 구멍
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, r * 0.16, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+// 얼음 결정: 길쭉한 마름모 결정 + 흰 심.
+export function crystalOrb(ctx, x, y, rot, r, color) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  const L = r * 1.9, W = r * 0.75;
+  ctx.shadowBlur = 12; ctx.shadowColor = color; ctx.fillStyle = color;
+  ctx.beginPath(); ctx.moveTo(L, 0); ctx.lineTo(0, W); ctx.lineTo(-L * 0.6, 0); ctx.lineTo(0, -W); ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.beginPath(); ctx.moveTo(L * 0.55, 0); ctx.lineTo(0, W * 0.35); ctx.lineTo(-L * 0.3, 0); ctx.lineTo(0, -W * 0.35); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+// 포탑 드론: 각진 본체 + 조준 방향 포신 + 코어 점.
+export function turretOrb(ctx, x, y, aim, r, color) {
+  ctx.save(); ctx.translate(x, y);
+  ctx.shadowBlur = 10; ctx.shadowColor = color;
+  ctx.fillStyle = 'rgba(10,14,24,0.9)'; ctx.strokeStyle = color; ctx.lineWidth = 2;
+  const s = r * 1.15; ctx.rotate(Math.PI / 4);
+  ctx.beginPath(); ctx.rect(-s * 0.7, -s * 0.7, s * 1.4, s * 1.4); ctx.fill(); ctx.stroke();  // 마름모 본체
+  ctx.rotate(-Math.PI / 4);
+  ctx.shadowBlur = 0; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(Math.cos(aim) * r * 0.4, Math.sin(aim) * r * 0.4);
+  ctx.lineTo(Math.cos(aim) * r * 1.7, Math.sin(aim) * r * 1.7); ctx.stroke();                 // 포신
+  ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, r * 0.32, 0, Math.PI * 2); ctx.fill(); // 코어
+  ctx.restore();
+}
+// 정령 위습: 맥동하는 이중 발광 구체 + 위성 불꽃.
+export function wispOrb(ctx, x, y, t, r, color) {
+  ctx.save(); ctx.translate(x, y);
+  const pul = 1 + 0.15 * Math.sin(t * 0.2);
+  ctx.shadowBlur = 14; ctx.shadowColor = color;
+  ctx.globalAlpha = 0.35; ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(0, 0, r * 1.25 * pul, 0, Math.PI * 2); ctx.fill();     // 외광
+  ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(0, 0, r * 0.7 * pul, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0; ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(0, 0, r * 0.3, 0, Math.PI * 2); ctx.fill();            // 코어
+  const sa = t * 0.13;                                                             // 위성 불꽃 2개
+  for (const off of [0, Math.PI]) { ctx.globalAlpha = 0.9;
+    ctx.beginPath(); ctx.arc(Math.cos(sa + off) * r * 1.35, Math.sin(sa + off) * r * 1.35, r * 0.16, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
 // 네온 선분(빔 등). 방향을 가진 직선 형태로 그린다.
 export function neonLine(ctx, x1, y1, x2, y2, width, color) {
   ctx.save(); ctx.shadowBlur = 14; ctx.shadowColor = color; ctx.strokeStyle = color;

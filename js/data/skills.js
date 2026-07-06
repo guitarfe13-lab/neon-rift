@@ -51,11 +51,11 @@ export const SKILLS = {
     scale:{ damage:+12, cooldown:-6 }, maxLevel:8 },
 
   // ── 궤도(지속체, MP 무소모) ──
-  orbit_blade: { id:'orbit_blade', name:'회전 검', type:'orbital', tags:['physical'], color:'#ff8be0', mpCost:0,
+  orbit_blade: { id:'orbit_blade', name:'회전 검', type:'orbital', tags:['physical'], color:'#ff8be0', mpCost:0, proj:'blade',
     base:{ damage:7, count:2 }, scale:{ damage:+4, count:[2,2,3,3,4,5] }, maxLevel:8,
     requires:{ skill:'strike', level:4 },
     evolveInto:'saw_storm', evolveReq:{ passive:'might_core', level:8 } },
-  frost_ring: { id:'frost_ring', name:'서리 고리', type:'orbital', tags:['ice'], color:'#8bd8ff', mpCost:0,
+  frost_ring: { id:'frost_ring', name:'서리 고리', type:'orbital', tags:['ice'], color:'#8bd8ff', mpCost:0, proj:'crystal',
     base:{ damage:6, count:3 }, scale:{ damage:+3, count:[3,3,4,4,5,6] }, maxLevel:8 },
 
   // ── 오라(틱당 MP) ──
@@ -80,9 +80,9 @@ export const SKILLS = {
     base:{ damage:14, count:2, cooldown:86 }, scale:{ damage:+7, count:[2,2,3,3,4], cooldown:-5 }, maxLevel:8 },
 
   // ── 소환(발사당 MP) ──
-  turret: { id:'turret', name:'포탑 드론', type:'summon', tags:['physical'], color:'#8effc7', mpCost:0,
+  turret: { id:'turret', name:'포탑 드론', type:'summon', tags:['physical'], color:'#8effc7', mpCost:0, proj:'turret',
     base:{ damage:7, speed:9, cooldown:30, pierce:0 }, scale:{ damage:+4, cooldown:-2 }, maxLevel:8 },
-  spirit: { id:'spirit', name:'정령 드론', type:'summon', tags:['arcane'], color:'#8be0ff', mpCost:2,
+  spirit: { id:'spirit', name:'정령 드론', type:'summon', tags:['arcane'], color:'#8be0ff', mpCost:2, proj:'wisp',
     base:{ damage:9, speed:10, cooldown:44, pierce:1 }, scale:{ damage:+5, cooldown:-3 }, maxLevel:8 },
 
   // ── 진화(강화판) ──
@@ -92,7 +92,7 @@ export const SKILLS = {
     base:{ damage:24, count:4, speed:9, cooldown:34, pierce:3 }, scale:{ damage:+11 }, maxLevel:5 },
   prism_beam: { id:'prism_beam', name:'프리즘 빔(진화)', type:'beam', tags:['arcane'], color:'#bff8ff', mpCost:4,
     base:{ damage:30, speed:18, cooldown:40, pierce:99 }, scale:{ damage:+14 }, maxLevel:5 },
-  saw_storm: { id:'saw_storm', name:'톱날 폭풍(진화)', type:'orbital', tags:['physical'], color:'#ffb0ee', mpCost:0,
+  saw_storm: { id:'saw_storm', name:'톱날 폭풍(진화)', type:'orbital', tags:['physical'], color:'#ffb0ee', mpCost:0, proj:'saw',
     base:{ damage:18, count:6 }, scale:{ damage:+9, count:[6,7,8] }, maxLevel:5 },
   blizzard: { id:'blizzard', name:'눈보라(진화)', type:'aura', tags:['ice'], color:'#bfefff', mpCost:4,
     base:{ damage:28, radius:130, cooldown:88 }, scale:{ damage:+12, radius:+10 }, maxLevel:5 },

@@ -63,7 +63,7 @@ const RUNTIME = {
     const R = 60 * (rs.stats.area||1);
     for (let i=st.orbs.length;i<want;i++){
       const o = world.spawnProjectile({ x:0,y:0, radius:9, dmg:rt.damage, orbit:{ r:R, speed:0.06 },
-        oa:(i/want)*Math.PI*2, color: skill.color||'#ff8be0', element: skill.tags && skill.tags[0] });
+        oa:(i/want)*Math.PI*2, color: skill.color||'#ff8be0', element: skill.tags && skill.tags[0], pshape: skill.proj });
       st.orbs.push(o);
     }
     for (const o of st.orbs){ o.dmg = rt.damage; o.orbit.r = R; } // 레벨 반영
@@ -99,14 +99,14 @@ const RUNTIME = {
   summon(world, rs, rt, skill, st) {
     if (!st.drone || !st.drone.alive) {
       st.drone = world.spawnProjectile({ x:0,y:0, radius:8, dmg:0, orbit:{ r:44, speed:0.04 }, oa:0,
-        color: skill.color||'#8effc7' });
+        color: skill.color||'#8effc7', pshape: skill.proj });
       st.timer = 0;
     }
     if ((st.timer -= 1) > 0) return;
     if (!payMp(rs, skill, st)) return;
     st.timer = st.cdMax = cd(rt, rs.stats);
     const d = st.drone; const t = nearestEnemy(world, d.x, d.y); if (!t) return;
-    const a = Math.atan2(t.y-d.y, t.x-d.x);
+    const a = Math.atan2(t.y-d.y, t.x-d.x); d._aim = a;   // 포신 조준 방향(렌더용)
     world.spawnProjectile({ x:d.x, y:d.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,
       radius:4, dmg:rt.damage, pierce:rt.pierce||0, life:100, crit:false, color: skill.color||'#8effc7', element: skill.tags && skill.tags[0] });
     FX.spawnMuzzle(world, d.x, d.y, skill.color, skill.tags && skill.tags[0]);
