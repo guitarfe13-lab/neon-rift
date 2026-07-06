@@ -137,7 +137,8 @@ export function boot() {
     const res = applyHit(e, d);
     e.flash = 6;
     if (world.particles.length < 600) FX.spawnImpact(world, e.x, e.y, element || 'physical', crit);   // 원소별 명중 이펙트
-    world.spawnFloater({ x:e.x, y:e.y-10, text: crit ? `Critical -${d}` : `-${d}`, color: crit?'#ffe14d':'#fff', life: crit?54:40, max: crit?54:40, vy:-0.7, crit });
+    if (crit || world.floaters.length < 120)   // 성능: 텍스트 폭주 방지(크리는 항상 표시)
+      world.spawnFloater({ x:e.x, y:e.y-10, text: crit ? `Critical -${d}` : `-${d}`, color: crit?'#ffe14d':'#fff', life: crit?54:40, max: crit?54:40, vy:-0.7, crit });
     if (crit && frameCount % 3 === 0) audio.sfx('crit');
     if (e.boss) shake = Math.min(6, shake + 0.5);
     if (res.killed) {
@@ -291,8 +292,16 @@ export function boot() {
     rs.mp = Math.min(rs.stats.maxMp, (rs.mp||0) + rs.stats.mpRegen);
     // 픽업: 드랍 좌표에 고정(자석 없음) → 아이템이 정적 지면 기준이 되어 이동감 살아남.
     //       획득 반경(pickupRange) 안으로 플레이어가 다가오면 수집.
+    // 성능: TTL(60s, 히든스킬 120s)로 소멸 + 총량 상한(오래된 것부터 정리) → 장기전 누적 방지.
+    let pkAlive = 0;
     for (const g of world.pickups) { if (!g.alive) continue;
+      if (g.ttl == null) g.ttl = g.kind === 'skill' ? 7200 : 3600;
+      if (--g.ttl <= 0) { g.alive = false; continue; }
+      pkAlive++;
       if (Math.hypot(g.x-world.player.x, g.y-world.player.y) < rs.stats.pickupRange) { g.alive=false; collect(g); }
+    }
+    if (pkAlive > 400) for (const g of world.pickups) {           // 상한 초과 → 오래된 것부터(히든스킬 제외)
+      if (g.alive && g.kind !== 'skill') { g.alive = false; if (--pkAlive <= 400) break; }
     }
     // 파티클/플로터 수명
     for (const pt of world.particles){ if(!pt.alive)continue; if(!FX.stepParticle(pt)) pt.alive=false; }
@@ -326,6 +335,7 @@ export function boot() {
   }
   function gameOver(){
     scene='gameover'; audio.sfx('death');
+    world.particles.length = 0; world.floaters.length = 0; world.hazards.length = 0;   // 잔여 이펙트 정리(성능)
     const stage = Math.max(1, (rs.timeMs/30000|0)+1);
     meta.souls += Math.round((stage*5 + rs.timeMs/2000) * rs.stats.soulGain);
     meta.gold = (meta.gold || 0) + rs.gold;   // 런에서 모은 황금코인을 영구 적립(상점에서 소울로 교환)
@@ -368,9 +378,11 @@ export function boot() {
       const arn = dir.getArena();
       if (arn) { ctx.save(); ctx.strokeStyle='rgba(255,92,200,0.5)'; ctx.lineWidth=3; ctx.setLineDash([12,12]);
         ctx.beginPath(); ctx.arc(arn.x-camX, arn.y-camY, arn.r, 0, Math.PI*2); ctx.stroke(); ctx.restore(); }
+      // 화면 밖 컬링(성능): 뷰포트 + 여백 밖이면 그리지 않는다.
+      const inView = (wx, wy, m) => { const sx = wx-camX, sy = wy-camY; return sx > -m && sx < canvas.width+m && sy > -m && sy < canvas.height+m; };
       // 파티클(트레일/스파크/충격파/볼트/링) — fx 모듈이 렌더
-      for (const pt of world.particles) if (pt.alive) FX.drawParticle(ctx, pt, camX, camY);
-      for (const g of world.pickups) if (g.alive) {
+      for (const pt of world.particles) if (pt.alive && inView(pt.x ?? pt.x1, pt.y ?? pt.y1, 80)) FX.drawParticle(ctx, pt, camX, camY);
+      for (const g of world.pickups) if (g.alive && inView(g.x, g.y, 40)) {
         const gx = g.x-camX, gy = g.y-camY;
         // 접지 그림자(바닥에 놓인 느낌)
         ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -382,8 +394,8 @@ export function boot() {
         else if (g.kind==='skill') { const pr=g.radius*(1.1+0.22*Math.sin(frameCount*0.15));
           R.gem(ctx, gx, gy, pr, '#ff8cff'); R.text(ctx, '✦', gx, gy+4, { size:11, align:'center', color:'#fff', weight:'800' }); }
         else R.gem(ctx, gx, gy, g.radius, '#7cff6b'); }
-      for (const hz of world.hazards) if (hz.alive) R.neonCircle(ctx, hz.x-camX, hz.y-camY, hz.radius, hz.color||'#ff5c5c');
-      for (const e of world.enemies) { if (!e.alive) continue;
+      for (const hz of world.hazards) if (hz.alive && inView(hz.x, hz.y, 40)) R.neonCircle(ctx, hz.x-camX, hz.y-camY, hz.radius, hz.color||'#ff5c5c');
+      for (const e of world.enemies) { if (!e.alive || !inView(e.x, e.y, 160)) continue;
         drawEntity(ctx, e, e.x-camX, e.y-camY, e.radius, e.flash>0?'#ffffff':e.color, frameCount, Math.atan2(world.player.y-e.y, world.player.x-e.x), e.flash>0);
         // 머리 위 HP 바(피격으로 hp<maxHp일 때, 보스 제외 — 보스는 하단 바)
         if (!e.boss && e.hp < e.maxHp) {
@@ -400,7 +412,7 @@ export function boot() {
       // 플레이어(피격 무적 중 깜빡임)
       if (!(world.player.invuln>0 && frameCount%6<3))
         drawEntity(ctx, ch, world.player.x-camX, world.player.y-camY, world.player.radius, ch.color, frameCount, world.player.face||0, false, world.player);
-      for (const f of world.floaters) if (f.alive) {
+      for (const f of world.floaters) if (f.alive && inView(f.x, f.y, 60)) {
         const age = f.max ? (f.max - f.life)/f.max : 0;
         const size = (f.crit?28:13) * Math.max(1, 1.5 - 0.5*Math.min(1, age*2.5));  // 초반 팝(크리 크게)
         ctx.save(); ctx.font = `${f.crit?'800':'700'} ${size}px system-ui`; ctx.textAlign = 'center';

@@ -124,18 +124,21 @@ export function stepParticle(pt) {
 export function drawParticle(ctx, pt, camX, camY) {
   const x = pt.x - camX, y = pt.y - camY;
   ctx.save();
+  // 대량 타입(spark/trail/flame/shard/bubble)은 shadowBlur 미사용(성능) — 밝은 코어 이중 렌더로 네온감 유지.
   if (pt.spark) { const k = Math.min(1, pt.life / 10); ctx.globalAlpha = k; ctx.fillStyle = pt.color || '#fff';
-    ctx.shadowColor = pt.color || '#fff'; ctx.shadowBlur = 8; ctx.beginPath(); ctx.arc(x, y, 2.6, 0, 7); ctx.fill(); }
+    ctx.beginPath(); ctx.arc(x, y, 2.6, 0, 7); ctx.fill(); }
   else if (pt.trail) { const k = pt.life / (pt.max || 9); ctx.globalAlpha = k * 0.6; ctx.fillStyle = pt.color || '#fff';
-    ctx.shadowColor = pt.color || '#fff'; ctx.shadowBlur = 10; ctx.beginPath(); ctx.arc(x, y, (pt.r0 || 3) * k, 0, 7); ctx.fill(); }
-  else if (pt.flame) { const k = pt.life / (pt.max || 16); ctx.shadowColor = pt.color; ctx.shadowBlur = 12;
-    ctx.globalAlpha = Math.min(1, k * 1.3); ctx.fillStyle = pt.color; ctx.beginPath(); ctx.arc(x, y, (pt.sz || 4) * (0.5 + k), 0, 7); ctx.fill();
-    ctx.globalAlpha = Math.min(1, k * 1.6); ctx.fillStyle = '#ffe6a0'; ctx.beginPath(); ctx.arc(x, y, (pt.sz || 4) * 0.5 * k, 0, 7); ctx.fill(); }
+    ctx.beginPath(); ctx.arc(x, y, (pt.r0 || 3) * k, 0, 7); ctx.fill(); }
+  else if (pt.flame) { const k = pt.life / (pt.max || 16);
+    ctx.globalAlpha = Math.min(1, k * 1.3) * 0.55; ctx.fillStyle = pt.color; ctx.beginPath(); ctx.arc(x, y, (pt.sz || 4) * (0.8 + k), 0, 7); ctx.fill();  // 외염(반투명 확대)
+    ctx.globalAlpha = Math.min(1, k * 1.3); ctx.beginPath(); ctx.arc(x, y, (pt.sz || 4) * (0.5 + k * 0.6), 0, 7); ctx.fill();
+    ctx.globalAlpha = Math.min(1, k * 1.6); ctx.fillStyle = '#ffe6a0'; ctx.beginPath(); ctx.arc(x, y, (pt.sz || 4) * 0.45 * k, 0, 7); ctx.fill(); }
   else if (pt.shard) { const k = Math.min(1, pt.life / (pt.max || 14)); ctx.globalAlpha = k; ctx.translate(x, y); ctx.rotate(pt.rot || 0);
-    ctx.fillStyle = pt.color; ctx.shadowColor = pt.color; ctx.shadowBlur = 8; const s = pt.sz || 3;
-    ctx.beginPath(); ctx.moveTo(0, -s * 1.6); ctx.lineTo(s * 0.7, 0); ctx.lineTo(0, s * 1.6); ctx.lineTo(-s * 0.7, 0); ctx.closePath(); ctx.fill(); }
+    ctx.fillStyle = pt.color; const s = pt.sz || 3;
+    ctx.beginPath(); ctx.moveTo(0, -s * 1.6); ctx.lineTo(s * 0.7, 0); ctx.lineTo(0, s * 1.6); ctx.lineTo(-s * 0.7, 0); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = k * 0.8; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, s * 0.3, 0, 7); ctx.fill(); }
   else if (pt.bubble) { const k = Math.min(1, pt.life / (pt.max || 18)); const wob = Math.sin(pt.wob || 0) * 1.2;
-    ctx.strokeStyle = pt.color; ctx.lineWidth = 1.6; ctx.shadowColor = pt.color; ctx.shadowBlur = 8;
+    ctx.strokeStyle = pt.color; ctx.lineWidth = 1.6;
     ctx.globalAlpha = k * 0.9; ctx.beginPath(); ctx.arc(x + wob, y, (pt.sz || 3) + (1 - k) * 2, 0, 7); ctx.stroke();
     ctx.globalAlpha = k * 0.5; ctx.fillStyle = pt.color; ctx.beginPath(); ctx.arc(x + wob - 1, y - 1, (pt.sz || 3) * 0.4, 0, 7); ctx.fill(); }
   else if (pt.glyph) { const k = Math.min(1, pt.life / (pt.max || 15)); ctx.globalAlpha = k * 0.9; ctx.translate(x, y); ctx.rotate(pt.rot || 0);
