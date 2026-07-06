@@ -112,7 +112,7 @@ export function boot() {
     d = Math.max(1, Math.round(d));
     const res = applyHit(e, d);
     e.flash = 6;
-    world.spawnFloater({ x:e.x, y:e.y-10, text: crit ? `-${d}!` : `-${d}`, color: crit?'#ffe14d':'#fff', life: crit?50:40, max: crit?50:40, vy:-0.8, crit });
+    world.spawnFloater({ x:e.x, y:e.y-10, text: crit ? `Critical -${d}` : `-${d}`, color: crit?'#ffe14d':'#fff', life: crit?54:40, max: crit?54:40, vy:-0.7, crit });
     if (crit && frameCount % 3 === 0) audio.sfx('crit');
     if (e.boss) shake = Math.min(6, shake + 0.5);
     if (res.killed) {
@@ -167,7 +167,7 @@ export function boot() {
     const d = raw * (crit ? 1.6 : 1);
     world.player.hp -= d; world.player.invuln = 8;
     shake = Math.min(14, shake + (crit ? 9 : 6)); audio.sfx('hurt');
-    if (crit) world.spawnFloater({ x:world.player.x, y:world.player.y-22, text:`-${Math.max(1,Math.round(d))} 크리!`, color:'#ff3b3b', life:48, max:48, vy:-0.7, crit:true });
+    if (crit) world.spawnFloater({ x:world.player.x, y:world.player.y-22, text:`Critical -${Math.max(1,Math.round(d))}`, color:'#ff3b3b', life:52, max:52, vy:-0.7, crit:true });
   }
 
   function cleanupSkillState() {
@@ -342,7 +342,7 @@ export function boot() {
         drawEntity(ctx, ch, world.player.x-camX, world.player.y-camY, world.player.radius, ch.color, frameCount, 0, false);
       for (const f of world.floaters) if (f.alive) {
         const age = f.max ? (f.max - f.life)/f.max : 0;
-        const size = (f.crit?22:13) * Math.max(1, 1.5 - 0.5*Math.min(1, age*2.5));  // 초반 팝(크리 크게)
+        const size = (f.crit?28:13) * Math.max(1, 1.5 - 0.5*Math.min(1, age*2.5));  // 초반 팝(크리 크게)
         ctx.save(); ctx.font = `${f.crit?'800':'700'} ${size}px system-ui`; ctx.textAlign = 'center';
         ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(0,0,0,0.75)'; ctx.strokeText(f.text, f.x-camX, f.y-camY);
         ctx.fillStyle = f.color; ctx.fillText(f.text, f.x-camX, f.y-camY); ctx.restore();
