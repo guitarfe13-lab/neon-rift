@@ -30,14 +30,14 @@ export const SKILLS = {
   fireball: { id:'fireball', name:'화염구', type:'projectile', tags:['fire'], color:'#ff6a3d', mpCost:5,
     base:{ damage:16, count:1, speed:5.5, cooldown:74, pierce:2 },
     scale:{ damage:+8, cooldown:-5 }, maxLevel:8 },
-  ice_shard: { id:'ice_shard', name:'얼음 파편', type:'projectile', tags:['ice'], color:'#9fe8ff', mpCost:3,
+  ice_shard: { id:'ice_shard', name:'얼음 파편', type:'projectile', tags:['ice'], color:'#9fe8ff', mpCost:3, proj:'lance',
     base:{ damage:9, count:1, speed:7, cooldown:42, pierce:1 },
     scale:{ damage:+5, count:[1,1,2,2,3], cooldown:-3 }, maxLevel:8 },
-  holy_lance: { id:'holy_lance', name:'신성 창', type:'projectile', tags:['holy'], color:'#ffe58a', mpCost:4,
+  holy_lance: { id:'holy_lance', name:'신성 창', type:'projectile', tags:['holy'], color:'#ffe58a', mpCost:4, proj:'lance',
     base:{ damage:14, count:1, speed:9, cooldown:66, pierce:3 },
     scale:{ damage:+7, cooldown:-4 }, maxLevel:8 },
   // 얼음창: 정령술사 기본 원거리(관통 얼음 투사체).
-  ice_lance: { id:'ice_lance', name:'얼음창', type:'projectile', tags:['ice'], color:'#a9e8ff', mpCost:2,
+  ice_lance: { id:'ice_lance', name:'얼음창', type:'projectile', tags:['ice'], color:'#a9e8ff', mpCost:2, proj:'lance',
     base:{ damage:11, count:1, speed:9, cooldown:38, pierce:2 },
     scale:{ damage:+5, count:[1,1,1,2,2,3], cooldown:-3 }, maxLevel:8 },
 

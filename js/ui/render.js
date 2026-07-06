@@ -29,6 +29,22 @@ export function neonShape(ctx, x, y, r, shape, color, rot = 0) {
   }
   ctx.fill(); ctx.restore();
 }
+// 창/랜스 투사체: 진행 방향으로 길게 뻗은 아주 뾰족한 삼각 창촉(+흰 코어 촉).
+export function lance(ctx, x, y, ang, r, color) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+  const L = r * 4.4, W = r * 1.5;
+  ctx.shadowBlur = 12; ctx.shadowColor = color; ctx.fillStyle = color;
+  // 본체: 앞으로 극단적으로 뾰족, 꼬리는 살짝 파인 제비꼬리(창깃)
+  ctx.beginPath(); ctx.moveTo(L * 0.62, 0);
+  ctx.lineTo(-L * 0.30, W * 0.55); ctx.lineTo(-L * 0.16, 0); ctx.lineTo(-L * 0.30, -W * 0.55);
+  ctx.closePath(); ctx.fill();
+  // 흰 코어 촉(끝부분 하이라이트)
+  ctx.shadowBlur = 0; ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.moveTo(L * 0.62, 0);
+  ctx.lineTo(L * 0.08, W * 0.20); ctx.lineTo(L * 0.08, -W * 0.20);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
 // 네온 선분(빔 등). 방향을 가진 직선 형태로 그린다.
 export function neonLine(ctx, x1, y1, x2, y2, width, color) {
   ctx.save(); ctx.shadowBlur = 14; ctx.shadowColor = color; ctx.strokeStyle = color;

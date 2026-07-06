@@ -437,6 +437,8 @@ export function boot() {
           // 슬림 레이저: 얇은 글로우 + 가는 흰 코어(화살과 구분). 판정(radius)은 그대로.
           ctx.save(); ctx.globalAlpha=0.35; R.neonLine(ctx, ax,ay,bx,by, p.radius*1.4, p.color||'#7cf9ff'); ctx.restore(); // 글로우
           R.neonLine(ctx, ax,ay,bx,by, Math.max(1.6, p.radius*0.4), '#ffffff'); }                                        // 코어
+        else if (p.pshape === 'lance' && (p.vx || p.vy))   // 창 계열: 진행 방향 뾰족한 창촉
+          R.lance(ctx, p.x-camX, p.y-camY, Math.atan2(p.vy, p.vx), p.radius, p.color||'#a9e8ff');
         else R.neonCircle(ctx, p.x-camX, p.y-camY, p.radius, p.color||'#ffe14d'); }
       // 플레이어(피격 무적 중 깜빡임)
       if (!(world.player.invuln>0 && frameCount%6<3))
