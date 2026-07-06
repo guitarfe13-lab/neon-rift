@@ -50,9 +50,22 @@ createServer(async (req, res) => {
     }
     const ext = extname(file);
     const headers = { ...baseHeaders, 'Content-Type': MIME[ext] || 'application/octet-stream',
+      'Accept-Ranges': 'bytes',
       'Cache-Control': LONG_CACHE.has(ext) ? 'public, max-age=604800' : 'no-cache' };
     if (req.method === 'HEAD') { res.writeHead(200, headers); res.end(); return; }
-    res.writeHead(200, headers); res.end(await readFile(file));
+    const body = await readFile(file);
+    // Range(206) 지원: 오디오/미디어 스트리밍 필수 — 없으면 브라우저가 루프마다 전체 재다운로드(무한 로딩바).
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    if (m && (m[1] || m[2])) {
+      const start = m[1] ? parseInt(m[1], 10) : Math.max(0, body.length - parseInt(m[2], 10));
+      const end = (m[1] && m[2]) ? Math.min(parseInt(m[2], 10), body.length - 1) : body.length - 1;
+      if (start >= body.length || start > end) {
+        res.writeHead(416, { ...baseHeaders, 'Content-Range': `bytes */${body.length}` }); res.end(); return;
+      }
+      res.writeHead(206, { ...headers, 'Content-Range': `bytes ${start}-${end}/${body.length}`, 'Content-Length': end - start + 1 });
+      res.end(body.subarray(start, end + 1)); return;
+    }
+    res.writeHead(200, { ...headers, 'Content-Length': body.length }); res.end(body);
   } catch {
     res.writeHead(500, { ...baseHeaders, 'Content-Type': 'text/plain; charset=utf-8' }).end('500 Internal Error');
   }

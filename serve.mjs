@@ -20,7 +20,20 @@ createServer(async (req, res) => {
     const file = normalize(join(ROOT, path));
     if (!file.startsWith(normalize(ROOT))) { res.writeHead(403).end('Forbidden'); return; }
     const body = await readFile(file);
-    res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream' });
+    const type = MIME[extname(file)] || 'application/octet-stream';
+    // Range(206) 지원: 오디오/미디어 스트리밍 필수 — 없으면 브라우저가 루프마다 전체 재다운로드(무한 로딩바).
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    if (m && (m[1] || m[2])) {
+      const start = m[1] ? parseInt(m[1], 10) : Math.max(0, body.length - parseInt(m[2], 10));
+      const end = (m[1] && m[2]) ? Math.min(parseInt(m[2], 10), body.length - 1) : body.length - 1;
+      if (start >= body.length || start > end) {
+        res.writeHead(416, { 'Content-Range': `bytes */${body.length}` }); res.end(); return;
+      }
+      res.writeHead(206, { 'Content-Type': type, 'Accept-Ranges': 'bytes',
+        'Content-Range': `bytes ${start}-${end}/${body.length}`, 'Content-Length': end - start + 1 });
+      res.end(body.subarray(start, end + 1)); return;
+    }
+    res.writeHead(200, { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Content-Length': body.length });
     res.end(body);
   } catch {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('404 Not Found');
