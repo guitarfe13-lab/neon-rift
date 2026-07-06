@@ -72,6 +72,16 @@ export function boot() {
   ]);
   let scene = 'title', overlay = null, world, rs, dir, rng, sstate, frameCount = 0;
   let shake = 0, combo = 0, comboTimer = 0, slowmo = 0, whiteFlash = 0, pendingLevelUp = false;
+  let levelupDelay = 0, goldFlash = 0, comboPop = 0;
+
+  // 레벨업 순간 연출(버스트 + 골드 플래시 + 문구). 오버레이는 잠시 뒤 열림.
+  function onLevelGain() {
+    pendingLevelUp = true; levelupDelay = 20; goldFlash = 12;
+    const p = world.player;
+    world.spawnParticle({ x:p.x, y:p.y, r:12, rMax:100, life:26, color:'#ffe14d', shock:true });
+    for (let i=0;i<16;i++){ const a=i/16*Math.PI*2; world.spawnParticle({ x:p.x, y:p.y, vx:Math.cos(a)*2.4, vy:Math.sin(a)*2.4-1, life:24, color:'#ffe14d', spark:true }); }
+    world.spawnFloater({ x:p.x, y:p.y-34, text:'LEVEL UP!', color:'#ffe14d', life:44, max:44, vy:-0.5, crit:true });
+  }
 
   function startRun(charId = 'blade') {
     clearScreens();
@@ -95,13 +105,13 @@ export function boot() {
     d = Math.max(1, Math.round(d));
     const res = applyHit(e, d);
     e.flash = 6;
-    world.spawnFloater({ x:e.x, y:e.y-10, text:`-${d}`, color:crit?'#ffe14d':'#fff', life:40, vy:-0.8, crit });
+    world.spawnFloater({ x:e.x, y:e.y-10, text:`-${d}`, color:crit?'#ffe14d':'#fff', life:40, max:40, vy:-0.8, crit });
     if (crit && frameCount % 5 === 0) audio.sfx('crit');
     if (e.boss) shake = Math.min(6, shake + 0.5);
     if (res.killed) {
       audio.sfx(e.boss ? 'boss' : 'kill');
       spawnDrops(e);
-      combo++; comboTimer = 90;
+      combo++; comboTimer = 90; comboPop = 1;
       shake = Math.min(12, shake + (e.boss ? 9 : 2.6));
       const bursts = e.boss ? 44 : 8;
       for (let i=0;i<bursts;i++){ const a=(i/bursts)*Math.PI*2 + Math.random(); const s=(e.boss?2.5:1.6)+Math.random()*(e.boss?4:2.6);
@@ -125,18 +135,22 @@ export function boot() {
     const gold = Math.round(e.gold * rs.stats.goldGain);
     world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'xp',   value:e.xp, radius:6 });
     world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'coin', value:gold, radius:6 });
-    if (e.boss || rng.next() < 0.4)  world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'mana', value: e.boss?45:(4+Math.floor(rng.next()*7)), radius:6 });
-    if (e.boss || rng.next() < 0.08) world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'hp',   value: e.boss?60:(14+Math.floor(rng.next()*12)), radius:7 });
+    if (e.boss || rng.next() < 0.55) world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'mana', value: e.boss?70:(6+Math.floor(rng.next()*7)), radius:6 });
+    if (e.boss || rng.next() < 0.1)  world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'hp',   value: e.boss?70:(14+Math.floor(rng.next()*12)), radius:7 });
     if (e.boss) for (let i=0;i<6;i++) world.spawnPickup({ x:e.x+j()*3, y:e.y+j()*3, kind:'coin', value:gold, radius:6 });
   }
   // 픽업 획득 효과
+  const PICK_COLOR = { coin:'#ffd54a', mana:'#4db3ff', hp:'#ff6b8a', xp:'#7cff6b' };
   function collect(g) {
+    // 획득 팝(작은 스파크)
+    const col = PICK_COLOR[g.kind] || '#7cff6b';
+    for (let i=0;i<3;i++){ const a=Math.random()*Math.PI*2; world.spawnParticle({ x:g.x, y:g.y, vx:Math.cos(a)*1.4, vy:Math.sin(a)*1.4-0.6, life:10, color:col, spark:true }); }
     if (g.kind === 'coin') { rs.gold += g.value; if (frameCount%3===0) audio.sfx('coin'); }
     else if (g.kind === 'mana') { rs.mp = Math.min(rs.stats.maxMp, (rs.mp||0) + g.value);
-      world.spawnFloater({ x:world.player.x, y:world.player.y-22, text:`+${g.value} MP`, color:'#4db3ff', life:36, vy:-0.7 }); audio.sfx('pick'); }
+      world.spawnFloater({ x:world.player.x, y:world.player.y-22, text:`+${g.value} MP`, color:'#4db3ff', life:36, max:36, vy:-0.7 }); audio.sfx('pick'); }
     else if (g.kind === 'hp') { world.player.hp = Math.min(world.player.maxHp, world.player.hp + g.value);
-      world.spawnFloater({ x:world.player.x, y:world.player.y-22, text:`+${g.value} HP`, color:'#ff6b8a', life:36, vy:-0.7 }); audio.sfx('upgrade'); }
-    else { if (frameCount%3===0) audio.sfx('pick'); if (addXp(rs, g.value*rs.stats.xpGain).leveled) pendingLevelUp = true; }
+      world.spawnFloater({ x:world.player.x, y:world.player.y-22, text:`+${g.value} HP`, color:'#ff6b8a', life:36, max:36, vy:-0.7 }); audio.sfx('upgrade'); }
+    else { if (frameCount%3===0) audio.sfx('pick'); if (addXp(rs, g.value*rs.stats.xpGain).leveled) onLevelGain(); }
   }
 
   function cleanupSkillState() {
@@ -176,6 +190,8 @@ export function boot() {
     }
     if (world.player.invuln>0) world.player.invuln--;
     if (comboTimer>0) comboTimer--; else combo=0;
+    if (levelupDelay>0) levelupDelay--;
+    comboPop *= 0.85;
     shake *= 0.86; if (shake < 0.2) shake = 0;
     // 적 투사체(hazard) 이동/플레이어 피격
     for (const hz of world.hazards) { if (!hz.alive) continue;
@@ -211,8 +227,8 @@ export function boot() {
       if(--pt.life<=0) pt.alive=false; }
     for (const f of world.floaters){ if(!f.alive)continue; f.y+=f.vy; if(--f.life<=0) f.alive=false; }
     world.despawnDead();
-    // 레벨업 창은 보스 처치 슬로우모션(폭발 연출)이 끝난 뒤에 연다.
-    if (pendingLevelUp && slowmo <= 0 && !overlay) { pendingLevelUp = false; openLevelUp(); }
+    // 레벨업 창은 (보스 슬로우모션 + 레벨업 버스트 연출)이 끝난 뒤에 연다.
+    if (pendingLevelUp && slowmo <= 0 && levelupDelay <= 0 && !overlay) { pendingLevelUp = false; openLevelUp(); }
     if (world.player.hp <= 0) gameOver();
   }
 
@@ -279,9 +295,21 @@ export function boot() {
       // 플레이어(피격 무적 중 깜빡임)
       if (!(world.player.invuln>0 && frameCount%6<3))
         drawEntity(ctx, ch, world.player.x-camX, world.player.y-camY, world.player.radius, ch.color, frameCount, 0, false);
-      for (const f of world.floaters) if (f.alive) R.text(ctx, f.text, f.x-camX, f.y-camY, { color:f.color, size:f.crit?18:13, align:'center', weight:f.crit?'800':'600' });
+      for (const f of world.floaters) if (f.alive) {
+        const age = f.max ? (f.max - f.life)/f.max : 0;
+        const size = (f.crit?18:13) * Math.max(1, 1.5 - 0.5*Math.min(1, age*2.5));  // 초반 팝
+        ctx.save(); ctx.font = `${f.crit?'800':'700'} ${size}px system-ui`; ctx.textAlign = 'center';
+        ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(0,0,0,0.75)'; ctx.strokeText(f.text, f.x-camX, f.y-camY);
+        ctx.fillStyle = f.color; ctx.fillText(f.text, f.x-camX, f.y-camY); ctx.restore();
+      }
       drawHud(ctx, rs, world);
-      if (combo > 2) R.text(ctx, `COMBO x${combo}`, canvas.width/2, 46, { size:22, align:'center', color:'#ffd166', weight:'800' });
+      if (combo > 2) {
+        const cs = 22 * (1 + comboPop*0.6);
+        const cc = combo>=30?'#ff4d6d':combo>=20?'#ff6a3d':combo>=10?'#ff9f45':'#ffd166';
+        ctx.save(); ctx.font = `800 ${cs}px system-ui`; ctx.textAlign = 'center';
+        ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.strokeText(`COMBO x${combo}`, canvas.width/2, 50);
+        ctx.fillStyle = cc; ctx.fillText(`COMBO x${combo}`, canvas.width/2, 50); ctx.restore();
+      }
       R.text(ctx, bio.name, 16, 84, { size:12, color:'#9ab' });
       R.text(ctx, input.isAutopilot()?'AUTO (P: 수동)':'수동 WASD (P: 오토)', canvas.width-16, 24, { size:12, align:'right', color:'#8aa' });
       const boss = dir.getBossRef();
@@ -293,14 +321,25 @@ export function boot() {
     // 보스 처치 화면 플래시(렌더 프레임마다 감쇠 — 슬로우모션 영향 안 받음)
     if (whiteFlash > 0) { ctx.save(); ctx.globalAlpha = (whiteFlash/14)*0.6; ctx.fillStyle='#fff';
       ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore(); whiteFlash--; }
+    if (goldFlash > 0) { ctx.save(); ctx.globalAlpha = (goldFlash/12)*0.32; ctx.fillStyle='#ffe14d';
+      ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore(); goldFlash--; }
     if (overlay?.type==='levelup') drawLevelUp();
     if (scene==='gameover') { R.text(ctx,'GAME OVER',canvas.width/2,canvas.height/2-20,{size:44,align:'center',color:'#ff4d9d'});
       R.text(ctx,'클릭하면 다시 시작',canvas.width/2,canvas.height/2+24,{size:16,align:'center'}); }
   }
   function drawLevelUp(){
-    ctx.save(); ctx.fillStyle='rgba(4,6,14,0.72)'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore();
-    R.text(ctx,'LEVEL UP — 하나 선택 (1/2/3)',canvas.width/2,120,{size:22,align:'center',color:'#42e6ff'});
-    overlay.choices.forEach((c,i)=>R.text(ctx,`${i+1}. ${c.label}`,canvas.width/2,190+i*46,{size:18,align:'center'}));
+    ctx.save(); ctx.fillStyle='rgba(4,6,14,0.74)'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore();
+    ctx.save(); ctx.shadowBlur=22; ctx.shadowColor='#ffd166'; ctx.fillStyle='#ffe14d';
+    ctx.font='800 30px system-ui'; ctx.textAlign='center'; ctx.fillText('⬆ LEVEL UP', canvas.width/2, 116); ctx.restore();
+    R.text(ctx,'하나를 선택하세요 (1 / 2 / 3)',canvas.width/2,146,{size:14,align:'center',color:'#9fb'});
+    overlay.choices.forEach((c,i)=>{
+      const y=196+i*50, isEvo=c.kind==='evolve';
+      ctx.save(); ctx.fillStyle=isEvo?'rgba(255,225,77,0.14)':'rgba(66,230,255,0.08)';
+      ctx.strokeStyle=isEvo?'#ffe14d':'rgba(120,150,200,0.4)'; ctx.lineWidth=1.5;
+      const bw=Math.min(560,canvas.width-80);
+      ctx.beginPath(); ctx.roundRect(canvas.width/2-bw/2, y-26, bw, 40, 8); ctx.fill(); ctx.stroke(); ctx.restore();
+      R.text(ctx,`${i+1}.  ${c.label}`,canvas.width/2,y,{size:17,align:'center',color:isEvo?'#ffe14d':'#eaf2ff',weight:'700'});
+    });
   }
 
   addEventListener('keydown', e => {

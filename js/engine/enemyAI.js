@@ -60,5 +60,7 @@ export function onEnemyDeath(e, world, rng) {
     const mini = getEnemy(e.splitInto); if (!mini) return;
     for (let i=0;i<(e.splitCount||2);i++){ const a=rng.next()*Math.PI*2;
       world.spawnEnemy({ ...mini, x:e.x+Math.cos(a)*14, y:e.y+Math.sin(a)*14, maxHp:mini.hp }); }
+  } else if (e.behavior === 'bomber') {
+    for (let i=0;i<10;i++){ const a=i/10*Math.PI*2; fireHazard(world, e.x, e.y, a, 2.6, e.damage); } // 사망 폭발 탄막
   }
 }

@@ -10,5 +10,9 @@ export const ENEMIES = {
   splitter: { id:'splitter', name:'분열체', shape:'circle',   sprite:'cell',   spriteScale:0.85, color:'#66ffb3', hp:14, speed:1.0, radius:16, damage:7,  xp:7,  gold:5, behavior:'splitter', splitInto:'splitling', splitCount:2 },
   splitling:{ id:'splitling',name:'분열자',  shape:'circle',   sprite:'cell',   spriteScale:0.7,  color:'#9dffd0', hp:4,  speed:1.5, radius:9,  damage:4,  xp:2,  gold:1 },
   charger:  { id:'charger',  name:'돌진체', shape:'triangle', sprite:'horned', color:'#ff6a3d', hp:16, speed:0.9, radius:16, damage:12, xp:8,  gold:6, behavior:'charger', dashCd:150, dashSpeed:6, dashDur:22 },
+  // 폭탄체: 사망 시 붉은 탄막 링을 사방으로 터뜨린다(cell 스프라이트 재사용).
+  bomber:   { id:'bomber',   name:'폭탄체', shape:'circle',   sprite:'cell',   spriteScale:0.95, color:'#ff7a3d', hp:12, speed:1.0, radius:15, damage:9,  xp:8,  gold:6, behavior:'bomber' },
+  // 광폭체: 거대·단단·강한 근접(golem 스프라이트 확대 재사용).
+  brute:    { id:'brute',    name:'광폭체', shape:'square',   sprite:'golem',  spriteScale:1.25, color:'#c05cff', hp:60, speed:0.55, radius:24, damage:16, xp:14, gold:10 },
 };
 export function getEnemy(id) { return ENEMIES[id]; }
