@@ -5,6 +5,7 @@ export function defaultMeta() {
     version: 1, souls: 0, gold: 0, upgrades: {},
     unlockedCharacters: ['blade'], unlockedSkills: [],
     potions: { hp: 0, mp: 0 },
+    relics: { oath: 0 },   // 신성의 맹세(부활 아이템) 보유 수
     settings: { master: 0.8, sfx: 0.9, bgm: 0.5, muted: false, autopilot: true, autoPotion: true },
     best: { stage: 0, timeMs: 0 },
   };

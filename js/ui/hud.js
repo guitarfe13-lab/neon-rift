@@ -67,4 +67,6 @@ export function drawHud(ctx, rs, world, frame = 0, souls = 0) {
   const po = rs.potions || { hp:0, mp:0 };
   drawPotion(ctx, 18, 80, 15, 22, '#ff4d6d');  text(ctx, `×${po.hp}`, 40, 96,  { size:14, weight:'800', color:'#ffb3c0' });
   drawPotion(ctx, 18, 108, 15, 22, '#4db3ff'); text(ctx, `×${po.mp}`, 40, 124, { size:14, weight:'800', color:'#a9d8ff' });
+  // 신성의 맹세(부활 유물) 보유 표시
+  if (rs.oaths > 0) text(ctx, `✝ ×${rs.oaths}`, 18, 148, { size:15, weight:'800', color:'#ffe58a' });
 }

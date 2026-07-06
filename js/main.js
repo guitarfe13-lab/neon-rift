@@ -120,6 +120,7 @@ export function boot() {
     world.player.maxHp = rs.stats.maxHp; world.player.hp = rs.stats.maxHp;
     rs.mp = rs.stats.maxMp;
     rs.potions = { hp: meta.potions?.hp || 0, mp: meta.potions?.mp || 0 };  // 상점 구매분 반입
+    rs.oaths = meta.relics?.oath || 0;                                      // 신성의 맹세(부활) 반입
     dir = makeDirector(rng, BIOMES);
     sstate = {}; scene = 'run'; overlay = null;
   }
@@ -323,7 +324,7 @@ export function boot() {
     world.despawnDead();
     // 레벨업 창은 (보스 슬로우모션 + 레벨업 버스트 연출)이 끝난 뒤에 연다.
     if (pendingLevelUp && slowmo <= 0 && levelupDelay <= 0 && !overlay) { pendingLevelUp = false; openLevelUp(); }
-    if (world.player.hp <= 0) gameOver();
+    if (world.player.hp <= 0) { if (rs.oaths > 0) reviveWithOath(); else gameOver(); }
   }
 
   function openLevelUp(){ audio.sfx('levelup'); overlay = { type:'levelup', choices: rollChoices(rs, rng, 3) }; }
@@ -338,6 +339,19 @@ export function boot() {
     if (!overlay || overlay.type!=='levelup' || !overlay.choices[i]) return;
     audio.sfx('upgrade'); applyChoice(rs, overlay.choices[i]); cleanupSkillState(); overlay=null;
   }
+  // 신성의 맹세 발동: 레벨·스킬·골드 등 진행 상태 그대로, 그 자리에서 부활(HP 50% + 2s 무적).
+  function reviveWithOath(){
+    rs.oaths--;
+    meta.relics = meta.relics || { oath: 0 }; meta.relics.oath = rs.oaths; saveMeta(meta);   // 소모 즉시 저장(중복 사용 방지)
+    world.player.hp = Math.round(world.player.maxHp * 0.5);
+    world.player.invuln = 120;
+    world.hazards.length = 0;                                              // 주변 탄막 소거(부활 즉사 방지)
+    const p = world.player;
+    for (const e of world.enemies) if (e.alive && !e.boss && Math.hypot(e.x-p.x, e.y-p.y) < 140) e.hp = 0;  // 밀착 몹 정리
+    for (let i=0;i<3;i++) world.spawnParticle({ x:p.x, y:p.y, r:10+i*8, rMax:120+i*40, life:22+i*4, color: i===1?'#fff':'#ffe58a', shock:true });
+    world.spawnFloater({ x:p.x, y:p.y-40, text:'✝ 신성의 맹세 발동!', color:'#ffe58a', life:80, max:80, vy:-0.3, crit:true });
+    goldFlash = 18; audio.sfx('levelup');
+  }
   function gameOver(){
     scene='gameover'; audio.sfx('death');
     world.particles.length = 0; world.floaters.length = 0; world.hazards.length = 0;   // 잔여 이펙트 정리(성능)
@@ -347,6 +361,7 @@ export function boot() {
     meta.best.stage = Math.max(meta.best.stage, stage);
     meta.best.timeMs = Math.max(meta.best.timeMs, rs.timeMs);
     meta.potions = { hp: rs.potions.hp, mp: rs.potions.mp };  // 남은 물약 저장(자동 사용분 차감)
+    meta.relics = { ...(meta.relics || {}), oath: rs.oaths || 0 };  // 남은 신성의 맹세 저장
     saveMeta(meta);
   }
 

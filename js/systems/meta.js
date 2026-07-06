@@ -31,6 +31,18 @@ export function buyPotion(meta, kind) {
   return meta;
 }
 
+// 신성의 맹세: 사망 시 진행 상태 그대로 그 자리에서 부활하는 1회성 유물. 몹시 비싸다.
+export const OATH_COST = 10000;
+export function oathCost() { return OATH_COST; }
+export function canBuyOath(meta) { return meta.souls >= OATH_COST; }
+export function buyOath(meta) {
+  if (!canBuyOath(meta)) return meta;
+  meta.souls -= OATH_COST;
+  if (!meta.relics) meta.relics = { oath: 0 };
+  meta.relics.oath = (meta.relics.oath || 0) + 1;
+  return meta;
+}
+
 // 황금코인 → 소울 교환. 게임오버 때 적립된 meta.gold를 소울로 환전(GOLD_PER_SOUL:1).
 export const GOLD_PER_SOUL = 1000;
 export function goldToSouls(gold) { return Math.floor(Math.max(0, gold || 0) / GOLD_PER_SOUL); }

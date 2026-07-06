@@ -5,6 +5,7 @@ import { getSkill } from '../data/skills.js';
 import { drawSkillIcon } from './skillIcons.js';
 import { upgradeCost, canBuy, buyUpgrade, characterUnlockCost, isCharUnlocked, canUnlockChar, unlockChar,
   potionCost, canBuyPotion, buyPotion,
+  oathCost, canBuyOath, buyOath,
   GOLD_PER_SOUL, goldToSouls, exchangeGold, exchangeAllGold } from '../systems/meta.js';
 
 const root = () => document.getElementById('ui-root');
@@ -105,6 +106,15 @@ export function showMetaShop({ meta, save, onBack }) {
       const btn = el('button', 'btn small', `+10 구매 (${potionCost(kind)})`);
       btn.disabled = !canBuyPotion(meta, kind);
       btn.onclick = () => { buyPotion(meta, kind); save(); render(); };
+      row.appendChild(btn); list.appendChild(row);
+    }
+    // 신성의 맹세(부활 유물): 사망 시 진행 상태 그대로 부활. 몹시 비싸다.
+    {
+      const row = el('div', 'shop-row'); const own = meta.relics?.oath || 0;
+      row.innerHTML = `<div>✝ <b style="color:#ffe58a">신성의 맹세</b> <span class="lvl">사망 시 그 자리에서 부활(레벨·스킬·골드 유지, 1회 소모) · 보유 ${own}</span></div>`;
+      const btn = el('button', 'btn small', `구매 (${oathCost().toLocaleString()})`);
+      btn.disabled = !canBuyOath(meta);
+      btn.onclick = () => { buyOath(meta); save(); render(); };
       row.appendChild(btn); list.appendChild(row);
     }
     // 캐릭터 해금

@@ -1,8 +1,23 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { upgradeCost, canBuy, buyUpgrade, canUnlockChar, unlockChar, potionCost, canBuyPotion, buyPotion,
+  OATH_COST, canBuyOath, buyOath,
   GOLD_PER_SOUL, goldToSouls, exchangeGold, exchangeAllGold } from '../js/systems/meta.js';
 import { defaultMeta } from '../js/core/storage.js';
+
+test('신성의 맹세: 소울 부족이면 구매 불가', () => {
+  const m = defaultMeta(); m.souls = OATH_COST - 1;
+  assert.equal(canBuyOath(m), false);
+  buyOath(m);
+  assert.equal(m.relics.oath, 0); assert.equal(m.souls, OATH_COST - 1);
+});
+test('신성의 맹세: 구매 시 10,000 소울 차감 + 보유 증가(중첩 가능)', () => {
+  const m = defaultMeta(); m.souls = OATH_COST * 2 + 5;
+  buyOath(m); buyOath(m);
+  assert.equal(m.relics.oath, 2); assert.equal(m.souls, 5);
+  buyOath(m);                                    // 잔액 부족 → 변화 없음
+  assert.equal(m.relics.oath, 2); assert.equal(m.souls, 5);
+});
 
 test('골드→소울: 환산은 GOLD_PER_SOUL로 내림', () => {
   assert.equal(goldToSouls(0), 0);
