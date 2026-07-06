@@ -430,6 +430,13 @@ export function boot() {
           const bw = Math.max(22, e.radius*2.2), bh = 4, bx = e.x-camX-bw/2, by = e.y-camY - e.radius*2.8 - 6;
           ctx.save(); ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(bx-1, by-1, bw+2, bh+2); ctx.restore();
           R.bar(ctx, bx, by, bw, bh, e.hp/e.maxHp, '#ff4d6d');
+        }
+        // 머리 위 이름표: 보스=붉은색, 중간보스=노란색 (검은 외곽선으로 가독성)
+        if (e.boss || e.miniboss) {
+          const nx = e.x-camX, ny = e.y-camY - e.radius*2.8 - (e.miniboss ? 14 : 4);
+          ctx.save(); ctx.font = '800 12px system-ui'; ctx.textAlign = 'center';
+          ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.strokeText(e.name, nx, ny);
+          ctx.fillStyle = e.boss ? '#ff5c5c' : '#ffe14d'; ctx.fillText(e.name, nx, ny); ctx.restore();
         } }
       for (const p of world.projectiles) { if (!p.alive) continue;
         if (p.beam) { const n=Math.hypot(p.vx,p.vy)||1, ux=p.vx/n, uy=p.vy/n;
