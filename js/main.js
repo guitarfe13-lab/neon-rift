@@ -275,8 +275,16 @@ export function boot() {
     saveMeta(meta);
   }
 
+  // 상태별 BGM: 런 중엔 바이옴별(track1~3), 보스전엔 track5, 그 외(메뉴)엔 track4.
+  function updateBgm() {
+    let want = 'track4.mp3';
+    if (scene==='run' && world && dir) want = dir.getBossRef() ? 'track5.mp3' : `track${(dir.biomeIndex()%3)+1}.mp3`;
+    audio.setBgm(want);
+  }
+
   function render() {
     R.clear(ctx, canvas.width, canvas.height);
+    updateBgm();
     if ((scene==='run' || scene==='gameover') && world) {
       const ch = getCharacter(rs.charId);
       if (scene==='gameover') ctx.filter = 'blur(3px) brightness(0.5)';   // 게임오버: 뒷배경 흐리게

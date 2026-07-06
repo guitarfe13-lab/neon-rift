@@ -88,33 +88,27 @@ export function makeAudio(settings) {
     };
     schedule(); fallbackTimer = setInterval(schedule, 2000);
   }
-  function playBgm() {
-    if (!ensure() || started) return; started = true;
-    // 플레이리스트: track1~5.mp3를 순서대로 재생하고 끝나면 다음 곡으로.
-    // 없는 트랙은 건너뛰고, 하나도 없으면 프로시저럴 폴백. (파일 추가만으로 곡 확장)
-    const tracks = ['track1', 'track2', 'track3', 'track4', 'track5'].map((n) => `assets/bgm/${n}.mp3`);
-    let anyPlayed = false, fails = 0;
-    const next = (fromI) => {
-      if (bgmEl) { try { bgmEl.pause(); } catch {} bgmEl = null; }
-      if (fails >= tracks.length) { if (!anyPlayed) startFallback(); return; } // 전부 로드 실패 → 폴백
-      play((fromI + 1) % tracks.length);
-    };
-    const play = (i) => {
-      const el = new Audio(tracks[i]); el.loop = false; let done = false;
-      const advance = () => { if (done) return; done = true; next(i); };
-      el.addEventListener('ended', advance, { once: true });
-      el.addEventListener('error', () => { fails++; advance(); }, { once: true });
-      try { ctx.createMediaElementSource(el).connect(bgmGain); } catch {}
-      el.play().then(() => { anyPlayed = true; fails = 0; bgmEl = el; }).catch(() => { fails++; advance(); });
-    };
-    play(0);
+  // 지정 트랙 재생(루프). 상태(바이옴/보스)에 따라 main이 setBgm으로 전환.
+  let wantFile = null, curFile = null;
+  function applyBgm() {
+    if (!ctx || ctx.state === 'suspended') return;   // 제스처 전이면 저장만
+    if (wantFile === curFile) return;
+    curFile = wantFile;
+    if (bgmEl) { try { bgmEl.pause(); } catch {} bgmEl = null; }
+    if (fallbackTimer) { clearInterval(fallbackTimer); fallbackTimer = null; }
+    if (!wantFile) return;
+    const el = new Audio('assets/bgm/' + wantFile); el.loop = true;
+    try { ctx.createMediaElementSource(el).connect(bgmGain); } catch {}
+    el.play().then(() => { bgmEl = el; }).catch(() => startFallback());  // 파일 없으면 프로시저럴 폴백(재시도 방지: curFile 유지)
   }
+  function setBgm(file) { if (file === wantFile) { applyBgm(); return; } wantFile = file; applyBgm(); }
   function stopBgm() { if (bgmEl) bgmEl.pause(); if (fallbackTimer) { clearInterval(fallbackTimer); fallbackTimer = null; } }
 
   return {
     sfx,
     setVolumes(s) { if (s) settings = s; applyVolumes(); },
-    resume() { const c = ensure(); if (c && c.state === 'suspended') c.resume(); playBgm(); },
+    resume() { const c = ensure(); if (c && c.state === 'suspended') c.resume(); applyBgm(); },
+    setBgm,
     stopBgm,
   };
 }
