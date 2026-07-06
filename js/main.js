@@ -4,7 +4,7 @@ import { makeRng } from './core/rng.js';
 import { loadMeta, saveMeta } from './core/storage.js';
 import { createWorld } from './engine/entities.js';
 import { makeDirector } from './engine/spawner.js';
-import { stepEnemy, onEnemyDeath } from './engine/enemyAI.js';
+import { stepEnemy, onEnemyDeath, MOVE_SCALE } from './engine/enemyAI.js';
 import { applyHit } from './engine/combat.js';
 import { computeStats } from './engine/stats.js';
 import { getCharacter, CHARACTERS } from './data/characters.js';
@@ -173,7 +173,7 @@ export function boot() {
     rs.timeMs += dt;
     rs.stage = Math.max(1, (rs.timeMs/30000|0)+1);
     // 이동
-    const mv = input.moveVector(world), sp = rs.stats.moveSpeed;
+    const mv = input.moveVector(world), sp = rs.stats.moveSpeed * MOVE_SCALE;
     world.player.x += mv.x * sp; world.player.y += mv.y * sp;
     // 보스 아레나: 플레이어 무한 후퇴 방지(원형 경계 안으로 제한)
     const ar = dir.getArena();
@@ -268,6 +268,7 @@ export function boot() {
     R.clear(ctx, canvas.width, canvas.height);
     if ((scene==='run' || scene==='gameover') && world) {
       const ch = getCharacter(rs.charId);
+      if (scene==='gameover') ctx.filter = 'blur(3px) brightness(0.5)';   // 게임오버: 뒷배경 흐리게
       const camX = world.player.x - canvas.width/2 + (Math.random()-0.5)*shake;
       const camY = world.player.y - canvas.height/2 + (Math.random()-0.5)*shake;
       // 바이옴 배경: 이미지(assets/bg/<id>.png)가 있으면 시차 타일, 없으면 그라디언트+그리드
@@ -356,6 +357,7 @@ export function boot() {
         R.bar(ctx, canvas.width/2-180, canvas.height-40, 360, 14, boss.hp/boss.maxHp, '#ff5cc8');
       }
     }
+    ctx.filter = 'none';   // 이후(플래시·GAME OVER 텍스트)는 선명하게
     // 보스 처치 화면 플래시(렌더 프레임마다 감쇠 — 슬로우모션 영향 안 받음)
     if (whiteFlash > 0) { ctx.save(); ctx.globalAlpha = (whiteFlash/14)*0.6; ctx.fillStyle='#fff';
       ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore(); whiteFlash--; }

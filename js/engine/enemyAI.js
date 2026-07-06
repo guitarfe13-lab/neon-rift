@@ -1,6 +1,9 @@
 // 적 행동. stepEnemy는 이동+특수행동, onEnemyDeath는 사망 시 처리(분열 등).
 import { getEnemy } from '../data/enemies.js';
 
+// 전역 이동 배율: 플레이어·적 모두에 동일 적용(상대 밸런스 유지) → 걷는 듯한 리얼 이동감.
+export const MOVE_SCALE = 0.7;
+
 // 적 투사체(플레이어에게 피해) 발사. 아군 투사체와 구분되도록 항상 붉은색.
 function fireHazard(world, x, y, ang, speed, damage) {
   world.spawnHazard({ x, y, vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed,
@@ -52,7 +55,7 @@ export function stepEnemy(e, world, rng) {
     spd = bossPhase(e).speed;
     stepBossPattern(e, world, angToP);
   }
-  e.x += Math.cos(ang)*spd; e.y += Math.sin(ang)*spd;
+  e.x += Math.cos(ang)*spd*MOVE_SCALE; e.y += Math.sin(ang)*spd*MOVE_SCALE;
 }
 
 export function onEnemyDeath(e, world, rng) {

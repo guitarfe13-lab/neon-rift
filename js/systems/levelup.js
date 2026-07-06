@@ -18,7 +18,7 @@ const PASSIVES = {
   might_core: { id:'might_core', label:'힘 코어(공격력 +8)', stat:'damage', kind:'flat', value:8 },
   haste:      { id:'haste',      label:'공격속도 +12%', stat:'atkSpeed',    kind:'mult', value:0.12 },
   giant:      { id:'giant',      label:'범위 +15%',     stat:'area',        kind:'mult', value:0.15 },
-  swift:      { id:'swift',      label:'이동속도 +10%', stat:'moveSpeed',   kind:'mult', value:0.10 },
+  swift:      { id:'swift',      label:'이동속도 +6%',  stat:'moveSpeed',   kind:'mult', value:0.06 },
   magnet:     { id:'magnet',     label:'획득범위 +25%', stat:'pickupRange', kind:'mult', value:0.25 },
 };
 export const PASSIVE_DEFS = PASSIVES;
