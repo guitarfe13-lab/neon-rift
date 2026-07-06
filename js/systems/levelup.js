@@ -1,6 +1,7 @@
-// XP/레벨/3택1. 후보 풀은 데이터에서 필터링해 가중 랜덤.
-import { SKILLS } from '../data/skills.js';
+// XP/레벨/3택1. 후보 풀은 데이터에서 필터링해 가중 랜덤. 진화 후보 포함.
+import { SKILLS, EVOLUTIONS } from '../data/skills.js';
 import { computeStats } from '../engine/stats.js';
+import { canEvolve } from './skillScaling.js';
 
 export function xpForLevel(level) { return Math.round(8 * Math.pow(level, 1.55) + 4); }
 
@@ -10,34 +11,58 @@ export function addXp(rs, amount) {
   return { leveled: levels > 0, levels };
 }
 
+// 패시브 정의(스탯 강화). evolveReq에서 참조하는 id 포함(power/haste/might_core/giant).
 const PASSIVES = {
-  power:   { id:'power',   label:'공격력 +15%', stat:'damage',     kind:'mult', value:0.15 },
-  swift:   { id:'swift',   label:'이동속도 +10%',stat:'moveSpeed',  kind:'mult', value:0.10 },
-  magnet:  { id:'magnet',  label:'획득범위 +25%',stat:'pickupRange',kind:'mult', value:0.25 },
+  power:      { id:'power',      label:'공격력 +15%',   stat:'damage',      kind:'mult', value:0.15 },
+  might_core: { id:'might_core', label:'힘 코어(공격력 +8)', stat:'damage', kind:'flat', value:8 },
+  haste:      { id:'haste',      label:'공격속도 +12%', stat:'atkSpeed',    kind:'mult', value:0.12 },
+  giant:      { id:'giant',      label:'범위 +15%',     stat:'area',        kind:'mult', value:0.15 },
+  swift:      { id:'swift',      label:'이동속도 +10%', stat:'moveSpeed',   kind:'mult', value:0.10 },
+  magnet:     { id:'magnet',     label:'획득범위 +25%', stat:'pickupRange', kind:'mult', value:0.25 },
 };
 export const PASSIVE_DEFS = PASSIVES;
 
+// 보유 패시브(레벨 배수) → runMods로 변환.
+export function passiveMods(rs) {
+  return Object.entries(rs.passives).map(([id, lvl]) => {
+    const p = PASSIVES[id]; return { stat:p.stat, kind:p.kind, value:p.value * lvl };
+  });
+}
+
 export function rollChoices(rs, rng, count = 3) {
   const pool = [];
+  // 진화(최우선): 보유 스킬이 최대레벨 + 요구 패시브 보유 시.
+  for (const id of Object.keys(rs.ownedSkills)) {
+    const s = SKILLS[id];
+    if (s && s.evolveInto && !rs.ownedSkills[s.evolveInto] &&
+        canEvolve(s, { ownedSkills: rs.ownedSkills, passives: rs.passives })) {
+      pool.push({ kind:'evolve', id, into:s.evolveInto, label:`⚡ 진화: ${SKILLS[s.evolveInto].name}`, weight:6 });
+    }
+  }
+  // 보유 스킬 강화(최대레벨 미만).
   for (const id of Object.keys(rs.ownedSkills)) {
     const s = SKILLS[id]; if (s && rs.ownedSkills[id] < s.maxLevel)
       pool.push({ kind:'upgrade', id, label:`${s.name} 강화 Lv${rs.ownedSkills[id]+1}`, weight:2 });
   }
-  for (const id of Object.keys(SKILLS)) if (!rs.ownedSkills[id])
+  // 신규 스킬(진화형 제외, 미보유).
+  for (const id of Object.keys(SKILLS)) if (!rs.ownedSkills[id] && !EVOLUTIONS.has(id))
     pool.push({ kind:'new', id, label:`신규: ${SKILLS[id].name}`, weight:1 });
+  // 패시브.
   for (const id of Object.keys(PASSIVES)) pool.push({ kind:'passive', id, label:PASSIVES[id].label, weight:1 });
+
   const chosen = []; const used = new Set();
-  while (chosen.length < count && pool.some(p => !used.has(p.id))) {
-    const avail = pool.filter(p => !used.has(p.id));
+  while (chosen.length < count && pool.some(p => !used.has(p.kind + p.id))) {
+    const avail = pool.filter(p => !used.has(p.kind + p.id));
     const c = rng.weighted(avail.map(p => ({ value:p, weight:p.weight })));
-    used.add(c.id); chosen.push(c);
+    used.add(c.kind + c.id); chosen.push(c);
   }
   return chosen;
 }
+
 export function applyChoice(rs, choice) {
   if (choice.kind === 'new') rs.ownedSkills[choice.id] = 1;
   else if (choice.kind === 'upgrade') rs.ownedSkills[choice.id] = (rs.ownedSkills[choice.id]||0) + 1;
   else if (choice.kind === 'passive') rs.passives[choice.id] = (rs.passives[choice.id]||0) + 1;
-  const runMods = Object.keys(rs.passives).map(id => ({ ...PASSIVES[id] }));
-  rs.stats = computeStats({ charId: rs.charId, metaUpgrades: rs.metaUpgrades, runMods });
+  else if (choice.kind === 'evolve') { delete rs.ownedSkills[choice.id]; rs.ownedSkills[choice.into] = 1; }
+  rs.stats = computeStats({ charId: rs.charId, metaUpgrades: rs.metaUpgrades, runMods: passiveMods(rs) });
 }

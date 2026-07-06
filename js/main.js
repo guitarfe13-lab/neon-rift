@@ -4,12 +4,10 @@ import { makeRng } from './core/rng.js';
 import { loadMeta, saveMeta } from './core/storage.js';
 import { createWorld } from './engine/entities.js';
 import { makeDirector } from './engine/spawner.js';
-import { applyHit, damageOf } from './engine/combat.js';
+import { applyHit } from './engine/combat.js';
 import { computeStats } from './engine/stats.js';
 import { getCharacter } from './data/characters.js';
-import { getSkill } from './data/skills.js';
-import { runtimeStats } from './systems/skillScaling.js';
-import { fireProjectile, updateProjectiles } from './systems/skills.js';
+import { updateSkills, updateProjectiles } from './systems/skills.js';
 import { addXp, rollChoices, applyChoice } from './systems/levelup.js';
 import { makeInput } from './core/input.js';
 import { drawHud } from './ui/hud.js';
@@ -20,19 +18,38 @@ export function boot() {
   const ctx = canvas.getContext('2d');
   const meta = loadMeta();
   const input = makeInput(canvas);
-  let scene = 'run', overlay = null, world, rs, dir, rng, fireTimer = 0, frameCount = 0;
+  let scene = 'run', overlay = null, world, rs, dir, rng, sstate, frameCount = 0;
 
   function startRun(charId = 'blade') {
     rng = makeRng('run-' + (meta.best.timeMs + (frameCount % 1000)));
     world = createWorld();
     world.player.x = canvas.width/2; world.player.y = canvas.height/2;
     const ch = getCharacter(charId);
-    rs = { charId, level:1, xp:0, timeMs:0, stage:1, gold:0,
+    rs = { charId, level:1, xp:0, timeMs:0, stage:1, gold:0, baseDamage: ch.base.damage,
       ownedSkills:{ [ch.startingSkill]:1 }, passives:{}, metaUpgrades: meta.upgrades, stats:{} };
     rs.stats = computeStats({ charId, metaUpgrades: meta.upgrades, runMods: [] });
     world.player.maxHp = rs.stats.maxHp; world.player.hp = rs.stats.maxHp;
     dir = makeDirector(rng, { enemySet:['grunt'] });
-    scene = 'run'; overlay = null; fireTimer = 0;
+    sstate = {}; scene = 'run'; overlay = null;
+  }
+
+  // 중앙 피해 처리: 스킬 데미지 × 플레이어 공격력 배수(×크리) → 처치 시 보상.
+  function damageEnemy(e, skillDmg, crit) {
+    let d = skillDmg * (rs.stats.damage / rs.baseDamage);
+    if (crit) d *= (rs.stats.critMult || 2);
+    d = Math.max(1, Math.round(d));
+    const res = applyHit(e, d);
+    world.spawnFloater({ x:e.x, y:e.y-10, text:String(d), color:crit?'#ffe14d':'#fff', life:40, vy:-0.8 });
+    if (res.killed) { rs.gold += Math.round(e.gold*rs.stats.goldGain); world.spawnPickup({ x:e.x, y:e.y, xp:e.xp, radius:6 }); }
+  }
+
+  function cleanupSkillState() {
+    for (const id of Object.keys(sstate)) if (!rs.ownedSkills[id]) {
+      const st = sstate[id];
+      if (st.orbs) for (const o of st.orbs) o.alive = false;
+      if (st.drone) st.drone.alive = false;
+      delete sstate[id];
+    }
   }
 
   function update(dt) {
@@ -43,9 +60,10 @@ export function boot() {
     // 이동
     const mv = input.moveVector(world), sp = rs.stats.moveSpeed;
     world.player.x += mv.x * sp; world.player.y += mv.y * sp;
-    // 스폰 + 적 이동/충돌
+    // 스폰 + 적 이동/접촉 피해
     dir.update(dt, rs.timeMs, world, 1);
     for (const e of world.enemies) { if (!e.alive) continue;
+      if (e._orbCd > 0) e._orbCd--;
       const a = Math.atan2(world.player.y-e.y, world.player.x-e.x);
       e.x += Math.cos(a)*e.speed; e.y += Math.sin(a)*e.speed;
       if (Math.hypot(e.x-world.player.x, e.y-world.player.y) < e.radius+world.player.radius) {
@@ -53,21 +71,15 @@ export function boot() {
       }
     }
     if (world.player.invuln>0) world.player.invuln--;
-    // 자동 발사
-    const skillId = Object.keys(rs.ownedSkills)[0];
-    const rt = runtimeStats(getSkill(skillId), rs.ownedSkills[skillId]);
-    if (--fireTimer <= 0) { fireProjectile(world, world.player, rs.stats, rt, rng); fireTimer = rt.cooldown; }
+    // 스킬 실행 + 투사체 이동
+    updateSkills(world, rs, rng, sstate, damageEnemy);
     updateProjectiles(world);
     // 투사체-적 충돌
-    for (const p of world.projectiles) { if (!p.alive) continue;
+    for (const p of world.projectiles) { if (!p.alive || p.dmg<=0) continue;
       for (const e of world.enemies) { if (!e.alive) continue;
         if (Math.hypot(p.x-e.x, p.y-e.y) < p.radius+e.radius) {
-          const dmg = damageOf(rs.stats, p.dmg, p.crit);
-          const res = applyHit(e, dmg, p.crit);
-          world.spawnFloater({ x:e.x, y:e.y-10, text:String(dmg|0), color:p.crit?'#ffe14d':'#fff', life:40, vy:-0.8 });
-          if (p.pierce>0) p.pierce--; else p.alive=false;
-          if (res.killed) { rs.gold += Math.round(e.gold*rs.stats.goldGain); world.spawnPickup({ x:e.x, y:e.y, xp:e.xp, radius:6 }); }
-          break;
+          if (p.orbit) { if ((e._orbCd||0)>0) continue; damageEnemy(e, p.dmg, false); e._orbCd = 12; }
+          else { damageEnemy(e, p.dmg, p.crit); if (p.pierce>0) p.pierce--; else { p.alive=false; break; } }
         }
       }
     }
@@ -78,7 +90,8 @@ export function boot() {
         g.x+=Math.cos(a)*4; g.y+=Math.sin(a)*4; }
       if (d < world.player.radius) { g.alive=false; if (addXp(rs, g.xp*rs.stats.xpGain).leveled) openLevelUp(); }
     }
-    // 플로터
+    // 파티클/플로터 수명
+    for (const pt of world.particles){ if(!pt.alive)continue; if(--pt.life<=0) pt.alive=false; }
     for (const f of world.floaters){ if(!f.alive)continue; f.y+=f.vy; if(--f.life<=0) f.alive=false; }
     world.despawnDead();
     if (world.player.hp <= 0) gameOver();
@@ -98,13 +111,19 @@ export function boot() {
     R.clear(ctx, canvas.width, canvas.height);
     if (scene==='run' || scene==='gameover') {
       const ch = getCharacter(rs.charId);
-      // 카메라: 플레이어를 항상 화면 중앙에 두고 월드를 상대 좌표로 렌더.
       const camX = world.player.x - canvas.width/2;
       const camY = world.player.y - canvas.height/2;
       R.grid(ctx, canvas.width, canvas.height, camX, camY);
+      // 파티클(오라 링 / 연쇄 볼트)
+      for (const pt of world.particles) { if (!pt.alive) continue;
+        ctx.save(); ctx.globalAlpha = Math.max(0, pt.life/8); ctx.strokeStyle = pt.color||'#5cf'; ctx.lineWidth = 2;
+        if (pt.ring) { ctx.beginPath(); ctx.arc(pt.x-camX, pt.y-camY, pt.r, 0, Math.PI*2); ctx.stroke(); }
+        else if (pt.bolt) { ctx.beginPath(); ctx.moveTo(pt.x1-camX, pt.y1-camY); ctx.lineTo(pt.x2-camX, pt.y2-camY); ctx.stroke(); }
+        ctx.restore();
+      }
       for (const g of world.pickups) if (g.alive) R.neonCircle(ctx, g.x-camX, g.y-camY, g.radius, '#7cff6b');
       for (const e of world.enemies) if (e.alive) R.neonShape(ctx, e.x-camX, e.y-camY, e.radius, e.shape, e.color);
-      for (const p of world.projectiles) if (p.alive) R.neonCircle(ctx, p.x-camX, p.y-camY, p.radius, '#ffe14d');
+      for (const p of world.projectiles) if (p.alive) R.neonCircle(ctx, p.x-camX, p.y-camY, p.radius, p.color||'#ffe14d');
       R.neonShape(ctx, world.player.x-camX, world.player.y-camY, world.player.radius, ch.shape, ch.color);
       for (const f of world.floaters) if (f.alive) R.text(ctx, f.text, f.x-camX, f.y-camY, { color:f.color, size:13, align:'center' });
       drawHud(ctx, rs, world);
@@ -122,7 +141,7 @@ export function boot() {
 
   addEventListener('keydown', e => {
     if (overlay?.type==='levelup') { const i='123'.indexOf(e.key);
-      if (i>=0){ applyChoice(rs, overlay.choices[i]); overlay=null; } }
+      if (i>=0 && overlay.choices[i]){ applyChoice(rs, overlay.choices[i]); cleanupSkillState(); overlay=null; } }
   });
   canvas.addEventListener('pointerdown', () => { if (scene==='gameover') startRun(rs.charId); });
 
