@@ -1,16 +1,22 @@
 # 배경음(BGM) 넣는 법
 
-**기본 동봉**: `track1.wav`(원본 칩튠 루프, 자체 제작 = CC0). `tools/make-bgm.mjs`로 생성했으며
-`node tools/make-bgm.mjs`로 재생성할 수 있습니다.
+## 플레이리스트 (track1~5)
 
-로드 우선순위: **`track1.mp3` → `track1.wav`(동봉) → 프로시저럴 폴백**. 즉 더 좋은 음악으로 바꾸려면
-아래 위치에 mp3를 넣으면 자동으로 우선 재생됩니다(파일 교체만, 코드 수정 불필요):
+게임은 `track1.mp3 → track2.mp3 → … → track5.mp3`를 **순서대로 재생하고, 끝나면 다음 곡**으로 넘어갑니다.
+없는 트랙은 자동으로 건너뛰고, **하나도 없으면 프로시저럴 칩튠 폴백**이 재생됩니다.
+→ **곡을 늘리려면 파일만 추가**하면 됩니다(코드 수정 불필요):
 
 ```
-webgame/assets/bgm/track1.mp3
+webgame/assets/bgm/track1.mp3   ← 현재: Suno 중세풍
+webgame/assets/bgm/track2.mp3   ← 추가 예정
+webgame/assets/bgm/track3.mp3
+webgame/assets/bgm/track4.mp3
+webgame/assets/bgm/track5.mp3
 ```
 
-볼륨·음소거는 게임 내 **설정** 화면에서 조절됩니다.
+- 형식은 **mp3** 권장(브라우저 호환·용량). 파일명은 정확히 `track2.mp3`처럼.
+- 볼륨·음소거는 게임 내 **설정** 화면에서 조절됩니다.
+- 참고: `tools/make-bgm.mjs`는 파일이 하나도 없을 때 쓰는 프로시저럴 폴백을 만드는 스크립트입니다.
 
 ## 추천 무료(CC0/무료) 음원 출처
 
