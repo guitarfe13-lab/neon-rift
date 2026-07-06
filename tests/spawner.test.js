@@ -16,6 +16,13 @@ test('적 hp는 경과 시간에 따라 증가', () => {
   const dir = makeDirector(makeRng('s'), BIOMES);
   assert.ok(dir.enemyStatsAt('grunt',300000).hp > dir.enemyStatsAt('grunt',0).hp);
 });
+test('적 hp·피해는 플레이어 레벨에 따라 증가', () => {
+  const dir = makeDirector(makeRng('s'), BIOMES);
+  const lv1 = dir.enemyStatsAt('grunt', 0, 1);
+  const lv15 = dir.enemyStatsAt('grunt', 0, 15);
+  assert.ok(lv15.hp > lv1.hp);
+  assert.ok(lv15.damage > lv1.damage);
+});
 test('durationMs 경과 시 보스 스폰 + 아레나 설정', () => {
   const dir = makeDirector(makeRng('s'), BIOMES);
   const w = createWorld();

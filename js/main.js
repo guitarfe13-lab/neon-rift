@@ -178,8 +178,8 @@ export function boot() {
     const ar = dir.getArena();
     if (ar) { const dx=world.player.x-ar.x, dy=world.player.y-ar.y, dd=Math.hypot(dx,dy);
       if (dd > ar.r) { world.player.x = ar.x + dx/dd*ar.r; world.player.y = ar.y + dy/dd*ar.r; } }
-    // 스폰 + 적 이동(행동 AI)/접촉 피해
-    dir.update(dt, world);
+    // 스폰 + 적 이동(행동 AI)/접촉 피해 (플레이어 레벨을 넘겨 몹 능력치 동반 상향)
+    dir.update(dt, world, rs.level);
     for (const e of world.enemies) { if (!e.alive) continue;
       if (e._orbCd > 0) e._orbCd--;
       if (e.flash > 0) e.flash--;
@@ -327,6 +327,7 @@ export function boot() {
       // 우측 상단: 현재 장착 스킬 아이콘 + 레벨
       { const isz=32, pad=7, x0=canvas.width-12-isz; let idx=0;
         for (const id of Object.keys(rs.ownedSkills)) { const s=getSkill(id); if (!s) continue;
+          if (s.evolveInto && rs.ownedSkills[s.evolveInto]) continue;   // 진화형 보유 시 원본 숨김(최고 단계만)
           const yy=40+idx*(isz+pad); idx++;
           drawSkillIcon(ctx, s, x0, yy, isz);
           ctx.save(); ctx.fillStyle='rgba(0,0,0,0.75)'; ctx.beginPath(); ctx.arc(x0+isz-5, yy+isz-5, 9, 0, 7); ctx.fill();

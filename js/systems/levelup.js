@@ -46,9 +46,12 @@ export function rollChoices(rs, rng, count = 3) {
       pool.push({ kind:'upgrade', id, label:`${s.name} 강화 Lv${rs.ownedSkills[id]+1}`, weight:2 });
   }
   // 신규 스킬 — 직업 스킬풀 내에서만(무작위 아님), 진화형 제외·미보유.
+  // 진화형을 이미 보유 중이면 그 원본은 다시 제안하지 않음(원본+진화 중복 방지).
   const classPool = getCharacter(rs.charId)?.skillPool || Object.keys(SKILLS);
-  for (const id of classPool) if (SKILLS[id] && !rs.ownedSkills[id] && !EVOLUTIONS.has(id))
-    pool.push({ kind:'new', id, label:`신규: ${SKILLS[id].name}`, weight:1 });
+  for (const id of classPool) { const s = SKILLS[id];
+    if (!s || rs.ownedSkills[id] || EVOLUTIONS.has(id)) continue;
+    if (s.evolveInto && rs.ownedSkills[s.evolveInto]) continue;
+    pool.push({ kind:'new', id, label:`신규: ${s.name}`, weight:1 }); }
   // 패시브.
   for (const id of Object.keys(PASSIVES)) pool.push({ kind:'passive', id, label:PASSIVES[id].label, weight:1 });
 
