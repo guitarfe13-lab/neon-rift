@@ -1,7 +1,7 @@
 // 캐릭터 정의. base는 표준 스탯 키(stats.js STAT_KEYS)와 일치. unlockCost는 소울 해금 비용(기본 캐릭터는 없음).
 function base(overrides) {
   return { maxHp:110, hpRegen:0.4, maxMp:50, mpRegen:0.1, damage:12, atkSpeed:1, area:1, projectiles:1, pierce:0,
-    crit:0.05, critMult:2, moveSpeed:2.4, pickupRange:60, cooldown:1,
+    crit:0.05, critMult:1.55, moveSpeed:2.4, pickupRange:60, cooldown:1,
     goldGain:1, soulGain:1, xpGain:1, ...overrides };
 }
 // skillPool: 해당 직업이 레벨업으로 얻을 수 있는 신규 스킬(무작위 아님, 직업별 고정).

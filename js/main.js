@@ -102,15 +102,18 @@ export function boot() {
     sstate = {}; scene = 'run'; overlay = null;
   }
 
-  // 중앙 피해 처리: 스킬 데미지 × 플레이어 공격력 배수(×크리) → 처치 시 보상.
-  function damageEnemy(e, skillDmg, crit) {
-    let d = skillDmg * (rs.stats.damage / rs.baseDamage);
-    if (crit) d *= (rs.stats.critMult || 2);
+  // 중앙 피해 처리: 스킬 데미지 × 공격력 배수 × (MP·편차) → 콤보에 따라 크리 확률↑.
+  function damageEnemy(e, skillDmg) {
+    const critChance = Math.min(0.7, (rs.stats.crit || 0) + combo * 0.006);   // 콤보↑ → 크리 확률↑
+    const crit = Math.random() < critChance;
+    const mpBonus = 1 + ((rs.mp || 0) / (rs.stats.maxMp || 1)) * 0.05;        // MP 높을수록 소폭↑
+    let d = skillDmg * (rs.stats.damage / rs.baseDamage) * mpBonus * (0.88 + Math.random() * 0.24); // ±12% 편차(각도/변동)
+    if (crit) d *= (rs.stats.critMult || 1.55);
     d = Math.max(1, Math.round(d));
     const res = applyHit(e, d);
     e.flash = 6;
-    world.spawnFloater({ x:e.x, y:e.y-10, text:`-${d}`, color:crit?'#ffe14d':'#fff', life:40, max:40, vy:-0.8, crit });
-    if (crit && frameCount % 5 === 0) audio.sfx('crit');
+    world.spawnFloater({ x:e.x, y:e.y-10, text: crit ? `-${d}!` : `-${d}`, color: crit?'#ffe14d':'#fff', life: crit?50:40, max: crit?50:40, vy:-0.8, crit });
+    if (crit && frameCount % 3 === 0) audio.sfx('crit');
     if (e.boss) shake = Math.min(6, shake + 0.5);
     if (res.killed) {
       audio.sfx(e.boss ? 'boss' : 'kill');
@@ -157,6 +160,16 @@ export function boot() {
     else { if (frameCount%3===0) audio.sfx('pick'); if (addXp(rs, g.value*rs.stats.xpGain).leveled) onLevelGain(); }
   }
 
+  // 플레이어 피격(적 크리 가능). raw = 적 피해 × 0.1.
+  function hurtPlayer(raw) {
+    if ((world.player.invuln || 0) > 0) return;
+    const crit = Math.random() < 0.13;
+    const d = raw * (crit ? 1.6 : 1);
+    world.player.hp -= d; world.player.invuln = 8;
+    shake = Math.min(14, shake + (crit ? 9 : 6)); audio.sfx('hurt');
+    if (crit) world.spawnFloater({ x:world.player.x, y:world.player.y-22, text:`-${Math.max(1,Math.round(d))} 크리!`, color:'#ff3b3b', life:48, max:48, vy:-0.7, crit:true });
+  }
+
   function cleanupSkillState() {
     for (const id of Object.keys(sstate)) if (!rs.ownedSkills[id]) {
       const st = sstate[id];
@@ -188,9 +201,7 @@ export function boot() {
       stepEnemy(e, world, rng);
       if (ar && e.boss) { const dx=e.x-ar.x, dy=e.y-ar.y, dd=Math.hypot(dx,dy);
         if (dd > ar.r+70) { e.x=ar.x+dx/dd*(ar.r+70); e.y=ar.y+dy/dd*(ar.r+70); } }
-      if (Math.hypot(e.x-world.player.x, e.y-world.player.y) < e.radius+world.player.radius) {
-        if ((world.player.invuln||0)<=0){ world.player.hp -= e.damage*0.1; world.player.invuln=8; shake=Math.min(12,shake+6); audio.sfx('hurt'); }
-      }
+      if (Math.hypot(e.x-world.player.x, e.y-world.player.y) < e.radius+world.player.radius) hurtPlayer(e.damage*0.1);
     }
     if (world.player.invuln>0) world.player.invuln--;
     if (comboTimer>0) comboTimer--; else combo=0;
@@ -200,8 +211,7 @@ export function boot() {
     // 적 투사체(hazard) 이동/플레이어 피격
     for (const hz of world.hazards) { if (!hz.alive) continue;
       hz.x += hz.vx; hz.y += hz.vy; if (--hz.life <= 0) { hz.alive=false; continue; }
-      if (Math.hypot(hz.x-world.player.x, hz.y-world.player.y) < hz.radius+world.player.radius) {
-        if ((world.player.invuln||0)<=0){ world.player.hp -= hz.damage*0.1; world.player.invuln=8; shake=Math.min(12,shake+5); audio.sfx('hurt'); } hz.alive=false; }
+      if (Math.hypot(hz.x-world.player.x, hz.y-world.player.y) < hz.radius+world.player.radius) { hurtPlayer(hz.damage*0.1); hz.alive=false; }
     }
     // 스킬 실행 + 투사체 이동 (발사 시 슛 사운드, 과다 방지 스로틀)
     updateSkills(world, rs, rng, sstate, damageEnemy, () => { if (frameCount % 5 === 0) audio.sfx('shoot'); });
@@ -324,7 +334,7 @@ export function boot() {
         drawEntity(ctx, ch, world.player.x-camX, world.player.y-camY, world.player.radius, ch.color, frameCount, 0, false);
       for (const f of world.floaters) if (f.alive) {
         const age = f.max ? (f.max - f.life)/f.max : 0;
-        const size = (f.crit?18:13) * Math.max(1, 1.5 - 0.5*Math.min(1, age*2.5));  // 초반 팝
+        const size = (f.crit?22:13) * Math.max(1, 1.5 - 0.5*Math.min(1, age*2.5));  // 초반 팝(크리 크게)
         ctx.save(); ctx.font = `${f.crit?'800':'700'} ${size}px system-ui`; ctx.textAlign = 'center';
         ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(0,0,0,0.75)'; ctx.strokeText(f.text, f.x-camX, f.y-camY);
         ctx.fillStyle = f.color; ctx.fillText(f.text, f.x-camX, f.y-camY); ctx.restore();
