@@ -263,8 +263,12 @@ export function boot() {
       }
       for (const g of world.pickups) if (g.alive) {
         const col = g.kind==='coin' ? '#ffd54a' : g.kind==='mana' ? '#4db3ff' : g.kind==='hp' ? '#ff6b8a' : '#7cff6b';
-        R.neonCircle(ctx, g.x-camX, g.y-camY, g.radius, col);
-        if (g.kind==='hp') R.text(ctx, '+', g.x-camX, g.y-camY+4, { color:'#3a0', size:11, align:'center', weight:'800' }); }
+        const gx = g.x-camX, gy = g.y-camY;
+        // 접지 그림자(바닥에 놓인 느낌)
+        ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath(); ctx.ellipse(gx, gy + g.radius*1.05, g.radius*0.95, g.radius*0.42, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
+        R.neonCircle(ctx, gx, gy, g.radius, col);
+        if (g.kind==='hp') R.text(ctx, '+', gx, gy+4, { color:'#3a0', size:11, align:'center', weight:'800' }); }
       for (const hz of world.hazards) if (hz.alive) R.neonCircle(ctx, hz.x-camX, hz.y-camY, hz.radius, hz.color||'#ff5c5c');
       for (const e of world.enemies) if (e.alive)
         drawEntity(ctx, e, e.x-camX, e.y-camY, e.radius, e.flash>0?'#ffffff':e.color, frameCount, Math.atan2(world.player.y-e.y, world.player.x-e.x), e.flash>0);

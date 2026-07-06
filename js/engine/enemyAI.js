@@ -1,10 +1,10 @@
 // 적 행동. stepEnemy는 이동+특수행동, onEnemyDeath는 사망 시 처리(분열 등).
 import { getEnemy } from '../data/enemies.js';
 
-// 적 투사체(플레이어에게 피해) 발사.
-function fireHazard(world, x, y, ang, speed, damage, color) {
+// 적 투사체(플레이어에게 피해) 발사. 아군 투사체와 구분되도록 항상 붉은색.
+function fireHazard(world, x, y, ang, speed, damage) {
   world.spawnHazard({ x, y, vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed,
-    radius:6, damage, life:220, color: color||'#ff5c5c' });
+    radius:7, damage, life:220, color: '#ff2e2e' });
 }
 
 // 보스 현재 페이즈 유효값(hp 비율이 임계 이하일수록 강화).
