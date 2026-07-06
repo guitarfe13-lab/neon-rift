@@ -7,7 +7,9 @@ import { makeDirector } from './engine/spawner.js';
 import { stepEnemy, onEnemyDeath } from './engine/enemyAI.js';
 import { applyHit } from './engine/combat.js';
 import { computeStats } from './engine/stats.js';
-import { getCharacter } from './data/characters.js';
+import { getCharacter, CHARACTERS } from './data/characters.js';
+import { ENEMIES } from './data/enemies.js';
+import { BOSSES } from './data/bosses.js';
 import { BIOMES } from './data/biomes.js';
 import { updateSkills, updateProjectiles } from './systems/skills.js';
 import { addXp, rollChoices, applyChoice } from './systems/levelup.js';
@@ -16,7 +18,24 @@ import { makeAudio } from './core/audio.js';
 import { drawHud } from './ui/hud.js';
 import { showTitle, showLoadout, showMetaShop, showSettings, clearScreens } from './ui/screens.js';
 import { drawSprite } from './ui/sprites.js';
+import { getImage, preload } from './ui/assets.js';
 import * as R from './ui/render.js';
+
+// 엔티티 렌더: 이미지 에셋(assets/sprites/<id>.png)이 있으면 그걸로, 없으면 코드 스프라이트로.
+function drawEntity(ctx, ent, x, y, r, color, t, angle, flash) {
+  const img = getImage('assets/sprites/' + ent.id + '.png');
+  if (img) {
+    const w = r * 2.6, h = w * (img.height / img.width || 1);
+    const bob = Math.sin(t * 0.15 + x * 0.02) * r * 0.05;
+    ctx.save(); ctx.translate(x, y + bob);
+    if (Math.cos(angle) < 0) ctx.scale(-1, 1);          // 진행/조준 방향으로 좌우 반전
+    if (flash) { ctx.shadowBlur = 22; ctx.shadowColor = '#fff'; }
+    ctx.drawImage(img, -w / 2, -h * 0.68, w, h);        // 발이 좌표에 오도록 위로 올림
+    ctx.restore();
+  } else {
+    drawSprite(ctx, ent.sprite, x, y, r, color, t, angle);
+  }
+}
 
 export function boot() {
   const canvas = document.getElementById('game');
@@ -28,6 +47,13 @@ export function boot() {
   const resumeAudio = () => audio.resume();
   addEventListener('pointerdown', resumeAudio, { once: true });
   addEventListener('keydown', resumeAudio, { once: true });
+  // 이미지 에셋 미리 로드(있으면 사용, 없으면 코드 스프라이트 유지)
+  preload([
+    ...Object.keys(CHARACTERS).map((id) => `assets/sprites/${id}.png`),
+    ...Object.keys(ENEMIES).map((id) => `assets/sprites/${id}.png`),
+    ...Object.keys(BOSSES).map((id) => `assets/sprites/${id}.png`),
+    ...BIOMES.map((b) => `assets/bg/${b.id}.png`),
+  ]);
   let scene = 'title', overlay = null, world, rs, dir, rng, sstate, frameCount = 0;
   let shake = 0, combo = 0, comboTimer = 0;
 
@@ -176,12 +202,19 @@ export function boot() {
       const ch = getCharacter(rs.charId);
       const camX = world.player.x - canvas.width/2 + (Math.random()-0.5)*shake;
       const camY = world.player.y - canvas.height/2 + (Math.random()-0.5)*shake;
-      // 바이옴 배경(방사형 그라디언트) + 팔레트 그리드
+      // 바이옴 배경: 이미지(assets/bg/<id>.png)가 있으면 시차 타일, 없으면 그라디언트+그리드
       const bio = dir.biome();
-      const bg = ctx.createRadialGradient(canvas.width/2, canvas.height*0.45, 0, canvas.width/2, canvas.height*0.45, canvas.width*0.72);
-      bg.addColorStop(0, bio.palette[0]); bg.addColorStop(1, bio.palette[1]);
-      ctx.fillStyle = bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      R.grid(ctx, canvas.width, canvas.height, camX, camY, 48, bio.grid);
+      const bgImg = getImage('assets/bg/' + bio.id + '.png');
+      if (bgImg) {
+        const tw = bgImg.width, th = bgImg.height;
+        const ox = -((((camX*0.5) % tw) + tw) % tw), oy = -((((camY*0.5) % th) + th) % th);
+        for (let yy = oy; yy < canvas.height; yy += th) for (let xx = ox; xx < canvas.width; xx += tw) ctx.drawImage(bgImg, xx, yy);
+      } else {
+        const bg = ctx.createRadialGradient(canvas.width/2, canvas.height*0.45, 0, canvas.width/2, canvas.height*0.45, canvas.width*0.72);
+        bg.addColorStop(0, bio.palette[0]); bg.addColorStop(1, bio.palette[1]);
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        R.grid(ctx, canvas.width, canvas.height, camX, camY, 48, bio.grid);
+      }
       // 보스 아레나 경계
       const arn = dir.getArena();
       if (arn) { ctx.save(); ctx.strokeStyle='rgba(255,92,200,0.5)'; ctx.lineWidth=3; ctx.setLineDash([12,12]);
@@ -202,14 +235,14 @@ export function boot() {
         if (g.kind==='hp') R.text(ctx, '+', g.x-camX, g.y-camY+4, { color:'#3a0', size:11, align:'center', weight:'800' }); }
       for (const hz of world.hazards) if (hz.alive) R.neonCircle(ctx, hz.x-camX, hz.y-camY, hz.radius, hz.color||'#ff5c5c');
       for (const e of world.enemies) if (e.alive)
-        drawSprite(ctx, e.sprite, e.x-camX, e.y-camY, e.radius, e.flash>0?'#ffffff':e.color, frameCount, Math.atan2(world.player.y-e.y, world.player.x-e.x));
+        drawEntity(ctx, e, e.x-camX, e.y-camY, e.radius, e.flash>0?'#ffffff':e.color, frameCount, Math.atan2(world.player.y-e.y, world.player.x-e.x), e.flash>0);
       for (const p of world.projectiles) { if (!p.alive) continue;
         if (p.beam) { const n=Math.hypot(p.vx,p.vy)||1, ux=p.vx/n, uy=p.vy/n;
           R.neonLine(ctx, p.x-camX, p.y-camY, p.x-ux*p.len-camX, p.y-uy*p.len-camY, p.radius*1.7, p.color||'#7cf9ff'); }
         else R.neonCircle(ctx, p.x-camX, p.y-camY, p.radius, p.color||'#ffe14d'); }
       // 플레이어(피격 무적 중 깜빡임)
       if (!(world.player.invuln>0 && frameCount%6<3))
-        drawSprite(ctx, ch.sprite, world.player.x-camX, world.player.y-camY, world.player.radius, ch.color, frameCount, 0);
+        drawEntity(ctx, ch, world.player.x-camX, world.player.y-camY, world.player.radius, ch.color, frameCount, 0, false);
       for (const f of world.floaters) if (f.alive) R.text(ctx, f.text, f.x-camX, f.y-camY, { color:f.color, size:f.crit?18:13, align:'center', weight:f.crit?'800':'600' });
       drawHud(ctx, rs, world);
       if (combo > 2) R.text(ctx, `COMBO x${combo}`, canvas.width/2, 46, { size:22, align:'center', color:'#ffd166', weight:'800' });
