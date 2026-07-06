@@ -263,8 +263,9 @@ export function boot() {
       const bio = dir.biome();
       const bgImg = getImage('assets/bg/' + bio.id + '.png');
       if (bgImg) {
+        // 지면은 월드 좌표에 고정(시차 1배) → 아이템·캐릭터와 같은 속도로 스크롤해 '바닥에 붙은' 느낌.
         const tw = bgImg.width, th = bgImg.height;
-        const ox = -((((camX*0.5) % tw) + tw) % tw), oy = -((((camY*0.5) % th) + th) % th);
+        const ox = -(((camX % tw) + tw) % tw), oy = -(((camY % th) + th) % th);
         for (let yy = oy; yy < canvas.height; yy += th) for (let xx = ox; xx < canvas.width; xx += tw) ctx.drawImage(bgImg, xx, yy);
       } else {
         const bg = ctx.createRadialGradient(canvas.width/2, canvas.height*0.45, 0, canvas.width/2, canvas.height*0.45, canvas.width*0.72);
