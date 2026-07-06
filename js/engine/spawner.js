@@ -26,11 +26,15 @@ export function makeDirector(rng, biomes) {
   }
   function spawnBoss(world, level) {
     const b = biome(); const boss = getBoss(b.boss); const lv = Math.max(0, level - 1);
-    const scale = 1 + biomeIdx * 0.6 + lv * 0.06;
+    const cycle = Math.floor(biomeIdx / biomes.length);        // 0=최초, 1+=반복(전 보스 소멸 후 재등장)
+    const EPITHETS = ['', '강한 ', '파괴의 ', '악령의 ', '심연의 ', '종말의 '];
+    const prefix = EPITHETS[Math.min(cycle, EPITHETS.length - 1)] || `${cycle + 1}회차 `;
+    const scale = (1 + biomeIdx * 0.6 + lv * 0.06) * (1 + cycle * 0.15);   // 반복마다 조금씩 더 강하게
     const hp = Math.round(boss.hp * scale);
     // 플레이어 현재 위치를 중심으로 아레나 고정(무한 후퇴 방지). 보스는 화면 안에 등장.
     arena = { x: world.player.x, y: world.player.y, r: 360 };
-    bossRef = world.spawnEnemy({ ...boss, hp, maxHp: hp, damage: Math.round(boss.damage * (1 + lv * 0.04)),
+    bossRef = world.spawnEnemy({ ...boss, hp, maxHp: hp, name: prefix + boss.name,
+      damage: Math.round(boss.damage * (1 + lv * 0.04 + cycle * 0.1)),
       x: arena.x, y: arena.y - 170 });
   }
   function update(dt, world, level = 1) {

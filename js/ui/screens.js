@@ -15,7 +15,9 @@ export function showTitle({ meta, onPlay, onShop, onSettings }) {
   const p = el('div', 'screen center');
   p.appendChild(el('h1', 'game-logo', 'NEON RIFT'));
   p.appendChild(el('p', 'subtitle', '액션 로그라이크 방치형 RPG'));
-  p.appendChild(el('p', 'muted', `최고 스테이지 ${meta.best.stage} · 보유 소울 ${meta.souls}`));
+  const info = el('p', 'muted');
+  info.innerHTML = `최고 스테이지 ${meta.best.stage} &nbsp;·&nbsp; <span class="soul-dia">◆</span> ${meta.souls} 소울`;
+  p.appendChild(info);
   const col = el('div', 'btn-col');
   const play = el('button', 'btn primary', '▶ 플레이'); play.onclick = onPlay;
   const shop = el('button', 'btn', '메타 상점'); shop.onclick = onShop;
@@ -71,7 +73,7 @@ export function showMetaShop({ meta, save, onBack }) {
     clearScreens();
     const p = el('div', 'screen');
     p.appendChild(el('h2', 'screen-title', '메타 상점'));
-    p.appendChild(el('p', 'souls', `💠 소울 ${meta.souls}`));
+    const sl = el('p', 'souls'); sl.innerHTML = `<span class="soul-dia">◆</span> ${meta.souls} 소울`; p.appendChild(sl);
     const list = el('div', 'shop-list');
     for (const id of Object.keys(META_UPGRADES)) {
       const u = META_UPGRADES[id]; const lvl = meta.upgrades[id] || 0; const cost = upgradeCost(meta, id);

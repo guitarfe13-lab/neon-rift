@@ -1,5 +1,5 @@
 // 인게임 HUD.
-import { bar, text } from './render.js';
+import { bar, text, gem } from './render.js';
 import { roundRect } from './skillIcons.js';
 
 // 포션 병 아이콘: 코르크 + 유리병 + 하단 액체 채움.
@@ -28,7 +28,11 @@ export function drawHud(ctx, rs, world, frame = 0, souls = 0) {
   text(ctx, `MP ${Math.max(0,Math.floor(rs.mp ?? 0))}/${Math.round(maxMp)}`, 20, 38, { size:10, color: mpLow && blinkOn ? '#ffdada' : '#eaf2ff' });
   bar(ctx, 16, 43, 220, 7, rs.xp / (8*Math.pow(rs.level,1.55)+4), '#42e6ff');
   text(ctx, `Lv ${rs.level}`, 244, 40, { size:13, color:'#42e6ff' });
-  text(ctx, `⏱ ${(rs.timeMs/1000|0)}s   ⭐ ${rs.stage}   💰 ${rs.gold}   💠 ${souls}`, 16, 70, { size:13 });
+  const info = `⏱ ${(rs.timeMs/1000|0)}s   ⭐ ${rs.stage}   💰 ${rs.gold}   `;
+  text(ctx, info, 16, 70, { size:13 });
+  ctx.save(); ctx.font = '600 13px system-ui'; const iw = ctx.measureText(info).width; ctx.restore();
+  gem(ctx, 22 + iw, 66, 6, '#7cd0ff');                                   // 소울 = 다이아몬드
+  text(ctx, `${souls}`, 32 + iw, 70, { size:13, color:'#bfe6ff' });
   // 물약: 좌측 세로 정렬(HP 위 / MP 아래) + 보유 개수
   const po = rs.potions || { hp:0, mp:0 };
   drawPotion(ctx, 18, 80, 15, 22, '#ff4d6d');  text(ctx, `×${po.hp}`, 40, 96,  { size:14, weight:'800', color:'#ffb3c0' });
