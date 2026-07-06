@@ -21,6 +21,7 @@ import { showTitle, showLoadout, showMetaShop, showSettings, clearScreens } from
 import { drawSprite } from './ui/sprites.js';
 import { drawSkillIcon, roundRect } from './ui/skillIcons.js';
 import { getImage, getSprite, preload } from './ui/assets.js';
+import * as FX from './ui/fx.js';
 import * as R from './ui/render.js';
 
 // #rrggbb → rgba(a)
@@ -103,7 +104,7 @@ export function boot() {
   }
 
   // 중앙 피해 처리: 스킬 데미지 × 공격력 배수 × (MP·편차) → 콤보에 따라 크리 확률↑.
-  function damageEnemy(e, skillDmg) {
+  function damageEnemy(e, skillDmg, element) {
     e.hitStreak = (e.hitStreak || 0) + 1; e.hitTimer = 90;   // 연속 피격 스트릭(1.5s 창)
     const critChance = Math.min(0.8, (rs.stats.crit || 0) + combo * 0.006 + (e.hitStreak - 1) * 0.02); // 콤보 + 연속 피격↑
     const crit = Math.random() < critChance;
@@ -113,6 +114,7 @@ export function boot() {
     d = Math.max(1, Math.round(d));
     const res = applyHit(e, d);
     e.flash = 6;
+    if (world.particles.length < 600) FX.spawnImpact(world, e.x, e.y, element || 'physical', crit);   // 원소별 명중 이펙트
     world.spawnFloater({ x:e.x, y:e.y-10, text: crit ? `Critical -${d}` : `-${d}`, color: crit?'#ffe14d':'#fff', life: crit?54:40, max: crit?54:40, vy:-0.7, crit });
     if (crit && frameCount % 3 === 0) audio.sfx('crit');
     if (e.boss) shake = Math.min(6, shake + 0.5);
@@ -224,12 +226,16 @@ export function boot() {
     // 스킬 실행 + 투사체 이동 (발사 시 슛 사운드, 과다 방지 스로틀)
     updateSkills(world, rs, rng, sstate, damageEnemy, () => { if (frameCount % 5 === 0) audio.sfx('shoot'); });
     updateProjectiles(world);
+    // 투사체 트레일(직선 투사체만, 저빈도)
+    if (frameCount % 2 === 0 && world.particles.length < 550) {
+      for (const p of world.projectiles) { if (p.alive && !p.orbit && !p.beam) FX.spawnTrail(world, p.x, p.y, p.color); }
+    }
     // 투사체-적 충돌
     for (const p of world.projectiles) { if (!p.alive || p.dmg<=0) continue;
       for (const e of world.enemies) { if (!e.alive) continue;
         if (Math.hypot(p.x-e.x, p.y-e.y) < p.radius+e.radius) {
-          if (p.orbit) { if ((e._orbCd||0)>0) continue; damageEnemy(e, p.dmg, false); e._orbCd = 12; }
-          else { damageEnemy(e, p.dmg, p.crit); if (p.pierce>0) p.pierce--; else { p.alive=false; break; } }
+          if (p.orbit) { if ((e._orbCd||0)>0) continue; damageEnemy(e, p.dmg, p.element); e._orbCd = 12; }
+          else { damageEnemy(e, p.dmg, p.element); if (p.pierce>0) p.pierce--; else { p.alive=false; break; } }
         }
       }
     }
@@ -241,10 +247,7 @@ export function boot() {
       if (Math.hypot(g.x-world.player.x, g.y-world.player.y) < rs.stats.pickupRange) { g.alive=false; collect(g); }
     }
     // 파티클/플로터 수명
-    for (const pt of world.particles){ if(!pt.alive)continue;
-      if (pt.spark){ pt.x+=pt.vx; pt.y+=pt.vy; pt.vx*=0.9; pt.vy*=0.9; }
-      else if (pt.shock){ pt.r += (pt.rMax - pt.r) * 0.12; }
-      if(--pt.life<=0) pt.alive=false; }
+    for (const pt of world.particles){ if(!pt.alive)continue; if(!FX.stepParticle(pt)) pt.alive=false; }
     for (const f of world.floaters){ if(!f.alive)continue; f.y+=f.vy; if(--f.life<=0) f.alive=false; }
     // 물약 자동 사용(옵션 ON): HP 25% 이하 / MP 20% 이하일 때 보유분을 자동 소비
     if (autoPotion && rs.potions.hp > 0 && world.player.hp <= world.player.maxHp*0.25) {
@@ -316,18 +319,8 @@ export function boot() {
       const arn = dir.getArena();
       if (arn) { ctx.save(); ctx.strokeStyle='rgba(255,92,200,0.5)'; ctx.lineWidth=3; ctx.setLineDash([12,12]);
         ctx.beginPath(); ctx.arc(arn.x-camX, arn.y-camY, arn.r, 0, Math.PI*2); ctx.stroke(); ctx.restore(); }
-      // 파티클(오라 링 / 연쇄 볼트 / 처치 스파크)
-      for (const pt of world.particles) { if (!pt.alive) continue;
-        ctx.save();
-        if (pt.spark) { ctx.globalAlpha = Math.max(0, pt.life/26); ctx.fillStyle = pt.color||'#fff';
-          ctx.beginPath(); ctx.arc(pt.x-camX, pt.y-camY, 3, 0, Math.PI*2); ctx.fill(); }
-        else if (pt.shock) { ctx.globalAlpha = Math.max(0, pt.life/44); ctx.strokeStyle = pt.color||'#fff'; ctx.lineWidth = 5;
-          ctx.beginPath(); ctx.arc(pt.x-camX, pt.y-camY, pt.r, 0, Math.PI*2); ctx.stroke(); }
-        else { ctx.globalAlpha = Math.max(0, pt.life/8); ctx.strokeStyle = pt.color||'#5cf'; ctx.lineWidth = 2;
-          if (pt.ring) { ctx.beginPath(); ctx.arc(pt.x-camX, pt.y-camY, pt.r, 0, Math.PI*2); ctx.stroke(); }
-          else if (pt.bolt) { ctx.beginPath(); ctx.moveTo(pt.x1-camX, pt.y1-camY); ctx.lineTo(pt.x2-camX, pt.y2-camY); ctx.stroke(); } }
-        ctx.restore();
-      }
+      // 파티클(트레일/스파크/충격파/볼트/링) — fx 모듈이 렌더
+      for (const pt of world.particles) if (pt.alive) FX.drawParticle(ctx, pt, camX, camY);
       for (const g of world.pickups) if (g.alive) {
         const gx = g.x-camX, gy = g.y-camY;
         // 접지 그림자(바닥에 놓인 느낌)
@@ -343,7 +336,9 @@ export function boot() {
         drawEntity(ctx, e, e.x-camX, e.y-camY, e.radius, e.flash>0?'#ffffff':e.color, frameCount, Math.atan2(world.player.y-e.y, world.player.x-e.x), e.flash>0);
       for (const p of world.projectiles) { if (!p.alive) continue;
         if (p.beam) { const n=Math.hypot(p.vx,p.vy)||1, ux=p.vx/n, uy=p.vy/n;
-          R.neonLine(ctx, p.x-camX, p.y-camY, p.x-ux*p.len-camX, p.y-uy*p.len-camY, p.radius*1.7, p.color||'#7cf9ff'); }
+          const ax=p.x-camX, ay=p.y-camY, bx=p.x-ux*p.len-camX, by=p.y-uy*p.len-camY;
+          ctx.save(); ctx.globalAlpha=0.4; R.neonLine(ctx, ax,ay,bx,by, p.radius*3.0, p.color||'#7cf9ff'); ctx.restore(); // 글로우
+          R.neonLine(ctx, ax,ay,bx,by, p.radius*1.1, '#ffffff'); }                                                     // 코어
         else R.neonCircle(ctx, p.x-camX, p.y-camY, p.radius, p.color||'#ffe14d'); }
       // 플레이어(피격 무적 중 깜빡임)
       if (!(world.player.invuln>0 && frameCount%6<3))

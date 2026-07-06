@@ -4,6 +4,7 @@
 // - aura/chain: 즉시 피해 → onDamage(enemy, dmg, crit) 콜백으로 처치 보상 공유.
 import { getSkill } from '../data/skills.js';
 import { runtimeStats } from './skillScaling.js';
+import * as FX from '../ui/fx.js';
 
 export function nearestEnemy(world, x, y) {
   let best = null, bd = Infinity;
@@ -34,10 +35,12 @@ const RUNTIME = {
     const p = world.player; const t = nearestEnemy(world, p.x, p.y); if (!t) return;
     const base = Math.atan2(t.y-p.y, t.x-p.x);
     const count = (rt.count||1) * (rs.stats.projectiles||1);
+    const el = skill.tags && skill.tags[0];
     for (let i=0;i<count;i++){ const a = base + (i-(count-1)/2)*0.18;
       world.spawnProjectile({ x:p.x, y:p.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,
         radius:5, dmg:rt.damage, pierce:rt.pierce||0, life:rt.life||120, crit:Math.random()<(rs.stats.crit||0),
-        color: skill.color||'#ffe14d' }); }
+        color: skill.color||'#ffe14d', element: el }); }
+    FX.spawnMuzzle(world, p.x, p.y, skill.color);
     if (onFire) onFire();
   },
   // 관통 빔: 고속·다관통·짧은 수명(줄기 형태).
@@ -49,7 +52,8 @@ const RUNTIME = {
     const a = Math.atan2(t.y-p.y, t.x-p.x);
     world.spawnProjectile({ x:p.x, y:p.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,
       radius:6, dmg:rt.damage, pierce:rt.pierce??99, life:36, crit:Math.random()<(rs.stats.crit||0),
-      color: skill.color||'#7cf9ff', beam:true, len: rt.speed*3.2 });
+      color: skill.color||'#7cf9ff', beam:true, len: rt.speed*3.2, element: skill.tags && skill.tags[0] });
+    FX.spawnMuzzle(world, p.x, p.y, skill.color);
     if (onFire) onFire();
   },
   // 궤도 오브: rt.count개를 플레이어 주위로 회전. 적별 재타격 쿨다운(e._orbCd)로 제어.
@@ -59,7 +63,7 @@ const RUNTIME = {
     const R = 60 * (rs.stats.area||1);
     for (let i=st.orbs.length;i<want;i++){
       const o = world.spawnProjectile({ x:0,y:0, radius:9, dmg:rt.damage, orbit:{ r:R, speed:0.06 },
-        oa:(i/want)*Math.PI*2, color: skill.color||'#ff8be0' });
+        oa:(i/want)*Math.PI*2, color: skill.color||'#ff8be0', element: skill.tags && skill.tags[0] });
       st.orbs.push(o);
     }
     for (const o of st.orbs){ o.dmg = rt.damage; o.orbit.r = R; } // 레벨 반영
@@ -67,12 +71,14 @@ const RUNTIME = {
   // 오라: 범위 내 적에게 tick마다 지속 피해.
   // 오라(광역): 쿨타임마다 한 번 '펼침' — 범위 내 전체 타격 + 확장 링 펄스. 재충전 동안 대기.
   aura(world, rs, rt, skill, st, rng, onDamage) {
+    const el = skill.tags && skill.tags[0]; const R = (rt.radius||70) * (rs.stats.area||1);
+    if (world.particles.length < 550 && Math.random() < 0.35) FX.spawnAuraField(world, world.player.x, world.player.y, el, R); // 유지 필드
     if ((st.timer -= 1) > 0) return;
     if (!payMp(rs, skill, st)) return;
     st.timer = st.cdMax = rt.cooldown; // aura의 cooldown = 재사용 대기
-    const p = world.player; const R = (rt.radius||70) * (rs.stats.area||1);
+    const p = world.player;
     for (const e of world.enemies){ if(!e.alive) continue;
-      if ((e.x-p.x)**2+(e.y-p.y)**2 <= R*R) onDamage(e, rt.damage, false); }
+      if ((e.x-p.x)**2+(e.y-p.y)**2 <= R*R) onDamage(e, rt.damage, el); }
     world.spawnParticle({ x:p.x, y:p.y, r:R*0.35, rMax:R, life:18, color: skill.color||'#5cf', shock:true }); // 확장 펄스
   },
   // 연쇄: 쿨다운마다 가장 가까운 적에서 인접 적으로 rt.count회 도약하며 피해.
@@ -80,12 +86,13 @@ const RUNTIME = {
     if ((st.timer -= 1) > 0) return;
     if (!payMp(rs, skill, st)) return;
     st.timer = st.cdMax = cd(rt, rs.stats);
+    const el = skill.tags && skill.tags[0];
     const p = world.player; let node = nearestEnemy(world, p.x, p.y); if (!node) return;
-    const hit = new Set(); let fx=p.x, fy=p.y;
+    const hit = new Set(); let cx=p.x, cy=p.y;
     for (let i=0;i<(rt.count||3) && node;i++){
-      onDamage(node, rt.damage, false); hit.add(node);
-      world.spawnParticle({ x1:fx, y1:fy, x2:node.x, y2:node.y, life:6, color: skill.color||'#b28bff', bolt:true });
-      fx=node.x; fy=node.y; node = nearestEnemies(world, fx, fy, 1, hit)[0];
+      onDamage(node, rt.damage, el); hit.add(node);
+      FX.spawnChainArc(world, cx, cy, node.x, node.y, skill.color);
+      cx=node.x; cy=node.y; node = nearestEnemies(world, cx, cy, 1, hit)[0];
     }
   },
   // 소환: 플레이어 주위를 도는 드론(피해 0의 궤도체)이 쿨다운마다 투사체 발사.
@@ -101,7 +108,8 @@ const RUNTIME = {
     const d = st.drone; const t = nearestEnemy(world, d.x, d.y); if (!t) return;
     const a = Math.atan2(t.y-d.y, t.x-d.x);
     world.spawnProjectile({ x:d.x, y:d.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,
-      radius:4, dmg:rt.damage, pierce:rt.pierce||0, life:100, crit:false, color: skill.color||'#8effc7' });
+      radius:4, dmg:rt.damage, pierce:rt.pierce||0, life:100, crit:false, color: skill.color||'#8effc7', element: skill.tags && skill.tags[0] });
+    FX.spawnMuzzle(world, d.x, d.y, skill.color);
   },
   // 패시브: 전투 동작 없음(스탯은 levelup에서 반영).
   passive() {},
