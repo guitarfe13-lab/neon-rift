@@ -41,6 +41,7 @@ export function boot() {
       ownedSkills:{ [ch.startingSkill]:1 }, passives:{}, metaUpgrades: meta.upgrades, stats:{} };
     rs.stats = computeStats({ charId, metaUpgrades: meta.upgrades, runMods: [] });
     world.player.maxHp = rs.stats.maxHp; world.player.hp = rs.stats.maxHp;
+    rs.mp = rs.stats.maxMp;
     dir = makeDirector(rng, BIOMES);
     sstate = {}; scene = 'run'; overlay = null;
   }
@@ -52,12 +53,12 @@ export function boot() {
     d = Math.max(1, Math.round(d));
     const res = applyHit(e, d);
     e.flash = 6;
-    world.spawnFloater({ x:e.x, y:e.y-10, text:String(d), color:crit?'#ffe14d':'#fff', life:40, vy:-0.8, crit });
+    world.spawnFloater({ x:e.x, y:e.y-10, text:`-${d}`, color:crit?'#ffe14d':'#fff', life:40, vy:-0.8, crit });
     if (crit && frameCount % 5 === 0) audio.sfx('crit');
     if (e.boss) shake = Math.min(6, shake + 0.5);
     if (res.killed) {
       audio.sfx(e.boss ? 'boss' : 'kill');
-      rs.gold += Math.round(e.gold*rs.stats.goldGain); world.spawnPickup({ x:e.x, y:e.y, xp:e.xp, radius:6 });
+      spawnDrops(e);
       combo++; comboTimer = 90;
       shake = Math.min(12, shake + (e.boss ? 9 : 1.5));
       const bursts = e.boss ? 26 : 6;
@@ -65,6 +66,26 @@ export function boot() {
         world.spawnParticle({ x:e.x, y:e.y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:14, color:e.color, spark:true }); }
       onEnemyDeath(e, world, rng);
     }
+  }
+
+  // 처치 드랍: 경험치 젬 + 코인(항상), 마나(확률), HP 물약(낮은 확률). 보스는 대량.
+  function spawnDrops(e) {
+    const j = () => (rng.next()-0.5)*18;
+    const gold = Math.round(e.gold * rs.stats.goldGain);
+    world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'xp',   value:e.xp, radius:6 });
+    world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'coin', value:gold, radius:6 });
+    if (e.boss || rng.next() < 0.4)  world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'mana', value: e.boss?45:(4+Math.floor(rng.next()*7)), radius:6 });
+    if (e.boss || rng.next() < 0.08) world.spawnPickup({ x:e.x+j(), y:e.y+j(), kind:'hp',   value: e.boss?60:(14+Math.floor(rng.next()*12)), radius:7 });
+    if (e.boss) for (let i=0;i<6;i++) world.spawnPickup({ x:e.x+j()*3, y:e.y+j()*3, kind:'coin', value:gold, radius:6 });
+  }
+  // 픽업 획득 효과
+  function collect(g) {
+    if (g.kind === 'coin') { rs.gold += g.value; if (frameCount%3===0) audio.sfx('coin'); }
+    else if (g.kind === 'mana') { rs.mp = Math.min(rs.stats.maxMp, (rs.mp||0) + g.value);
+      world.spawnFloater({ x:world.player.x, y:world.player.y-22, text:`+${g.value} MP`, color:'#4db3ff', life:36, vy:-0.7 }); audio.sfx('pick'); }
+    else if (g.kind === 'hp') { world.player.hp = Math.min(world.player.maxHp, world.player.hp + g.value);
+      world.spawnFloater({ x:world.player.x, y:world.player.y-22, text:`+${g.value} HP`, color:'#ff6b8a', life:36, vy:-0.7 }); audio.sfx('upgrade'); }
+    else { if (frameCount%3===0) audio.sfx('pick'); if (addXp(rs, g.value*rs.stats.xpGain).leveled) openLevelUp(); }
   }
 
   function cleanupSkillState() {
@@ -121,13 +142,14 @@ export function boot() {
         }
       }
     }
-    // 픽업(자석)
+    // MP 재생
+    rs.mp = Math.min(rs.stats.maxMp, (rs.mp||0) + rs.stats.mpRegen);
+    // 픽업(자석) + 획득 효과
     for (const g of world.pickups) { if (!g.alive) continue;
       const d = Math.hypot(g.x-world.player.x, g.y-world.player.y);
       if (d < rs.stats.pickupRange) { const a=Math.atan2(world.player.y-g.y, world.player.x-g.x);
         g.x+=Math.cos(a)*4; g.y+=Math.sin(a)*4; }
-      if (d < world.player.radius) { g.alive=false; if (frameCount % 3 === 0) audio.sfx('pick');
-        if (addXp(rs, g.xp*rs.stats.xpGain).leveled) openLevelUp(); }
+      if (d < world.player.radius) { g.alive=false; collect(g); }
     }
     // 파티클/플로터 수명
     for (const pt of world.particles){ if(!pt.alive)continue;
@@ -174,7 +196,10 @@ export function boot() {
           else if (pt.bolt) { ctx.beginPath(); ctx.moveTo(pt.x1-camX, pt.y1-camY); ctx.lineTo(pt.x2-camX, pt.y2-camY); ctx.stroke(); } }
         ctx.restore();
       }
-      for (const g of world.pickups) if (g.alive) R.neonCircle(ctx, g.x-camX, g.y-camY, g.radius, '#7cff6b');
+      for (const g of world.pickups) if (g.alive) {
+        const col = g.kind==='coin' ? '#ffd54a' : g.kind==='mana' ? '#4db3ff' : g.kind==='hp' ? '#ff6b8a' : '#7cff6b';
+        R.neonCircle(ctx, g.x-camX, g.y-camY, g.radius, col);
+        if (g.kind==='hp') R.text(ctx, '+', g.x-camX, g.y-camY+4, { color:'#3a0', size:11, align:'center', weight:'800' }); }
       for (const hz of world.hazards) if (hz.alive) R.neonCircle(ctx, hz.x-camX, hz.y-camY, hz.radius, hz.color||'#ff5c5c');
       for (const e of world.enemies) if (e.alive)
         drawSprite(ctx, e.sprite, e.x-camX, e.y-camY, e.radius, e.flash>0?'#ffffff':e.color, frameCount, Math.atan2(world.player.y-e.y, world.player.x-e.x));

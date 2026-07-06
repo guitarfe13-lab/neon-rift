@@ -17,11 +17,19 @@ function nearestEnemies(world, x, y, k, exclude) {
   return arr.slice(0, k);
 }
 function cd(rt, stats) { return Math.max(4, rt.cooldown / (stats.atkSpeed || 1)); }
+// 마법 스킬 MP 지불. 부족하면 발사 보류(짧게 재시도). rs.mp가 없으면(테스트) 무제한.
+function payMp(rs, skill, st, retry = 4) {
+  if (!skill.mpCost) return true;
+  if ((rs.mp ?? Infinity) < skill.mpCost) { st.timer = retry; return false; }
+  if (rs.mp != null) rs.mp -= skill.mpCost;
+  return true;
+}
 
 const RUNTIME = {
   // 조준 투사체를 쿨다운마다 발사.
   projectile(world, rs, rt, skill, st, rng, onDamage, onFire) {
     if ((st.timer -= 1) > 0) return;
+    if (!payMp(rs, skill, st)) return;
     st.timer = cd(rt, rs.stats);
     const p = world.player; const t = nearestEnemy(world, p.x, p.y); if (!t) return;
     const base = Math.atan2(t.y-p.y, t.x-p.x);
@@ -35,6 +43,7 @@ const RUNTIME = {
   // 관통 빔: 고속·다관통·짧은 수명(줄기 형태).
   beam(world, rs, rt, skill, st, rng, onDamage, onFire) {
     if ((st.timer -= 1) > 0) return;
+    if (!payMp(rs, skill, st)) return;
     st.timer = cd(rt, rs.stats);
     const p = world.player; const t = nearestEnemy(world, p.x, p.y); if (!t) return;
     const a = Math.atan2(t.y-p.y, t.x-p.x);
@@ -58,6 +67,7 @@ const RUNTIME = {
   // 오라: 범위 내 적에게 tick마다 지속 피해.
   aura(world, rs, rt, skill, st, rng, onDamage) {
     if ((st.timer -= 1) > 0) return;
+    if (!payMp(rs, skill, st)) return;
     st.timer = rt.cooldown; // aura의 cooldown = 피해 간격
     const p = world.player; const R = (rt.radius||70) * (rs.stats.area||1);
     for (const e of world.enemies){ if(!e.alive) continue;
@@ -67,6 +77,7 @@ const RUNTIME = {
   // 연쇄: 쿨다운마다 가장 가까운 적에서 인접 적으로 rt.count회 도약하며 피해.
   chain(world, rs, rt, skill, st, rng, onDamage) {
     if ((st.timer -= 1) > 0) return;
+    if (!payMp(rs, skill, st)) return;
     st.timer = cd(rt, rs.stats);
     const p = world.player; let node = nearestEnemy(world, p.x, p.y); if (!node) return;
     const hit = new Set(); let fx=p.x, fy=p.y;
@@ -84,6 +95,7 @@ const RUNTIME = {
       st.timer = 0;
     }
     if ((st.timer -= 1) > 0) return;
+    if (!payMp(rs, skill, st)) return;
     st.timer = cd(rt, rs.stats);
     const d = st.drone; const t = nearestEnemy(world, d.x, d.y); if (!t) return;
     const a = Math.atan2(t.y-d.y, t.x-d.x);

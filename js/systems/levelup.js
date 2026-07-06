@@ -1,5 +1,6 @@
 // XP/레벨/3택1. 후보 풀은 데이터에서 필터링해 가중 랜덤. 진화 후보 포함.
 import { SKILLS, EVOLUTIONS } from '../data/skills.js';
+import { getCharacter } from '../data/characters.js';
 import { computeStats } from '../engine/stats.js';
 import { canEvolve } from './skillScaling.js';
 
@@ -44,8 +45,9 @@ export function rollChoices(rs, rng, count = 3) {
     const s = SKILLS[id]; if (s && rs.ownedSkills[id] < s.maxLevel)
       pool.push({ kind:'upgrade', id, label:`${s.name} 강화 Lv${rs.ownedSkills[id]+1}`, weight:2 });
   }
-  // 신규 스킬(진화형 제외, 미보유).
-  for (const id of Object.keys(SKILLS)) if (!rs.ownedSkills[id] && !EVOLUTIONS.has(id))
+  // 신규 스킬 — 직업 스킬풀 내에서만(무작위 아님), 진화형 제외·미보유.
+  const classPool = getCharacter(rs.charId)?.skillPool || Object.keys(SKILLS);
+  for (const id of classPool) if (SKILLS[id] && !rs.ownedSkills[id] && !EVOLUTIONS.has(id))
     pool.push({ kind:'new', id, label:`신규: ${SKILLS[id].name}`, weight:1 });
   // 패시브.
   for (const id of Object.keys(PASSIVES)) pool.push({ kind:'passive', id, label:PASSIVES[id].label, weight:1 });

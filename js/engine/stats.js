@@ -2,7 +2,7 @@
 import { getCharacter } from '../data/characters.js';
 import { META_UPGRADES } from '../data/metaUpgrades.js';
 
-export const STAT_KEYS = ['maxHp','hpRegen','damage','atkSpeed','area','projectiles','pierce',
+export const STAT_KEYS = ['maxHp','hpRegen','maxMp','mpRegen','damage','atkSpeed','area','projectiles','pierce',
   'crit','critMult','moveSpeed','pickupRange','cooldown','goldGain','soulGain','xpGain'];
 
 export function baseStats(charId) { return { ...getCharacter(charId).base }; }
