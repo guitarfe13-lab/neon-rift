@@ -12,6 +12,7 @@ import { BIOMES } from './data/biomes.js';
 import { updateSkills, updateProjectiles } from './systems/skills.js';
 import { addXp, rollChoices, applyChoice } from './systems/levelup.js';
 import { makeInput } from './core/input.js';
+import { makeAudio } from './core/audio.js';
 import { drawHud } from './ui/hud.js';
 import { showTitle, showLoadout, showMetaShop, showSettings, clearScreens } from './ui/screens.js';
 import * as R from './ui/render.js';
@@ -21,6 +22,11 @@ export function boot() {
   const ctx = canvas.getContext('2d');
   const meta = loadMeta();
   const input = makeInput(canvas, meta.settings.autopilot);
+  const audio = makeAudio(meta.settings);
+  // 최초 사용자 제스처에서 오디오 활성(브라우저 자동재생 정책)
+  const resumeAudio = () => audio.resume();
+  addEventListener('pointerdown', resumeAudio, { once: true });
+  addEventListener('keydown', resumeAudio, { once: true });
   let scene = 'title', overlay = null, world, rs, dir, rng, sstate, frameCount = 0;
   let shake = 0, combo = 0, comboTimer = 0;
 
@@ -46,8 +52,10 @@ export function boot() {
     const res = applyHit(e, d);
     e.flash = 6;
     world.spawnFloater({ x:e.x, y:e.y-10, text:String(d), color:crit?'#ffe14d':'#fff', life:40, vy:-0.8, crit });
+    if (crit && frameCount % 5 === 0) audio.sfx('crit');
     if (e.boss) shake = Math.min(6, shake + 0.5);
     if (res.killed) {
+      audio.sfx(e.boss ? 'boss' : 'kill');
       rs.gold += Math.round(e.gold*rs.stats.goldGain); world.spawnPickup({ x:e.x, y:e.y, xp:e.xp, radius:6 });
       combo++; comboTimer = 90;
       shake = Math.min(12, shake + (e.boss ? 9 : 1.5));
@@ -88,7 +96,7 @@ export function boot() {
       if (ar && e.boss) { const dx=e.x-ar.x, dy=e.y-ar.y, dd=Math.hypot(dx,dy);
         if (dd > ar.r+70) { e.x=ar.x+dx/dd*(ar.r+70); e.y=ar.y+dy/dd*(ar.r+70); } }
       if (Math.hypot(e.x-world.player.x, e.y-world.player.y) < e.radius+world.player.radius) {
-        if ((world.player.invuln||0)<=0){ world.player.hp -= e.damage*0.1; world.player.invuln=8; shake=Math.min(12,shake+6); }
+        if ((world.player.invuln||0)<=0){ world.player.hp -= e.damage*0.1; world.player.invuln=8; shake=Math.min(12,shake+6); audio.sfx('hurt'); }
       }
     }
     if (world.player.invuln>0) world.player.invuln--;
@@ -98,10 +106,10 @@ export function boot() {
     for (const hz of world.hazards) { if (!hz.alive) continue;
       hz.x += hz.vx; hz.y += hz.vy; if (--hz.life <= 0) { hz.alive=false; continue; }
       if (Math.hypot(hz.x-world.player.x, hz.y-world.player.y) < hz.radius+world.player.radius) {
-        if ((world.player.invuln||0)<=0){ world.player.hp -= hz.damage*0.1; world.player.invuln=8; shake=Math.min(12,shake+5); } hz.alive=false; }
+        if ((world.player.invuln||0)<=0){ world.player.hp -= hz.damage*0.1; world.player.invuln=8; shake=Math.min(12,shake+5); audio.sfx('hurt'); } hz.alive=false; }
     }
-    // 스킬 실행 + 투사체 이동
-    updateSkills(world, rs, rng, sstate, damageEnemy);
+    // 스킬 실행 + 투사체 이동 (발사 시 슛 사운드, 과다 방지 스로틀)
+    updateSkills(world, rs, rng, sstate, damageEnemy, () => { if (frameCount % 5 === 0) audio.sfx('shoot'); });
     updateProjectiles(world);
     // 투사체-적 충돌
     for (const p of world.projectiles) { if (!p.alive || p.dmg<=0) continue;
@@ -117,7 +125,8 @@ export function boot() {
       const d = Math.hypot(g.x-world.player.x, g.y-world.player.y);
       if (d < rs.stats.pickupRange) { const a=Math.atan2(world.player.y-g.y, world.player.x-g.x);
         g.x+=Math.cos(a)*4; g.y+=Math.sin(a)*4; }
-      if (d < world.player.radius) { g.alive=false; if (addXp(rs, g.xp*rs.stats.xpGain).leveled) openLevelUp(); }
+      if (d < world.player.radius) { g.alive=false; if (frameCount % 3 === 0) audio.sfx('pick');
+        if (addXp(rs, g.xp*rs.stats.xpGain).leveled) openLevelUp(); }
     }
     // 파티클/플로터 수명
     for (const pt of world.particles){ if(!pt.alive)continue;
@@ -128,9 +137,9 @@ export function boot() {
     if (world.player.hp <= 0) gameOver();
   }
 
-  function openLevelUp(){ overlay = { type:'levelup', choices: rollChoices(rs, rng, 3) }; }
+  function openLevelUp(){ audio.sfx('levelup'); overlay = { type:'levelup', choices: rollChoices(rs, rng, 3) }; }
   function gameOver(){
-    scene='gameover';
+    scene='gameover'; audio.sfx('death');
     const stage = Math.max(1, (rs.timeMs/30000|0)+1);
     meta.souls += Math.round((stage*5 + rs.timeMs/2000) * rs.stats.soulGain);
     meta.best.stage = Math.max(meta.best.stage, stage);
@@ -197,7 +206,7 @@ export function boot() {
 
   addEventListener('keydown', e => {
     if (overlay?.type==='levelup') { const i='123'.indexOf(e.key);
-      if (i>=0 && overlay.choices[i]){ applyChoice(rs, overlay.choices[i]); cleanupSkillState(); overlay=null; } }
+      if (i>=0 && overlay.choices[i]){ audio.sfx('upgrade'); applyChoice(rs, overlay.choices[i]); cleanupSkillState(); overlay=null; } }
   });
   canvas.addEventListener('pointerdown', () => { if (scene==='gameover') toTitle(); });
 
@@ -205,7 +214,7 @@ export function boot() {
   function toTitle(){ scene='title'; clearScreens(); showTitle({ meta, onPlay:toLoadout, onShop:toShop, onSettings:toSettings }); }
   function toLoadout(){ scene='loadout'; showLoadout({ meta, onStart:beginRun, onBack:toTitle }); }
   function toShop(){ scene='shop'; showMetaShop({ meta, save:()=>saveMeta(meta), onBack:toTitle }); }
-  function toSettings(){ scene='settings'; showSettings({ meta, save:()=>saveMeta(meta), onBack:toTitle }); }
+  function toSettings(){ scene='settings'; showSettings({ meta, save:()=>{ saveMeta(meta); audio.setVolumes(meta.settings); }, onBack:toTitle }); }
   function beginRun(id){ startRun(id); }
 
   const loop = makeLoop({ update, render, step: 1000/60 });

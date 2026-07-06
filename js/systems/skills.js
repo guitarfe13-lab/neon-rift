@@ -20,7 +20,7 @@ function cd(rt, stats) { return Math.max(4, rt.cooldown / (stats.atkSpeed || 1))
 
 const RUNTIME = {
   // 조준 투사체를 쿨다운마다 발사.
-  projectile(world, rs, rt, skill, st) {
+  projectile(world, rs, rt, skill, st, rng, onDamage, onFire) {
     if ((st.timer -= 1) > 0) return;
     st.timer = cd(rt, rs.stats);
     const p = world.player; const t = nearestEnemy(world, p.x, p.y); if (!t) return;
@@ -30,9 +30,10 @@ const RUNTIME = {
       world.spawnProjectile({ x:p.x, y:p.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,
         radius:5, dmg:rt.damage, pierce:rt.pierce||0, life:120, crit:Math.random()<(rs.stats.crit||0),
         color: skill.color||'#ffe14d' }); }
+    if (onFire) onFire();
   },
   // 관통 빔: 고속·다관통·짧은 수명(줄기 형태).
-  beam(world, rs, rt, skill, st) {
+  beam(world, rs, rt, skill, st, rng, onDamage, onFire) {
     if ((st.timer -= 1) > 0) return;
     st.timer = cd(rt, rs.stats);
     const p = world.player; const t = nearestEnemy(world, p.x, p.y); if (!t) return;
@@ -40,6 +41,7 @@ const RUNTIME = {
     world.spawnProjectile({ x:p.x, y:p.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,
       radius:6, dmg:rt.damage, pierce:rt.pierce??99, life:36, crit:Math.random()<(rs.stats.crit||0),
       color: skill.color||'#7cf9ff', beam:true, len: rt.speed*3.2 });
+    if (onFire) onFire();
   },
   // 궤도 오브: rt.count개를 플레이어 주위로 회전. 적별 재타격 쿨다운(e._orbCd)로 제어.
   orbital(world, rs, rt, skill, st) {
@@ -92,12 +94,12 @@ const RUNTIME = {
   passive() {},
 };
 
-export function updateSkills(world, rs, rng, sstate, onDamage) {
+export function updateSkills(world, rs, rng, sstate, onDamage, onFire) {
   for (const [id, level] of Object.entries(rs.ownedSkills)) {
     const skill = getSkill(id); if (!skill) continue;
     const rt = runtimeStats(skill, level);
     const st = sstate[id] || (sstate[id] = { timer: 0 });
-    RUNTIME[skill.type]?.(world, rs, rt, skill, st, rng, onDamage);
+    RUNTIME[skill.type]?.(world, rs, rt, skill, st, rng, onDamage, onFire);
   }
 }
 
