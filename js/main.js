@@ -21,16 +21,29 @@ import { drawSprite } from './ui/sprites.js';
 import { getImage, preload } from './ui/assets.js';
 import * as R from './ui/render.js';
 
+// #rrggbb → rgba(a)
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }
+
 // 엔티티 렌더: 이미지 에셋(assets/sprites/<id>.png)이 있으면 그걸로, 없으면 코드 스프라이트로.
+// 크기 확대 + 접지 그림자 + 은은한 네온 글로우로 '떠 있는 느낌' 제거.
 function drawEntity(ctx, ent, x, y, r, color, t, angle, flash) {
   const img = getImage('assets/sprites/' + ent.id + '.png');
   if (img) {
-    const w = r * 2.6, h = w * (img.height / img.width || 1);
+    const w = r * 3.8, h = w * (img.height / img.width || 1);   // 스프라이트 확대
     const bob = Math.sin(t * 0.15 + x * 0.02) * r * 0.05;
-    ctx.save(); ctx.translate(x, y + bob);
-    if (Math.cos(angle) < 0) ctx.scale(-1, 1);          // 진행/조준 방향으로 좌우 반전
-    if (flash) { ctx.shadowBlur = 22; ctx.shadowColor = '#fff'; }
-    ctx.drawImage(img, -w / 2, -h * 0.68, w, h);        // 발이 좌표에 오도록 위로 올림
+    const foot = y + r * 0.55;                                  // 접지선(발·그림자 기준)
+    // 뒤 네온 글로우(엔티티 색)
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2.1);
+    g.addColorStop(0, hexA(color, 0.32)); g.addColorStop(1, hexA(color, 0));
+    ctx.save(); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 2.1, 0, 7); ctx.fill(); ctx.restore();
+    // 접지 그림자
+    ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.34)';
+    ctx.beginPath(); ctx.ellipse(x, foot, r * 1.05, r * 0.4, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    // 스프라이트(발이 접지선에 오도록 위로)
+    ctx.save(); ctx.translate(x, bob);
+    if (Math.cos(angle) < 0) ctx.scale(-1, 1);                  // 진행/조준 방향으로 좌우 반전
+    if (flash) { ctx.shadowBlur = 24; ctx.shadowColor = '#fff'; }
+    ctx.drawImage(img, -w / 2, foot - h, w, h);
     ctx.restore();
   } else {
     drawSprite(ctx, ent.sprite, x, y, r, color, t, angle);
