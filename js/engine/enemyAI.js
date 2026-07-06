@@ -2,7 +2,7 @@
 import { getEnemy } from '../data/enemies.js';
 
 // 전역 이동 배율: 플레이어·적 모두에 동일 적용(상대 밸런스 유지) → 걷는 듯한 리얼 이동감.
-export const MOVE_SCALE = 0.7;
+export const MOVE_SCALE = 0.5;
 
 // 적 투사체(플레이어에게 피해) 발사. 아군 투사체와 구분되도록 항상 붉은색.
 function fireHazard(world, x, y, ang, speed, damage) {

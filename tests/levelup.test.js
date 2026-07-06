@@ -19,6 +19,12 @@ test('rollChoices는 정확히 count개, 중복 없는 id', () => {
   assert.equal(choices.length, 3);
   const ids = choices.map(c=>c.id); assert.equal(new Set(ids).size, ids.length);
 });
+test('선행 조건 미달 스킬은 신규 후보에서 제외(검사 검기 해금)', () => {
+  const withStrike = (lv) => ({ charId:'blade', level:5, xp:0, ownedSkills:{ strike:lv }, passives:{}, metaUpgrades:{}, stats:{} });
+  const offers = (rs) => { for (let i=0;i<60;i++) for (const c of rollChoices(rs, makeRng('r'+i),3)) if (c.kind==='new' && c.id==='blade_orbit') return true; return false; };
+  assert.equal(offers(withStrike(2)), false); // strike 2레벨 → 검기 미해금
+  assert.equal(offers(withStrike(3)), true);  // strike 3레벨 → 검기 해금
+});
 test('신규 스킬 후보는 직업 스킬풀 내에서만 등장', () => {
   const rs = { charId:'mage', level:2, xp:0, ownedSkills:{ arcane_bolt:1 }, passives:{}, metaUpgrades:{}, stats:{} };
   const pool = getCharacter('mage').skillPool;

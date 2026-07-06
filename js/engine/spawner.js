@@ -29,7 +29,7 @@ export function makeDirector(rng, biomes) {
     const scale = 1 + biomeIdx * 0.6 + lv * 0.06;
     const hp = Math.round(boss.hp * scale);
     // 플레이어 현재 위치를 중심으로 아레나 고정(무한 후퇴 방지). 보스는 화면 안에 등장.
-    arena = { x: world.player.x, y: world.player.y, r: 250 };
+    arena = { x: world.player.x, y: world.player.y, r: 360 };
     bossRef = world.spawnEnemy({ ...boss, hp, maxHp: hp, damage: Math.round(boss.damage * (1 + lv * 0.04)),
       x: arena.x, y: arena.y - 170 });
   }

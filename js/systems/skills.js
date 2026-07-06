@@ -36,7 +36,7 @@ const RUNTIME = {
     const count = (rt.count||1) * (rs.stats.projectiles||1);
     for (let i=0;i<count;i++){ const a = base + (i-(count-1)/2)*0.18;
       world.spawnProjectile({ x:p.x, y:p.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,
-        radius:5, dmg:rt.damage, pierce:rt.pierce||0, life:120, crit:Math.random()<(rs.stats.crit||0),
+        radius:5, dmg:rt.damage, pierce:rt.pierce||0, life:rt.life||120, crit:Math.random()<(rs.stats.crit||0),
         color: skill.color||'#ffe14d' }); }
     if (onFire) onFire();
   },

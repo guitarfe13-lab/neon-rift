@@ -18,7 +18,7 @@ const PASSIVES = {
   might_core: { id:'might_core', label:'힘 코어(공격력 +8)', stat:'damage', kind:'flat', value:8 },
   haste:      { id:'haste',      label:'공격속도 +12%', stat:'atkSpeed',    kind:'mult', value:0.12 },
   giant:      { id:'giant',      label:'범위 +15%',     stat:'area',        kind:'mult', value:0.15 },
-  swift:      { id:'swift',      label:'이동속도 +6%',  stat:'moveSpeed',   kind:'mult', value:0.06 },
+  swift:      { id:'swift',      label:'이동속도 +5%',  stat:'moveSpeed',   kind:'mult', value:0.05 },
   magnet:     { id:'magnet',     label:'획득범위 +25%', stat:'pickupRange', kind:'mult', value:0.25 },
 };
 export const PASSIVE_DEFS = PASSIVES;
@@ -51,6 +51,7 @@ export function rollChoices(rs, rng, count = 3) {
   for (const id of classPool) { const s = SKILLS[id];
     if (!s || rs.ownedSkills[id] || EVOLUTIONS.has(id)) continue;
     if (s.evolveInto && rs.ownedSkills[s.evolveInto]) continue;
+    if (s.requires && (rs.ownedSkills[s.requires.skill] || 0) < s.requires.level) continue; // 선행 스킬 레벨 미달
     pool.push({ kind:'new', id, label:`신규: ${s.name}`, weight:1 }); }
   // 패시브.
   for (const id of Object.keys(PASSIVES)) pool.push({ kind:'passive', id, label:PASSIVES[id].label, weight:1 });

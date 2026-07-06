@@ -7,8 +7,8 @@ function base(overrides) {
 // skillPool: 해당 직업이 레벨업으로 얻을 수 있는 신규 스킬(무작위 아님, 직업별 고정).
 export const CHARACTERS = {
   blade: { id:'blade', name:'검사', shape:'triangle', sprite:'knight', color:'#42e6ff', desc:'높은 체력·근접 물리. MP 거의 안 씀.',
-    base: base({ maxHp:160, maxMp:40, mpRegen:0.1, damage:12, moveSpeed:2.4 }), startingSkill:'blade_orbit', passive:'bulwark',
-    skillPool:['blade_orbit','spread_shot','orbit_blade','rail','turret','twin_shot','quake'] },
+    base: base({ maxHp:160, maxMp:40, mpRegen:0.1, damage:12, moveSpeed:2.4 }), startingSkill:'strike', passive:'bulwark',
+    skillPool:['strike','blade_orbit','spread_shot','orbit_blade','rail','turret','twin_shot','quake'] },
   mage: { id:'mage', name:'마법사', shape:'diamond', sprite:'mage', color:'#c98bff', desc:'유리 대포·강한 마법. MP 소모 큼.', unlockCost:200,
     base: base({ maxHp:85, maxMp:150, mpRegen:0.38, damage:16, crit:0.08, area:1.1, moveSpeed:2.2 }), startingSkill:'arcane_bolt', passive:'focus',
     skillPool:['arcane_bolt','fireball','laser','chain_spark','frost_aura','ice_shard','flame_aura'] },

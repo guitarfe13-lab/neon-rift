@@ -7,9 +7,15 @@
 // scale: +n(레벨당 가산) 또는 [배열](레벨 인덱스). evolveInto/evolveReq로 진화.
 export const SKILLS = {
   // ── 투사체 ──
+  // 기본 물리 타격(검사 시작 스킬): 근거리·빠른 단타. life가 짧아 사거리가 짧다.
+  strike: { id:'strike', name:'기본 타격', type:'projectile', tags:['physical'], color:'#dfe8ff', mpCost:0,
+    base:{ damage:10, count:1, speed:10, cooldown:22, pierce:0, life:40 },
+    scale:{ damage:+5, count:[1,1,1,2,2,3], cooldown:-2 }, maxLevel:8 },
+  // 검기 투사: 기본 타격 3레벨 달성 후 해금.
   blade_orbit: { id:'blade_orbit', name:'검기 투사', type:'projectile', tags:['physical'], color:'#42e6ff', mpCost:0,
     base:{ damage:8, count:1, speed:7, cooldown:36, pierce:0 },
     scale:{ damage:+4, count:[1,1,2,2,3], cooldown:-3 }, maxLevel:8,
+    requires:{ skill:'strike', level:3 },
     evolveInto:'blade_storm', evolveReq:{ passive:'power', level:8 } },
   twin_shot: { id:'twin_shot', name:'쌍발 사격', type:'projectile', tags:['physical'], color:'#8ff0ff', mpCost:0,
     base:{ damage:7, count:2, speed:7.5, cooldown:40, pierce:0 },
@@ -43,6 +49,7 @@ export const SKILLS = {
   // ── 궤도(지속체, MP 무소모) ──
   orbit_blade: { id:'orbit_blade', name:'회전 검', type:'orbital', tags:['physical'], color:'#ff8be0', mpCost:0,
     base:{ damage:7, count:2 }, scale:{ damage:+4, count:[2,2,3,3,4,5] }, maxLevel:8,
+    requires:{ skill:'strike', level:4 },
     evolveInto:'saw_storm', evolveReq:{ passive:'might_core', level:8 } },
   frost_ring: { id:'frost_ring', name:'서리 고리', type:'orbital', tags:['ice'], color:'#8bd8ff', mpCost:0,
     base:{ damage:6, count:3 }, scale:{ damage:+3, count:[3,3,4,4,5,6] }, maxLevel:8 },
@@ -58,7 +65,8 @@ export const SKILLS = {
   venom_cloud: { id:'venom_cloud', name:'맹독 구름', type:'aura', tags:['poison'], color:'#9cff8b', mpCost:2,
     base:{ damage:8, radius:84, cooldown:60 }, scale:{ damage:+4, radius:+7 }, maxLevel:8 },
   quake: { id:'quake', name:'대지 진동', type:'aura', tags:['physical'], color:'#d9b38c', mpCost:0,
-    base:{ damage:22, radius:96, cooldown:120 }, scale:{ damage:+9, radius:+8 }, maxLevel:8 },
+    base:{ damage:22, radius:96, cooldown:120 }, scale:{ damage:+9, radius:+8 }, maxLevel:8,
+    requires:{ skill:'strike', level:5 } },
 
   // ── 연쇄 ──
   chain_spark: { id:'chain_spark', name:'연쇄 번개', type:'chain', tags:['lightning'], color:'#b28bff', mpCost:4,
