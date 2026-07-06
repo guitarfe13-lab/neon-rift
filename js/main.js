@@ -29,17 +29,19 @@ function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${(n>
 function drawEntity(ctx, ent, x, y, r, color, t, angle, flash) {
   const img = getImage('assets/sprites/' + ent.id + '.png');
   if (img) {
-    const w = r * 4.6, h = w * (img.height / img.width || 1);   // 스프라이트 확대
+    const sc = 4.6 * (ent.spriteScale || 1);                   // 엔티티별 배율(보스 크게·슬라임 작게)
+    const w = r * sc, h = w * (img.height / img.width || 1);
     const bob = Math.sin(t * 0.15 + x * 0.02) * r * 0.05;
     const foot = y + r * 1.2;                                   // 접지선을 아래로(뜬 느낌 완화)
+    const sw = r * 1.05 * (ent.spriteScale || 1);              // 그림자 폭도 배율 반영
     // 뒤 네온 글로우(엔티티 색)
     const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2.3);
     g.addColorStop(0, hexA(color, 0.30)); g.addColorStop(1, hexA(color, 0));
     ctx.save(); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 2.3, 0, 7); ctx.fill(); ctx.restore();
     // 접지 그림자(부드럽게: 가장자리 페이드 + 약하게)
-    const sg = ctx.createRadialGradient(x, foot, 0, x, foot, r * 1.05);
+    const sg = ctx.createRadialGradient(x, foot, 0, x, foot, sw);
     sg.addColorStop(0, 'rgba(0,0,0,0.22)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.save(); ctx.fillStyle = sg; ctx.beginPath(); ctx.ellipse(x, foot, r * 1.05, r * 0.38, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    ctx.save(); ctx.fillStyle = sg; ctx.beginPath(); ctx.ellipse(x, foot, sw, sw * 0.36, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     // 스프라이트(발이 접지선에 오도록 위로)
     ctx.save(); ctx.translate(x, bob);
     if (Math.cos(angle) < 0) ctx.scale(-1, 1);                  // 진행/조준 방향으로 좌우 반전
@@ -69,7 +71,7 @@ export function boot() {
     ...BIOMES.map((b) => `assets/bg/${b.id}.png`),
   ]);
   let scene = 'title', overlay = null, world, rs, dir, rng, sstate, frameCount = 0;
-  let shake = 0, combo = 0, comboTimer = 0;
+  let shake = 0, combo = 0, comboTimer = 0, slowmo = 0, whiteFlash = 0;
 
   function startRun(charId = 'blade') {
     clearScreens();
@@ -101,9 +103,16 @@ export function boot() {
       spawnDrops(e);
       combo++; comboTimer = 90;
       shake = Math.min(12, shake + (e.boss ? 9 : 1.5));
-      const bursts = e.boss ? 26 : 6;
-      for (let i=0;i<bursts;i++){ const a=(i/bursts)*Math.PI*2 + Math.random(); const s=1.5+Math.random()*2.5;
-        world.spawnParticle({ x:e.x, y:e.y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:14, color:e.color, spark:true }); }
+      const bursts = e.boss ? 44 : 6;
+      for (let i=0;i<bursts;i++){ const a=(i/bursts)*Math.PI*2 + Math.random(); const s=(e.boss?2.5:1.5)+Math.random()*(e.boss?4:2.5);
+        world.spawnParticle({ x:e.x, y:e.y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:e.boss?26:14, color: i%3===0?'#fff':e.color, spark:true }); }
+      // 보스 처치 연출: 슬로우모션 + 충격파 + 화면 플래시 + 강한 셰이크
+      if (e.boss) {
+        slowmo = 78; whiteFlash = 14; shake = 18;
+        world.spawnParticle({ x:e.x, y:e.y, r:12, rMax:280, life:44, color:'#fff', shock:true });
+        world.spawnParticle({ x:e.x, y:e.y, r:8,  rMax:200, life:52, color:e.color, shock:true });
+        audio.sfx('boss'); audio.sfx('death');
+      }
       onEnemyDeath(e, world, rng);
     }
   }
@@ -140,6 +149,8 @@ export function boot() {
   function update(dt) {
     frameCount++;
     if (scene !== 'run' || overlay) return;
+    // 슬로우모션: 게임 로직을 1/3 속도로(보스 처치 연출)
+    if (slowmo > 0) { slowmo--; if (frameCount % 3 !== 0) return; }
     rs.timeMs += dt;
     rs.stage = Math.max(1, (rs.timeMs/30000|0)+1);
     // 이동
@@ -194,6 +205,7 @@ export function boot() {
     // 파티클/플로터 수명
     for (const pt of world.particles){ if(!pt.alive)continue;
       if (pt.spark){ pt.x+=pt.vx; pt.y+=pt.vy; pt.vx*=0.9; pt.vy*=0.9; }
+      else if (pt.shock){ pt.r += (pt.rMax - pt.r) * 0.12; }
       if(--pt.life<=0) pt.alive=false; }
     for (const f of world.floaters){ if(!f.alive)continue; f.y+=f.vy; if(--f.life<=0) f.alive=false; }
     world.despawnDead();
@@ -236,8 +248,10 @@ export function boot() {
       // 파티클(오라 링 / 연쇄 볼트 / 처치 스파크)
       for (const pt of world.particles) { if (!pt.alive) continue;
         ctx.save();
-        if (pt.spark) { ctx.globalAlpha = Math.max(0, pt.life/14); ctx.fillStyle = pt.color||'#fff';
+        if (pt.spark) { ctx.globalAlpha = Math.max(0, pt.life/26); ctx.fillStyle = pt.color||'#fff';
           ctx.beginPath(); ctx.arc(pt.x-camX, pt.y-camY, 3, 0, Math.PI*2); ctx.fill(); }
+        else if (pt.shock) { ctx.globalAlpha = Math.max(0, pt.life/44); ctx.strokeStyle = pt.color||'#fff'; ctx.lineWidth = 5;
+          ctx.beginPath(); ctx.arc(pt.x-camX, pt.y-camY, pt.r, 0, Math.PI*2); ctx.stroke(); }
         else { ctx.globalAlpha = Math.max(0, pt.life/8); ctx.strokeStyle = pt.color||'#5cf'; ctx.lineWidth = 2;
           if (pt.ring) { ctx.beginPath(); ctx.arc(pt.x-camX, pt.y-camY, pt.r, 0, Math.PI*2); ctx.stroke(); }
           else if (pt.bolt) { ctx.beginPath(); ctx.moveTo(pt.x1-camX, pt.y1-camY); ctx.lineTo(pt.x2-camX, pt.y2-camY); ctx.stroke(); } }
@@ -268,6 +282,9 @@ export function boot() {
         R.bar(ctx, canvas.width/2-180, canvas.height-40, 360, 14, boss.hp/boss.maxHp, '#ff5cc8');
       }
     }
+    // 보스 처치 화면 플래시(렌더 프레임마다 감쇠 — 슬로우모션 영향 안 받음)
+    if (whiteFlash > 0) { ctx.save(); ctx.globalAlpha = (whiteFlash/14)*0.6; ctx.fillStyle='#fff';
+      ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore(); whiteFlash--; }
     if (overlay?.type==='levelup') drawLevelUp();
     if (scene==='gameover') { R.text(ctx,'GAME OVER',canvas.width/2,canvas.height/2-20,{size:44,align:'center',color:'#ff4d9d'});
       R.text(ctx,'클릭하면 다시 시작',canvas.width/2,canvas.height/2+24,{size:16,align:'center'}); }
