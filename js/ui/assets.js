@@ -14,5 +14,7 @@ export function getImage(path) {
   }
   return e.ready ? e.img : null;
 }
+// 경로(확장자 제외)로 SVG 우선, 없으면 PNG 로드. Claude가 만든 .svg를 그대로 사용 가능.
+export function getSprite(base) { return getImage(base + '.svg') || getImage(base + '.png'); }
 // 알려진 경로를 미리 로드(첫 등장 시 깜빡임 방지). 없는 파일은 조용히 실패 처리.
 export function preload(paths) { for (const p of paths) getImage(p); }

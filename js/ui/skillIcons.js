@@ -1,5 +1,5 @@
 // 스킬 아이콘: 코드로 그리는 네온 글리프(타입별). assets/skills/<id>.png가 있으면 그 이미지 우선.
-import { getImage } from './assets.js';
+import { getSprite } from './assets.js';
 
 export function roundRect(ctx, x, y, w, h, r) {
   if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); return; }
@@ -41,7 +41,7 @@ export function drawSkillIcon(ctx, skill, x, y, size) {
   roundRect(ctx, x, y, size, size, size*0.2); ctx.stroke();
   ctx.restore();
 
-  const img = skill && skill.id ? getImage('assets/skills/' + skill.id + '.png') : null;
+  const img = skill && skill.id ? getSprite('assets/skills/' + skill.id) : null;
   if (img) { ctx.save(); roundRect(ctx, x+size*0.08, y+size*0.08, size*0.84, size*0.84, size*0.14); ctx.clip();
     ctx.drawImage(img, x+size*0.08, y+size*0.08, size*0.84, size*0.84); ctx.restore(); return; }
 

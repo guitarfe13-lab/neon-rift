@@ -20,7 +20,7 @@ import { drawHud } from './ui/hud.js';
 import { showTitle, showLoadout, showMetaShop, showSettings, clearScreens } from './ui/screens.js';
 import { drawSprite } from './ui/sprites.js';
 import { drawSkillIcon, roundRect } from './ui/skillIcons.js';
-import { getImage, preload } from './ui/assets.js';
+import { getImage, getSprite, preload } from './ui/assets.js';
 import * as R from './ui/render.js';
 
 // #rrggbb → rgba(a)
@@ -29,7 +29,7 @@ function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${(n>
 // 엔티티 렌더: 이미지 에셋(assets/sprites/<id>.png)이 있으면 그걸로, 없으면 코드 스프라이트로.
 // 크기 확대 + 접지 그림자 + 은은한 네온 글로우로 '떠 있는 느낌' 제거.
 function drawEntity(ctx, ent, x, y, r, color, t, angle, flash) {
-  const img = getImage('assets/sprites/' + ent.id + '.png');
+  const img = getSprite('assets/sprites/' + ent.id);
   if (img) {
     const sc = 4.6 * (ent.spriteScale || 1);                   // 엔티티별 배율(보스 크게·슬라임 작게)
     const w = r * sc, h = w * (img.height / img.width || 1);
@@ -300,7 +300,7 @@ export function boot() {
       const camY = world.player.y - canvas.height/2 + (Math.random()-0.5)*shake;
       // 바이옴 배경: 이미지(assets/bg/<id>.png)가 있으면 시차 타일, 없으면 그라디언트+그리드
       const bio = dir.biome();
-      const bgImg = getImage('assets/bg/' + bio.id + '.png');
+      const bgImg = getSprite('assets/bg/' + bio.id);
       if (bgImg) {
         // 지면은 월드 좌표에 고정(시차 1배) → 아이템·캐릭터와 같은 속도로 스크롤해 '바닥에 붙은' 느낌.
         const tw = bgImg.width, th = bgImg.height;
