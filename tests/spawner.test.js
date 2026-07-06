@@ -16,19 +16,22 @@ test('적 hp는 경과 시간에 따라 증가', () => {
   const dir = makeDirector(makeRng('s'), BIOMES);
   assert.ok(dir.enemyStatsAt('grunt',300000).hp > dir.enemyStatsAt('grunt',0).hp);
 });
-test('durationMs 경과 시 보스 스폰', () => {
+test('durationMs 경과 시 보스 스폰 + 아레나 설정', () => {
   const dir = makeDirector(makeRng('s'), BIOMES);
   const w = createWorld();
+  assert.equal(dir.getArena(), null);
   for (let i=0;i<1000;i++) dir.update(100, w);
   assert.ok(w.enemies.some(e=>e.boss) && dir.getBossRef());
+  assert.ok(dir.getArena() && dir.getArena().r > 0); // 보스전 아레나 활성
 });
-test('보스 처치 시 다음 바이옴으로 진행', () => {
+test('보스 처치 시 다음 바이옴 진행 + 아레나 해제', () => {
   const two = [{ id:'a', enemySet:['grunt'], boss:'warden', durationMs:1000 },
                { id:'b', enemySet:['grunt'], boss:'hydra', durationMs:1000 }];
   const dir = makeDirector(makeRng('s'), two);
   const w = createWorld();
   for (let i=0;i<20;i++) dir.update(100, w);
-  const boss = dir.getBossRef(); assert.ok(boss);
+  const boss = dir.getBossRef(); assert.ok(boss && dir.getArena());
   boss.alive = false; dir.update(100, w);
   assert.equal(dir.biomeIndex(), 1);
+  assert.equal(dir.getArena(), null);
 });

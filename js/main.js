@@ -22,6 +22,7 @@ export function boot() {
   const meta = loadMeta();
   const input = makeInput(canvas, meta.settings.autopilot);
   let scene = 'title', overlay = null, world, rs, dir, rng, sstate, frameCount = 0;
+  let shake = 0, combo = 0, comboTimer = 0;
 
   function startRun(charId = 'blade') {
     clearScreens();
@@ -43,9 +44,18 @@ export function boot() {
     if (crit) d *= (rs.stats.critMult || 2);
     d = Math.max(1, Math.round(d));
     const res = applyHit(e, d);
-    world.spawnFloater({ x:e.x, y:e.y-10, text:String(d), color:crit?'#ffe14d':'#fff', life:40, vy:-0.8 });
-    if (res.killed) { rs.gold += Math.round(e.gold*rs.stats.goldGain); world.spawnPickup({ x:e.x, y:e.y, xp:e.xp, radius:6 });
-      onEnemyDeath(e, world, rng); }
+    e.flash = 6;
+    world.spawnFloater({ x:e.x, y:e.y-10, text:String(d), color:crit?'#ffe14d':'#fff', life:40, vy:-0.8, crit });
+    if (e.boss) shake = Math.min(6, shake + 0.5);
+    if (res.killed) {
+      rs.gold += Math.round(e.gold*rs.stats.goldGain); world.spawnPickup({ x:e.x, y:e.y, xp:e.xp, radius:6 });
+      combo++; comboTimer = 90;
+      shake = Math.min(12, shake + (e.boss ? 9 : 1.5));
+      const bursts = e.boss ? 26 : 6;
+      for (let i=0;i<bursts;i++){ const a=(i/bursts)*Math.PI*2 + Math.random(); const s=1.5+Math.random()*2.5;
+        world.spawnParticle({ x:e.x, y:e.y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:14, color:e.color, spark:true }); }
+      onEnemyDeath(e, world, rng);
+    }
   }
 
   function cleanupSkillState() {
@@ -65,21 +75,30 @@ export function boot() {
     // 이동
     const mv = input.moveVector(world), sp = rs.stats.moveSpeed;
     world.player.x += mv.x * sp; world.player.y += mv.y * sp;
+    // 보스 아레나: 플레이어 무한 후퇴 방지(원형 경계 안으로 제한)
+    const ar = dir.getArena();
+    if (ar) { const dx=world.player.x-ar.x, dy=world.player.y-ar.y, dd=Math.hypot(dx,dy);
+      if (dd > ar.r) { world.player.x = ar.x + dx/dd*ar.r; world.player.y = ar.y + dy/dd*ar.r; } }
     // 스폰 + 적 이동(행동 AI)/접촉 피해
     dir.update(dt, world);
     for (const e of world.enemies) { if (!e.alive) continue;
       if (e._orbCd > 0) e._orbCd--;
+      if (e.flash > 0) e.flash--;
       stepEnemy(e, world, rng);
+      if (ar && e.boss) { const dx=e.x-ar.x, dy=e.y-ar.y, dd=Math.hypot(dx,dy);
+        if (dd > ar.r+70) { e.x=ar.x+dx/dd*(ar.r+70); e.y=ar.y+dy/dd*(ar.r+70); } }
       if (Math.hypot(e.x-world.player.x, e.y-world.player.y) < e.radius+world.player.radius) {
-        if ((world.player.invuln||0)<=0){ world.player.hp -= e.damage*0.1; world.player.invuln=8; }
+        if ((world.player.invuln||0)<=0){ world.player.hp -= e.damage*0.1; world.player.invuln=8; shake=Math.min(12,shake+6); }
       }
     }
     if (world.player.invuln>0) world.player.invuln--;
+    if (comboTimer>0) comboTimer--; else combo=0;
+    shake *= 0.86; if (shake < 0.2) shake = 0;
     // 적 투사체(hazard) 이동/플레이어 피격
     for (const hz of world.hazards) { if (!hz.alive) continue;
       hz.x += hz.vx; hz.y += hz.vy; if (--hz.life <= 0) { hz.alive=false; continue; }
       if (Math.hypot(hz.x-world.player.x, hz.y-world.player.y) < hz.radius+world.player.radius) {
-        if ((world.player.invuln||0)<=0){ world.player.hp -= hz.damage*0.1; world.player.invuln=8; } hz.alive=false; }
+        if ((world.player.invuln||0)<=0){ world.player.hp -= hz.damage*0.1; world.player.invuln=8; shake=Math.min(12,shake+5); } hz.alive=false; }
     }
     // 스킬 실행 + 투사체 이동
     updateSkills(world, rs, rng, sstate, damageEnemy);
@@ -101,7 +120,9 @@ export function boot() {
       if (d < world.player.radius) { g.alive=false; if (addXp(rs, g.xp*rs.stats.xpGain).leveled) openLevelUp(); }
     }
     // 파티클/플로터 수명
-    for (const pt of world.particles){ if(!pt.alive)continue; if(--pt.life<=0) pt.alive=false; }
+    for (const pt of world.particles){ if(!pt.alive)continue;
+      if (pt.spark){ pt.x+=pt.vx; pt.y+=pt.vy; pt.vx*=0.9; pt.vy*=0.9; }
+      if(--pt.life<=0) pt.alive=false; }
     for (const f of world.floaters){ if(!f.alive)continue; f.y+=f.vy; if(--f.life<=0) f.alive=false; }
     world.despawnDead();
     if (world.player.hp <= 0) gameOver();
@@ -121,31 +142,41 @@ export function boot() {
     R.clear(ctx, canvas.width, canvas.height);
     if ((scene==='run' || scene==='gameover') && world) {
       const ch = getCharacter(rs.charId);
-      const camX = world.player.x - canvas.width/2;
-      const camY = world.player.y - canvas.height/2;
+      const camX = world.player.x - canvas.width/2 + (Math.random()-0.5)*shake;
+      const camY = world.player.y - canvas.height/2 + (Math.random()-0.5)*shake;
       // 바이옴 배경(방사형 그라디언트) + 팔레트 그리드
       const bio = dir.biome();
       const bg = ctx.createRadialGradient(canvas.width/2, canvas.height*0.45, 0, canvas.width/2, canvas.height*0.45, canvas.width*0.72);
       bg.addColorStop(0, bio.palette[0]); bg.addColorStop(1, bio.palette[1]);
       ctx.fillStyle = bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
       R.grid(ctx, canvas.width, canvas.height, camX, camY, 48, bio.grid);
-      // 파티클(오라 링 / 연쇄 볼트)
+      // 보스 아레나 경계
+      const arn = dir.getArena();
+      if (arn) { ctx.save(); ctx.strokeStyle='rgba(255,92,200,0.5)'; ctx.lineWidth=3; ctx.setLineDash([12,12]);
+        ctx.beginPath(); ctx.arc(arn.x-camX, arn.y-camY, arn.r, 0, Math.PI*2); ctx.stroke(); ctx.restore(); }
+      // 파티클(오라 링 / 연쇄 볼트 / 처치 스파크)
       for (const pt of world.particles) { if (!pt.alive) continue;
-        ctx.save(); ctx.globalAlpha = Math.max(0, pt.life/8); ctx.strokeStyle = pt.color||'#5cf'; ctx.lineWidth = 2;
-        if (pt.ring) { ctx.beginPath(); ctx.arc(pt.x-camX, pt.y-camY, pt.r, 0, Math.PI*2); ctx.stroke(); }
-        else if (pt.bolt) { ctx.beginPath(); ctx.moveTo(pt.x1-camX, pt.y1-camY); ctx.lineTo(pt.x2-camX, pt.y2-camY); ctx.stroke(); }
+        ctx.save();
+        if (pt.spark) { ctx.globalAlpha = Math.max(0, pt.life/14); ctx.fillStyle = pt.color||'#fff';
+          ctx.beginPath(); ctx.arc(pt.x-camX, pt.y-camY, 3, 0, Math.PI*2); ctx.fill(); }
+        else { ctx.globalAlpha = Math.max(0, pt.life/8); ctx.strokeStyle = pt.color||'#5cf'; ctx.lineWidth = 2;
+          if (pt.ring) { ctx.beginPath(); ctx.arc(pt.x-camX, pt.y-camY, pt.r, 0, Math.PI*2); ctx.stroke(); }
+          else if (pt.bolt) { ctx.beginPath(); ctx.moveTo(pt.x1-camX, pt.y1-camY); ctx.lineTo(pt.x2-camX, pt.y2-camY); ctx.stroke(); } }
         ctx.restore();
       }
       for (const g of world.pickups) if (g.alive) R.neonCircle(ctx, g.x-camX, g.y-camY, g.radius, '#7cff6b');
       for (const hz of world.hazards) if (hz.alive) R.neonCircle(ctx, hz.x-camX, hz.y-camY, hz.radius, hz.color||'#ff5c5c');
-      for (const e of world.enemies) if (e.alive) R.neonShape(ctx, e.x-camX, e.y-camY, e.radius, e.shape, e.color);
+      for (const e of world.enemies) if (e.alive) R.neonShape(ctx, e.x-camX, e.y-camY, e.radius, e.shape, e.flash>0?'#ffffff':e.color);
       for (const p of world.projectiles) { if (!p.alive) continue;
         if (p.beam) { const n=Math.hypot(p.vx,p.vy)||1, ux=p.vx/n, uy=p.vy/n;
           R.neonLine(ctx, p.x-camX, p.y-camY, p.x-ux*p.len-camX, p.y-uy*p.len-camY, p.radius*1.7, p.color||'#7cf9ff'); }
         else R.neonCircle(ctx, p.x-camX, p.y-camY, p.radius, p.color||'#ffe14d'); }
-      R.neonShape(ctx, world.player.x-camX, world.player.y-camY, world.player.radius, ch.shape, ch.color);
-      for (const f of world.floaters) if (f.alive) R.text(ctx, f.text, f.x-camX, f.y-camY, { color:f.color, size:13, align:'center' });
+      // 플레이어(피격 무적 중 깜빡임)
+      if (!(world.player.invuln>0 && frameCount%6<3))
+        R.neonShape(ctx, world.player.x-camX, world.player.y-camY, world.player.radius, ch.shape, ch.color);
+      for (const f of world.floaters) if (f.alive) R.text(ctx, f.text, f.x-camX, f.y-camY, { color:f.color, size:f.crit?18:13, align:'center', weight:f.crit?'800':'600' });
       drawHud(ctx, rs, world);
+      if (combo > 2) R.text(ctx, `COMBO x${combo}`, canvas.width/2, 46, { size:22, align:'center', color:'#ffd166', weight:'800' });
       R.text(ctx, bio.name, 16, 84, { size:12, color:'#9ab' });
       R.text(ctx, input.isAutopilot()?'AUTO (P: 수동)':'수동 WASD (P: 오토)', canvas.width-16, 24, { size:12, align:'right', color:'#8aa' });
       const boss = dir.getBossRef();

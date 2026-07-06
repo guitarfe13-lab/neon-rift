@@ -3,7 +3,7 @@ import { getEnemy } from '../data/enemies.js';
 import { getBoss } from '../data/bosses.js';
 
 export function makeDirector(rng, biomes) {
-  let t = 0, timer = 0, biomeIdx = 0, biomeStart = 0, bossRef = null;
+  let t = 0, timer = 0, biomeIdx = 0, biomeStart = 0, bossRef = null, arena = null;
   const biome = () => biomes[biomeIdx % biomes.length];
 
   // 경과 시간에 따라 적 hp/속도 스케일.
@@ -24,16 +24,19 @@ export function makeDirector(rng, biomes) {
   function spawnBoss(world) {
     const b = biome(); const boss = getBoss(b.boss); const scale = 1 + biomeIdx * 0.6;
     const hp = Math.round(boss.hp * scale);
-    bossRef = world.spawnEnemy({ ...boss, hp, maxHp: hp, x: world.player.x, y: world.player.y - 320 });
+    // 플레이어 현재 위치를 중심으로 아레나 고정(무한 후퇴 방지). 보스는 화면 안에 등장.
+    arena = { x: world.player.x, y: world.player.y, r: 250 };
+    bossRef = world.spawnEnemy({ ...boss, hp, maxHp: hp, x: arena.x, y: arena.y - 170 });
   }
   function update(dt, world) {
     t += dt;
-    if (bossRef && !bossRef.alive) { bossRef = null; biomeIdx++; biomeStart = t; } // 보스 처치 → 다음 바이옴
+    if (bossRef && !bossRef.alive) { bossRef = null; arena = null; biomeIdx++; biomeStart = t; } // 보스 처치 → 다음 바이옴
     const b = biome();
     if (!bossRef && t - biomeStart >= b.durationMs) { spawnBoss(world); return; }
     const rate = bossRef ? 1500 : Math.max(220, 900 - (t - biomeStart) / 500);
     timer += dt;
     while (timer >= rate) { timer -= rate; spawnOne(world); }
   }
-  return { update, enemyStatsAt, biome, getBossRef: () => bossRef, biomeIndex: () => biomeIdx, clock: () => t };
+  return { update, enemyStatsAt, biome, getBossRef: () => bossRef, getArena: () => arena,
+    biomeIndex: () => biomeIdx, clock: () => t };
 }
