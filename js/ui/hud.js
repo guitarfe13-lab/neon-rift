@@ -13,4 +13,6 @@ export function drawHud(ctx, rs, world, frame = 0) {
   bar(ctx, 16, 43, 220, 7, rs.xp / (8*Math.pow(rs.level,1.55)+4), '#42e6ff');
   text(ctx, `Lv ${rs.level}`, 244, 40, { size:13, color:'#42e6ff' });
   text(ctx, `⏱ ${(rs.timeMs/1000|0)}s   ⭐ ${rs.stage}   💰 ${rs.gold}`, 16, 70, { size:13 });
+  const po = rs.potions || { hp:0, mp:0 };
+  text(ctx, `🧪 ${po.hp}   🔷 ${po.mp}`, 16, 88, { size:12, color:'#9ab' });
 }

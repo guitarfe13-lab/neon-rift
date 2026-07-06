@@ -4,6 +4,7 @@ export function defaultMeta() {
   return {
     version: 1, souls: 0, upgrades: {},
     unlockedCharacters: ['blade'], unlockedSkills: [],
+    potions: { hp: 0, mp: 0 },
     settings: { master: 0.8, sfx: 0.9, bgm: 0.5, muted: false, autopilot: true },
     best: { stage: 0, timeMs: 0 },
   };

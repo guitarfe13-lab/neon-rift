@@ -1,7 +1,10 @@
 // DOM 오버레이 화면(타이틀/로드아웃/메타상점/설정). #ui-root에 렌더.
 import { META_UPGRADES } from '../data/metaUpgrades.js';
 import { CHARACTERS } from '../data/characters.js';
-import { upgradeCost, canBuy, buyUpgrade, characterUnlockCost, isCharUnlocked, canUnlockChar, unlockChar } from '../systems/meta.js';
+import { getSkill } from '../data/skills.js';
+import { drawSkillIcon } from './skillIcons.js';
+import { upgradeCost, canBuy, buyUpgrade, characterUnlockCost, isCharUnlocked, canUnlockChar, unlockChar,
+  potionCost, canBuyPotion, buyPotion } from '../systems/meta.js';
 
 const root = () => document.getElementById('ui-root');
 function el(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
@@ -25,17 +28,33 @@ export function showLoadout({ meta, onStart, onBack }) {
   clearScreens();
   const p = el('div', 'screen center');
   p.appendChild(el('h2', 'screen-title', '캐릭터 선택'));
-  const grid = el('div', 'card-grid');
+  const grid = el('div', 'char-grid');
   let selected = meta.unlockedCharacters[0];
   const cards = {};
   for (const id of Object.keys(CHARACTERS)) {
     const ch = CHARACTERS[id]; const unlocked = isCharUnlocked(meta, id);
-    const card = el('button', 'card' + (unlocked ? '' : ' locked'));
-    card.innerHTML = `<div class="card-name" style="color:${ch.color}">${ch.name}</div>
-      <div class="card-desc">${ch.desc}</div>
-      <div class="card-meta">${unlocked ? 'HP '+ch.base.maxHp+' · 공격 '+ch.base.damage : '🔒 소울 '+characterUnlockCost(id)}</div>`;
-    if (unlocked) card.onclick = () => { selected = id; Object.values(cards).forEach(c=>c.classList.remove('sel')); card.classList.add('sel'); };
-    else card.disabled = true;
+    const card = el('button', 'char-card' + (unlocked ? '' : ' locked'));
+    // 초상(이미지 없으면 숨김)
+    const img = document.createElement('img'); img.className = 'char-portrait';
+    img.src = 'assets/sprites/' + id + '.png'; img.alt = ch.name;
+    img.onerror = () => { img.style.display = 'none'; };
+    card.appendChild(img);
+    const nm = el('div', 'char-name', ch.name); nm.style.color = ch.color; card.appendChild(nm);
+    card.appendChild(el('div', 'char-desc', ch.desc));
+    // 스탯(HP/MP)
+    const st = el('div', 'char-stats');
+    st.innerHTML = `<span class="stat hp">❤ HP <b>${ch.base.maxHp}</b></span><span class="stat mp">🔷 MP <b>${ch.base.maxMp}</b></span>`;
+    card.appendChild(st);
+    // 사용 스킬 아이콘(시작 스킬 강조)
+    const sk = el('div', 'char-skills');
+    for (const sid of ch.skillPool) { const s = getSkill(sid); if (!s) continue;
+      const cvs = document.createElement('canvas'); cvs.width = 30; cvs.height = 30;
+      cvs.className = 'skill-mini' + (sid === ch.startingSkill ? ' starting' : ''); cvs.title = s.name + (sid===ch.startingSkill?' (시작)':'');
+      drawSkillIcon(cvs.getContext('2d'), s, 1, 1, 28); sk.appendChild(cvs);
+    }
+    card.appendChild(sk);
+    if (!unlocked) { card.appendChild(el('div', 'char-lock', `🔒 소울 ${characterUnlockCost(id)}`)); card.disabled = true; }
+    else card.onclick = () => { selected = id; Object.values(cards).forEach(c=>c.classList.remove('sel')); card.classList.add('sel'); };
     if (id === selected) card.classList.add('sel');
     cards[id] = card; grid.appendChild(card);
   }
@@ -61,6 +80,16 @@ export function showMetaShop({ meta, save, onBack }) {
       const btn = el('button', 'btn small', cost == null ? 'MAX' : `구매 (${cost})`);
       btn.disabled = !canBuy(meta, id);
       btn.onclick = () => { buyUpgrade(meta, id); save(); render(); };
+      row.appendChild(btn); list.appendChild(row);
+    }
+    // 물약(자동 사용): 저잔량 시 런 중 자동 소비
+    for (const kind of ['hp', 'mp']) {
+      const nm = kind === 'hp' ? '체력 물약' : '마나 물약', ic = kind === 'hp' ? '🧪' : '🔷';
+      const row = el('div', 'shop-row');
+      row.innerHTML = `<div>${ic} <b>${nm}</b> <span class="lvl">보유 ${meta.potions?.[kind]||0} · 저잔량 시 자동 사용</span></div>`;
+      const btn = el('button', 'btn small', `구매 (${potionCost(kind)})`);
+      btn.disabled = !canBuyPotion(meta, kind);
+      btn.onclick = () => { buyPotion(meta, kind); save(); render(); };
       row.appendChild(btn); list.appendChild(row);
     }
     // 캐릭터 해금

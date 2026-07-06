@@ -96,6 +96,7 @@ export function boot() {
     rs.stats = computeStats({ charId, metaUpgrades: meta.upgrades, runMods: [] });
     world.player.maxHp = rs.stats.maxHp; world.player.hp = rs.stats.maxHp;
     rs.mp = rs.stats.maxMp;
+    rs.potions = { hp: meta.potions?.hp || 0, mp: meta.potions?.mp || 0 };  // 상점 구매분 반입
     dir = makeDirector(rng, BIOMES);
     sstate = {}; scene = 'run'; overlay = null;
   }
@@ -226,6 +227,15 @@ export function boot() {
       else if (pt.shock){ pt.r += (pt.rMax - pt.r) * 0.12; }
       if(--pt.life<=0) pt.alive=false; }
     for (const f of world.floaters){ if(!f.alive)continue; f.y+=f.vy; if(--f.life<=0) f.alive=false; }
+    // 물약 자동 사용: HP 25% 이하 / MP 20% 이하일 때 보유분을 자동 소비
+    if (rs.potions.hp > 0 && world.player.hp <= world.player.maxHp*0.25) {
+      world.player.hp = Math.min(world.player.maxHp, world.player.hp + world.player.maxHp*0.5); rs.potions.hp--;
+      world.spawnFloater({ x:world.player.x, y:world.player.y-26, text:'🧪 HP 물약!', color:'#ff6b8a', life:44, max:44, vy:-0.6 }); audio.sfx('upgrade');
+    }
+    if (rs.potions.mp > 0 && (rs.mp||0) <= rs.stats.maxMp*0.2) {
+      rs.mp = Math.min(rs.stats.maxMp, (rs.mp||0) + rs.stats.maxMp*0.6); rs.potions.mp--;
+      world.spawnFloater({ x:world.player.x, y:world.player.y-26, text:'🔷 MP 물약!', color:'#4db3ff', life:44, max:44, vy:-0.6 }); audio.sfx('pick');
+    }
     world.despawnDead();
     // 레벨업 창은 (보스 슬로우모션 + 레벨업 버스트 연출)이 끝난 뒤에 연다.
     if (pendingLevelUp && slowmo <= 0 && levelupDelay <= 0 && !overlay) { pendingLevelUp = false; openLevelUp(); }
@@ -250,6 +260,7 @@ export function boot() {
     meta.souls += Math.round((stage*5 + rs.timeMs/2000) * rs.stats.soulGain);
     meta.best.stage = Math.max(meta.best.stage, stage);
     meta.best.timeMs = Math.max(meta.best.timeMs, rs.timeMs);
+    meta.potions = { hp: rs.potions.hp, mp: rs.potions.mp };  // 남은 물약 저장(자동 사용분 차감)
     saveMeta(meta);
   }
 
@@ -322,7 +333,7 @@ export function boot() {
         ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.strokeText(`COMBO x${combo}`, canvas.width/2, 50);
         ctx.fillStyle = cc; ctx.fillText(`COMBO x${combo}`, canvas.width/2, 50); ctx.restore();
       }
-      R.text(ctx, bio.name, 16, 84, { size:12, color:'#9ab' });
+      R.text(ctx, bio.name, 16, 106, { size:12, color:'#9ab' });
       R.text(ctx, input.isAutopilot()?'AUTO (P: 수동)':'수동 WASD (P: 오토)', canvas.width-16, 24, { size:12, align:'right', color:'#8aa' });
       // 우측 상단: 현재 장착 스킬 아이콘 + 레벨
       { const isz=32, pad=7, x0=canvas.width-12-isz; let idx=0;

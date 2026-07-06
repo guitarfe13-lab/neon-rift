@@ -36,6 +36,25 @@ html, body { margin:0; height:100%; background:var(--bg); color:var(--ink);
 .card-name { font-size:18px; font-weight:700; }
 .card-desc { font-size:12.5px; color:#aab; margin:6px 0; }
 .card-meta { font-size:12px; color:#8be0ff; }
+
+/* 캐릭터 선택 카드(초상+스탯+스킬) */
+.char-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; width:min(880px,94vw); }
+.char-card { display:flex; flex-direction:column; align-items:center; text-align:center;
+  background:rgba(18,24,40,0.9); border:1px solid rgba(120,150,200,0.25); border-radius:14px;
+  padding:14px 12px 12px; cursor:pointer; color:var(--ink); position:relative; }
+.char-card.sel { border-color:var(--neon); box-shadow:0 0 0 2px rgba(66,230,255,0.45) inset, 0 8px 24px rgba(66,230,255,0.2); }
+.char-card.locked { opacity:0.55; }
+.char-portrait { width:96px; height:96px; object-fit:contain; margin-bottom:6px;
+  filter:drop-shadow(0 6px 10px rgba(0,0,0,0.5)); }
+.char-card .char-name { font-size:19px; font-weight:800; }
+.char-card .char-desc { font-size:12px; color:#9aa8bd; margin:4px 0 8px; min-height:2.4em; }
+.char-stats { display:flex; gap:10px; justify-content:center; margin-bottom:8px; }
+.char-stats .stat { font-size:12.5px; background:rgba(255,255,255,0.06); border-radius:8px; padding:3px 8px; }
+.char-stats .hp b { color:#ff8ba0; } .char-stats .mp b { color:#7cc6ff; }
+.char-skills { display:flex; gap:5px; flex-wrap:wrap; justify-content:center; }
+.char-skills .skill-mini { width:30px; height:30px; border-radius:7px; }
+.char-skills .skill-mini.starting { outline:2px solid #ffe14d; outline-offset:1px; border-radius:8px; }
+.char-lock { margin-top:8px; font-size:13px; color:#8be0ff; font-weight:700; }
 .shop-list { display:flex; flex-direction:column; gap:8px; width:min(560px,94vw); margin:0 auto; }
 .shop-row { display:flex; align-items:center; justify-content:space-between; gap:12px;
   background:rgba(18,24,40,0.85); border:1px solid rgba(120,150,200,0.18); border-radius:10px; padding:10px 14px; }
