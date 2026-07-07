@@ -71,15 +71,17 @@ function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
     const rock = Math.sin(t * 0.3 + ent._ph) * 0.045;           // 걸음 리듬 좌우 갸우뚱(발 피벗)
     const foot = y + r * 1.2;                                   // 접지선을 아래로(뜬 느낌 완화)
     const sw = r * 0.95 * (ent.spriteScale || 1) * (1 - liftK * 0.14);  // 그림자 폭(들리면 살짝 축소)
+    // 그림자·바닥 빛 기준선: 이미지 하단 투명 여백 탓에 foot이 실제 발보다 아래 → 위로 당겨 발에 밀착.
+    const shY = foot - r * 0.24;
     // 접지 반사광: 몸 중심 원형 후광(공중부양 느낌) 대신 발밑에 납작하게 깔리는 빛 웅덩이.
-    const g = ctx.createRadialGradient(x, foot, 0, x, foot, r * 1.7);
+    const g = ctx.createRadialGradient(x, shY, 0, x, shY, r * 1.7);
     g.addColorStop(0, hexA(color, 0.20)); g.addColorStop(1, hexA(color, 0));
-    ctx.save(); ctx.beginPath(); ctx.ellipse(x, foot, r * 1.7, r * 0.55, 0, 0, Math.PI * 2);
+    ctx.save(); ctx.beginPath(); ctx.ellipse(x, shY, r * 1.7, r * 0.55, 0, 0, Math.PI * 2);
     ctx.fillStyle = g; ctx.fill(); ctx.restore();
     // 접지 그림자(부드럽게: 가장자리 페이드 + 약하게)
-    const sg = ctx.createRadialGradient(x, foot, 0, x, foot, sw);
+    const sg = ctx.createRadialGradient(x, shY, 0, x, shY, sw);
     sg.addColorStop(0, 'rgba(0,0,0,0.34)'); sg.addColorStop(1, 'rgba(0,0,0,0)');   // 접촉 그림자 진하게(접지 앵커)
-    ctx.save(); ctx.fillStyle = sg; ctx.beginPath(); ctx.ellipse(x, foot, sw, sw * 0.36, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    ctx.save(); ctx.fillStyle = sg; ctx.beginPath(); ctx.ellipse(x, shY, sw, sw * 0.36, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     // 스프라이트: 발(접지점) 피벗 — 걸음 갸우뚱(rock)·착지 스쿼시/이륙 스트레치로 접지감.
     ctx.save(); ctx.translate(x, foot + bob);
     ctx.rotate(rock);
