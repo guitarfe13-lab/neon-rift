@@ -52,6 +52,19 @@ function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
     const iw = frame ? frame.fw : img.width, ih = frame ? frame.fh : img.height;
     const sc = 4.6 * (ent.spriteScale || 1) * (frame ? frame.scale : 1) * pulse; // 엔티티별 배율(+맥동)
     const w = r * sc, h = w * (ih / iw || 1);
+    // 공중 회전체(spin — 슈터 등): 지상 접지 연출 대신 부유 + 자전 + 옅은 고도 그림자.
+    if (ent.spin) {
+      const gfoot = y + r * 1.2, hover = Math.sin(t * 0.08 + ent._ph) * r * 0.15;
+      const sg2 = ctx.createRadialGradient(x, gfoot, 0, x, gfoot, r * 0.8);
+      sg2.addColorStop(0, 'rgba(0,0,0,0.18)'); sg2.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.save(); ctx.fillStyle = sg2; ctx.beginPath(); ctx.ellipse(x, gfoot, r * 0.8, r * 0.3, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.translate(x, y - r * 0.4 + hover); ctx.rotate(t * 0.06 + ent._ph);
+      if (flash) { ctx.shadowBlur = 24; ctx.shadowColor = flash === true ? '#fff' : flash; }
+      if (frame) ctx.drawImage(img, frame.sx, frame.sy, frame.fw, frame.fh, -w / 2, -h / 2, w, h);
+      else ctx.drawImage(img, -w / 2, -h / 2, w, h);
+      ctx.restore();
+      return;
+    }
     // 걸음 바운스: 위로만 살짝·빠르게 들렸다 매 사이클 '착지'(느린 큰 호=부유, 잦은 작은 스텝=걸음).
     const liftK = Math.abs(Math.sin(t * 0.3 + ent._ph));       // 0(접지)~1(최고점)
     const bob = -liftK * r * 0.045;
@@ -77,9 +90,10 @@ function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
     else ctx.drawImage(img, -wS / 2, -hS, wS, hS);
     ctx.restore();
   } else {
-    // 코드 스프라이트: 위의 공통 맥동 + 네모 몹 회전 추가.
+    // 코드 스프라이트: 위의 공통 맥동 + 네모 몹/공중 회전체(spin) 회전.
     const rr = r * pulse;
-    const rot = (ent.shape === 'square' && ent.hp != null && !ent.boss) ? t * 0.025 + ent._ph : 0;
+    const rot = ent.spin ? t * 0.06 + ent._ph
+      : (ent.shape === 'square' && ent.hp != null && !ent.boss) ? t * 0.025 + ent._ph : 0;
     if (rot) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); drawSprite(ctx, ent.sprite, 0, 0, rr, color, t, angle); ctx.restore(); }
     else drawSprite(ctx, ent.sprite, x, y, rr, color, t, angle);
   }
