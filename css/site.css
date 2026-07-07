@@ -194,5 +194,22 @@ p { color:var(--mut); }
 .sk-badge.hid { color:#ff9cff; border-color:rgba(255,156,255,0.55); }
 .sk-hid-note { color:#ff9cff !important; }
 
+/* ── 테크트리 소개 ── */
+.tt-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
+.tt-card { background:var(--surface); border:1px solid var(--line); border-top:2px solid var(--acc);
+  border-radius:14px; padding:16px 18px; }
+.tt-head { display:flex; align-items:center; gap:9px; }
+.tt-head h3 { margin:0; font-size:17px; color:var(--acc); }
+.tt-desc { margin:8px 0 12px; font-size:13.5px; color:var(--mut); }
+.tt-node { display:flex; align-items:flex-start; gap:10px; padding:9px 0; border-top:1px dashed rgba(120,150,200,0.18); }
+.tt-lv { flex:none; font-size:11px; font-weight:800; color:#08111e; background:var(--acc);
+  border-radius:7px; padding:2px 7px; margin-top:2px; }
+.tt-node.entry b { color:var(--ink); font-size:14px; margin-right:8px; }
+.tt-fx { color:#8fa2be; font-size:12.5px; margin-left:6px; }
+.tt-tag { margin-left:auto; font-size:11px; color:#ffe14d; }
+.tt-opts { display:flex; flex-direction:column; gap:4px; flex:1; }
+.tt-opt b { color:var(--ink); font-size:13.5px; }
+.tt-or { font-size:11px; color:#66748c; padding-left:2px; }
+
 @media (max-width:600px){ section { padding:40px 0; } .nav .links a { font-size:13px; } }
 @media (prefers-reduced-motion: reduce){ html { scroll-behavior:auto; } .btn:hover, .game-card:hover { transform:none; } }
