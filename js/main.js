@@ -454,7 +454,12 @@ export function boot() {
   // 상태별 BGM: 런 중엔 바이옴별(track1~3), 보스전엔 track5, 그 외(메뉴)엔 track4.
   function updateBgm() {
     let want = 'track4.mp3';
-    if (scene==='run' && world && dir) want = dir.getBossRef() ? 'boss.mp3' : `track${(dir.biomeIndex()%3)+1}.mp3`;
+    // 보스전 BGM: 보스 종류별 트랙(감시자=boss1, 히드라=boss2, 콜로서스=boss3)
+    const BOSS_BGM = { warden:'boss1.mp3', hydra:'boss2.mp3', colossus:'boss3.mp3' };
+    if (scene==='run' && world && dir) {
+      const bref = dir.getBossRef();
+      want = bref ? (BOSS_BGM[bref.id] || 'boss1.mp3') : `track${(dir.biomeIndex()%3)+1}.mp3`;
+    }
     audio.setBgm(want);
   }
 
