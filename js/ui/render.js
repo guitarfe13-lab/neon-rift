@@ -114,6 +114,27 @@ export function wispOrb(ctx, x, y, t, r, color) {
     ctx.beginPath(); ctx.arc(Math.cos(sa + off) * r * 1.35, Math.sin(sa + off) * r * 1.35, r * 0.16, 0, Math.PI * 2); ctx.fill(); }
   ctx.restore();
 }
+// 화살 투사체: 가는 샤프트 + 삼각 화살촉 + 꼬리 깃(fletching).
+export function arrow(ctx, x, y, ang, r, color) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+  const L = r * 4.2, W = r * 0.9;
+  ctx.shadowBlur = 10; ctx.shadowColor = color;
+  // 샤프트
+  ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.6, r * 0.32); ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(L * 0.34, 0); ctx.lineTo(-L * 0.52, 0); ctx.stroke();
+  // 화살촉
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.moveTo(L * 0.62, 0); ctx.lineTo(L * 0.26, W * 0.55); ctx.lineTo(L * 0.26, -W * 0.55); ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0; ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.moveTo(L * 0.62, 0); ctx.lineTo(L * 0.38, W * 0.26); ctx.lineTo(L * 0.38, -W * 0.26); ctx.closePath(); ctx.fill();  // 촉 하이라이트
+  // 꼬리 깃(2쌍 사선)
+  ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.4, r * 0.26);
+  for (const s of [-1, 1]) {
+    ctx.beginPath(); ctx.moveTo(-L * 0.52, 0); ctx.lineTo(-L * 0.66, W * 0.5 * s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-L * 0.40, 0); ctx.lineTo(-L * 0.54, W * 0.5 * s); ctx.stroke();
+  }
+  ctx.restore();
+}
 // 네온 선분(빔 등). 방향을 가진 직선 형태로 그린다.
 export function neonLine(ctx, x1, y1, x2, y2, width, color) {
   ctx.save(); ctx.shadowBlur = 14; ctx.shadowColor = color; ctx.strokeStyle = color;

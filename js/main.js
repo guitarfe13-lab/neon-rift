@@ -468,6 +468,8 @@ export function boot() {
             R.neonLine(ctx, ax,ay,bx,by, Math.max(1.6, p.radius*0.4), '#ffffff'); } }                                        // 코어
         else if (p.pshape === 'lance' && (p.vx || p.vy))   // 창 계열: 진행 방향 뾰족한 창촉
           R.lance(ctx, p.x-camX, p.y-camY, Math.atan2(p.vy, p.vx), p.radius, p.color||'#a9e8ff');
+        else if (p.pshape === 'arrow' && (p.vx || p.vy))   // 화살 계열: 샤프트+촉+깃
+          R.arrow(ctx, p.x-camX, p.y-camY, Math.atan2(p.vy, p.vx), p.radius, p.color||'#c98bff');
         // 궤도/드론 스킬: 이름에 맞는 전용 모양
         else if (p.pshape === 'blade')   R.bladeOrb(ctx, p.x-camX, p.y-camY, (p.oa||0) + Math.PI/2, p.radius, p.color);        // 회전 검(궤도 접선 방향)
         else if (p.pshape === 'saw')     R.sawOrb(ctx, p.x-camX, p.y-camY, frameCount*0.45, p.radius, p.color);                 // 톱날(고속 자전)

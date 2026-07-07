@@ -20,7 +20,7 @@ export const SKILLS = {
   twin_shot: { id:'twin_shot', name:'쌍발 사격', type:'projectile', tags:['physical'], color:'#8ff0ff', mpCost:0,
     base:{ damage:7, count:2, speed:7.5, cooldown:40, pierce:0 },
     scale:{ damage:+4, count:[2,2,3,3,4], cooldown:-3 }, maxLevel:8 },
-  arcane_bolt: { id:'arcane_bolt', name:'비전 화살', type:'projectile', tags:['arcane'], color:'#c98bff', mpCost:3,
+  arcane_bolt: { id:'arcane_bolt', name:'비전 화살', type:'projectile', tags:['arcane'], color:'#c98bff', mpCost:3, proj:'arrow',
     base:{ damage:10, count:1, speed:8, cooldown:44, pierce:1 },
     scale:{ damage:+5, count:[1,1,1,2,2,3], cooldown:-3 }, maxLevel:8,
     evolveInto:'arcane_storm', evolveReq:{ passive:'haste', level:8 } },
@@ -88,7 +88,7 @@ export const SKILLS = {
   // ── 진화(강화판) ──
   blade_storm: { id:'blade_storm', name:'폭풍검(진화)', type:'projectile', tags:['physical'], color:'#8ffcff', mpCost:0,
     base:{ damage:20, count:5, speed:8, cooldown:32, pierce:2 }, scale:{ damage:+9 }, maxLevel:5 },
-  arcane_storm: { id:'arcane_storm', name:'비전 폭풍(진화)', type:'projectile', tags:['arcane'], color:'#e0a0ff', mpCost:9,
+  arcane_storm: { id:'arcane_storm', name:'비전 폭풍(진화)', type:'projectile', tags:['arcane'], color:'#e0a0ff', mpCost:9, proj:'arrow',
     base:{ damage:24, count:4, speed:9, cooldown:34, pierce:3 }, scale:{ damage:+11 }, maxLevel:5 },
   prism_beam: { id:'prism_beam', name:'프리즘 빔(진화)', type:'beam', tags:['arcane'], color:'#bff8ff', mpCost:8,
     base:{ damage:30, speed:18, cooldown:40, pierce:99 }, scale:{ damage:+14 }, maxLevel:5 },
