@@ -3,7 +3,7 @@
 //  orbital: damage, count
 //  aura: damage, radius, cooldown(=피해 간격)
 //  chain: damage, count, cooldown
-// mpCost: 발사(또는 오라 틱/소환 발사)당 MP 소모. 물리 스킬은 0.
+// mpCost: 발사(또는 오라 틱/소환 발사)당 MP 소모. 기본 타격·궤도(지속체)만 0, 물리도 소량 소모.
 // scale: +n(레벨당 가산) 또는 [배열](레벨 인덱스). evolveInto/evolveReq로 진화.
 export const SKILLS = {
   // ── 투사체 ──
@@ -12,19 +12,19 @@ export const SKILLS = {
     base:{ damage:10, count:1, speed:10, cooldown:22, pierce:0, life:40 },
     scale:{ damage:+5, count:[1,1,1,2,2,3], cooldown:-2 }, maxLevel:8 },
   // 검기 투사: 기본 타격 3레벨 달성 후 해금.
-  blade_orbit: { id:'blade_orbit', name:'검기 투사', type:'projectile', tags:['physical'], color:'#42e6ff', mpCost:0,
+  blade_orbit: { id:'blade_orbit', name:'검기 투사', type:'projectile', tags:['physical'], color:'#42e6ff', mpCost:1,
     base:{ damage:8, count:1, speed:7, cooldown:36, pierce:0 },
     scale:{ damage:+4, count:[1,1,2,2,3], cooldown:-3 }, maxLevel:8,
     requires:{ skill:'strike', level:3 },
     evolveInto:'blade_storm', evolveReq:{ passive:'power', level:8 } },
-  twin_shot: { id:'twin_shot', name:'쌍발 사격', type:'projectile', tags:['physical'], color:'#8ff0ff', mpCost:0,
+  twin_shot: { id:'twin_shot', name:'쌍발 사격', type:'projectile', tags:['physical'], color:'#8ff0ff', mpCost:1,
     base:{ damage:7, count:2, speed:7.5, cooldown:40, pierce:0 },
     scale:{ damage:+4, count:[2,2,3,3,4], cooldown:-3 }, maxLevel:8 },
   arcane_bolt: { id:'arcane_bolt', name:'비전 화살', type:'projectile', tags:['arcane'], color:'#c98bff', mpCost:3, proj:'arrow',
     base:{ damage:10, count:1, speed:8, cooldown:44, pierce:1 },
     scale:{ damage:+5, count:[1,1,1,2,2,3], cooldown:-3 }, maxLevel:8,
     evolveInto:'arcane_storm', evolveReq:{ passive:'haste', level:8 } },
-  spread_shot: { id:'spread_shot', name:'산탄', type:'projectile', tags:['physical'], color:'#ffd166', mpCost:0,
+  spread_shot: { id:'spread_shot', name:'산탄', type:'projectile', tags:['physical'], color:'#ffd166', mpCost:1,
     base:{ damage:6, count:3, speed:6.5, cooldown:52, pierce:0 },
     scale:{ damage:+3, count:[3,3,4,5,6], cooldown:-4 }, maxLevel:8 },
   fireball: { id:'fireball', name:'화염구', type:'projectile', tags:['fire'], color:'#ff6a3d', mpCost:7,
@@ -46,7 +46,7 @@ export const SKILLS = {
     base:{ damage:12, speed:16, cooldown:40, pierce:99 },
     scale:{ damage:+6, cooldown:-3 }, maxLevel:8,
     evolveInto:'prism_beam', evolveReq:{ passive:'power', level:8 } },
-  rail: { id:'rail', name:'레일건', type:'beam', tags:['physical'], color:'#a0f0ff', mpCost:0, proj:'rail',
+  rail: { id:'rail', name:'레일건', type:'beam', tags:['physical'], color:'#a0f0ff', mpCost:3, proj:'rail',
     base:{ damage:26, speed:22, cooldown:98, pierce:99 },
     scale:{ damage:+12, cooldown:-6 }, maxLevel:8 },
 
@@ -68,7 +68,7 @@ export const SKILLS = {
     base:{ damage:18, radius:70, cooldown:96 }, scale:{ damage:+8, radius:+9 }, maxLevel:8 },
   venom_cloud: { id:'venom_cloud', name:'맹독 구름', type:'aura', tags:['poison'], color:'#9cff8b', mpCost:3,
     base:{ damage:8, radius:84, cooldown:60 }, scale:{ damage:+4, radius:+7 }, maxLevel:8 },
-  quake: { id:'quake', name:'대지 진동', type:'aura', tags:['physical'], color:'#d9b38c', mpCost:0,
+  quake: { id:'quake', name:'대지 진동', type:'aura', tags:['physical'], color:'#d9b38c', mpCost:4,
     base:{ damage:22, radius:96, cooldown:120 }, scale:{ damage:+9, radius:+8 }, maxLevel:8,
     requires:{ skill:'strike', level:5 } },
 
@@ -80,13 +80,13 @@ export const SKILLS = {
     base:{ damage:14, count:2, cooldown:86 }, scale:{ damage:+7, count:[2,2,3,3,4], cooldown:-5 }, maxLevel:8 },
 
   // ── 소환(발사당 MP) ──
-  turret: { id:'turret', name:'포탑 드론', type:'summon', tags:['physical'], color:'#8effc7', mpCost:0, proj:'turret',
+  turret: { id:'turret', name:'포탑 드론', type:'summon', tags:['physical'], color:'#8effc7', mpCost:1, proj:'turret',
     base:{ damage:7, speed:9, cooldown:30, pierce:0 }, scale:{ damage:+4, cooldown:-2 }, maxLevel:8 },
   spirit: { id:'spirit', name:'정령 드론', type:'summon', tags:['arcane'], color:'#8be0ff', mpCost:3, proj:'wisp',
     base:{ damage:9, speed:10, cooldown:44, pierce:1 }, scale:{ damage:+5, cooldown:-3 }, maxLevel:8 },
 
   // ── 진화(강화판) ──
-  blade_storm: { id:'blade_storm', name:'폭풍검(진화)', type:'projectile', tags:['physical'], color:'#8ffcff', mpCost:0,
+  blade_storm: { id:'blade_storm', name:'폭풍검(진화)', type:'projectile', tags:['physical'], color:'#8ffcff', mpCost:2,
     base:{ damage:20, count:5, speed:8, cooldown:32, pierce:2 }, scale:{ damage:+9 }, maxLevel:5 },
   arcane_storm: { id:'arcane_storm', name:'비전 폭풍(진화)', type:'projectile', tags:['arcane'], color:'#e0a0ff', mpCost:9, proj:'arrow',
     base:{ damage:24, count:4, speed:9, cooldown:34, pierce:3 }, scale:{ damage:+11 }, maxLevel:5 },
