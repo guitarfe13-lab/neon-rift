@@ -65,8 +65,19 @@ export function drawHud(ctx, rs, world, frame = 0, souls = 0) {
   text(ctx, c(souls), 32 + iw, 74, { size:13, color:'#bfe6ff' });
   // 물약: 좌측 세로 정렬(HP 위 / MP 아래) + 보유 개수
   const po = rs.potions || { hp:0, mp:0 };
-  drawPotion(ctx, 18, 80, 15, 22, '#ff4d6d');  text(ctx, `×${po.hp}`, 40, 96,  { size:14, weight:'800', color:'#ffb3c0' });
-  drawPotion(ctx, 18, 108, 15, 22, '#4db3ff'); text(ctx, `×${po.mp}`, 40, 124, { size:14, weight:'800', color:'#a9d8ff' });
+  const cd = rs.potCd || { hp: 0, mp: 0 };
+  const potionRow = (x, y, w, h, color, cnt, cntColor, cdLeft) => {
+    drawPotion(ctx, x, y, w, h, color);
+    if (cdLeft > 0) {   // 쿨타임 중: 병 어둡게 + 남은 초(스킬 쿨처럼)
+      ctx.save(); ctx.fillStyle = 'rgba(6,8,16,0.68)'; ctx.fillRect(x - 2, y - 1, w + 4, h + 3);
+      ctx.font = '800 11px system-ui'; ctx.textAlign = 'center';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.strokeText(`${Math.ceil(cdLeft / 60)}`, x + w / 2, y + h * 0.68);
+      ctx.fillStyle = '#eaf2ff'; ctx.fillText(`${Math.ceil(cdLeft / 60)}`, x + w / 2, y + h * 0.68); ctx.restore();
+    }
+    text(ctx, `×${cnt}`, x + 22, y + 16, { size: 14, weight: '800', color: cntColor });
+  };
+  potionRow(18, 80, 15, 22, '#ff4d6d', po.hp, '#ffb3c0', cd.hp);
+  potionRow(18, 108, 15, 22, '#4db3ff', po.mp, '#a9d8ff', cd.mp);
   // 신성의 맹세(부활 유물) 보유 표시
   if (rs.oaths > 0) text(ctx, `✝ ×${rs.oaths}`, 18, 148, { size:15, weight:'800', color:'#ffe58a' });
 }
