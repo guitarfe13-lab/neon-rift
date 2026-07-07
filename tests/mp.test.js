@@ -22,10 +22,17 @@ test('MP가 부족하면 마법 스킬은 발사되지 않음', () => {
   for (let i=0;i<80;i++) updateSkills(w, r, makeRng('m'), {}, ()=>{}, ()=>{});
   assert.equal(w.projectiles.length, 0);
 });
-test('물리 스킬은 MP 0이어도 발사', () => {
+test('기본 타격(무료 스킬)은 MP 0이어도 발사', () => {
+  const w = createWorld(); w.player.x=0; w.player.y=0; enemy(w);
+  const r = { charId:'blade', ownedSkills:{ strike:1 }, passives:{}, mp:0,
+    stats:{ damage:12, atkSpeed:1, area:1, projectiles:1, crit:0, critMult:2 } };
+  for (let i=0;i<80;i++) updateSkills(w, r, makeRng('b'), {}, ()=>{}, ()=>{});
+  assert.ok(w.projectiles.some(p=>!p.orbit));
+});
+test('검사 물리 스킬도 소량 MP 소모(검기 투사, MP 0이면 발사 보류)', () => {
   const w = createWorld(); w.player.x=0; w.player.y=0; enemy(w);
   const r = { charId:'blade', ownedSkills:{ blade_orbit:1 }, passives:{}, mp:0,
     stats:{ damage:12, atkSpeed:1, area:1, projectiles:1, crit:0, critMult:2 } };
   for (let i=0;i<80;i++) updateSkills(w, r, makeRng('b'), {}, ()=>{}, ()=>{});
-  assert.ok(w.projectiles.some(p=>!p.orbit));
+  assert.equal(w.projectiles.filter(p=>!p.orbit).length, 0);
 });
