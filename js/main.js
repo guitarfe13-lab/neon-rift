@@ -321,7 +321,7 @@ export function boot() {
     for (const f of world.floaters){ if(!f.alive)continue; f.y+=f.vy; if(--f.life<=0) f.alive=false; }
     // 물약 자동 사용(옵션 ON): HP 25% 이하 / MP 20% 이하일 때 보유분을 자동 소비.
     // 종류별 30초 쿨타임(스킬처럼) — 연속 벌컥벌컥 방지, HUD에 남은 시간 표시.
-    const POTION_CD = 1800;   // 30s(60fps)
+    const POTION_CD = 1200;   // 20s(60fps)
     if (rs.potCd.hp > 0) rs.potCd.hp--;
     if (rs.potCd.mp > 0) rs.potCd.mp--;
     if (autoPotion && rs.potCd.hp <= 0 && rs.potions.hp > 0 && world.player.hp <= world.player.maxHp*0.25) {
