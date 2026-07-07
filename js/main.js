@@ -550,6 +550,19 @@ export function boot() {
       // 플레이어(피격 무적 중 깜빡임)
       if (!(world.player.invuln>0 && frameCount%6<3))
         drawEntity(ctx, ch, world.player.x-camX, world.player.y-camY, world.player.radius, ch.color, frameCount, world.player.face||0, false, world.player);
+      // 전직(테크트리) 뱃지: 캐릭터 머리 위에 계열명 표시
+      if (rs.techTreeName) {
+        const label = `✦ ${rs.techTreeName}`, col = rs.techTreeColor || '#ffe14d';
+        const bx = world.player.x-camX, by = world.player.y-camY - world.player.radius*3.9;
+        ctx.save(); ctx.font = '800 11px system-ui';
+        const bw2 = ctx.measureText(label).width + 20, bh2 = 18;
+        ctx.shadowColor = col; ctx.shadowBlur = 10;
+        ctx.fillStyle = 'rgba(8,10,20,0.85)'; ctx.strokeStyle = col; ctx.lineWidth = 1.5;
+        roundRect(ctx, bx-bw2/2, by-bh2, bw2, bh2, 9); ctx.fill(); ctx.stroke();
+        ctx.shadowBlur = 0; ctx.textAlign = 'center'; ctx.fillStyle = col;
+        ctx.fillText(label, bx, by-5);
+        ctx.restore();
+      }
       for (const f of world.floaters) if (f.alive && inView(f.x, f.y, 60)) {
         const age = f.max ? (f.max - f.life)/f.max : 0;
         const size = (f.crit?28:13) * Math.max(1, 1.5 - 0.5*Math.min(1, age*2.5));  // 초반 팝(크리 크게)
