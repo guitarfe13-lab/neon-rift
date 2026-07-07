@@ -20,7 +20,7 @@ export const GAMES = [
     detail: '/neon-rift.html',
     play: '/play.html',
     guide: '/guide.html',
-    youtube: '',                       // 예: 'dQw4w9WgXcQ'
+    youtube: 'DAxKArd6h-Q',            // 게임플레이 영상
     thumb: 'assets/thumbs/neon-rift.png',
     tags: ['로그라이크', '방치형', '액션'],
   },
