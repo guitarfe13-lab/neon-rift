@@ -56,10 +56,11 @@ function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
     const bob = -liftK * r * 0.06;
     const foot = y + r * 1.2;                                   // 접지선을 아래로(뜬 느낌 완화)
     const sw = r * 1.05 * (ent.spriteScale || 1) * (1 - liftK * 0.14);  // 그림자 폭(들리면 살짝 축소)
-    // 뒤 네온 글로우(엔티티 색)
-    const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2.3);
-    g.addColorStop(0, hexA(color, 0.30)); g.addColorStop(1, hexA(color, 0));
-    ctx.save(); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 2.3, 0, 7); ctx.fill(); ctx.restore();
+    // 접지 반사광: 몸 중심 원형 후광(공중부양 느낌) 대신 발밑에 납작하게 깔리는 빛 웅덩이.
+    const g = ctx.createRadialGradient(x, foot, 0, x, foot, r * 1.7);
+    g.addColorStop(0, hexA(color, 0.20)); g.addColorStop(1, hexA(color, 0));
+    ctx.save(); ctx.beginPath(); ctx.ellipse(x, foot, r * 1.7, r * 0.55, 0, 0, Math.PI * 2);
+    ctx.fillStyle = g; ctx.fill(); ctx.restore();
     // 접지 그림자(부드럽게: 가장자리 페이드 + 약하게)
     const sg = ctx.createRadialGradient(x, foot, 0, x, foot, sw);
     sg.addColorStop(0, 'rgba(0,0,0,0.22)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
