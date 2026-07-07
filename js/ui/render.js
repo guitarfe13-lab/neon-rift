@@ -114,6 +114,18 @@ export function wispOrb(ctx, x, y, t, r, color) {
     ctx.beginPath(); ctx.arc(Math.cos(sa + off) * r * 1.35, Math.sin(sa + off) * r * 1.35, r * 0.16, 0, Math.PI * 2); ctx.fill(); }
   ctx.restore();
 }
+// 검기(참격파): 진행 방향으로 볼록한 초승달 궤적 + 흰 날 선.
+export function slash(ctx, x, y, ang, r, color) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+  const R2 = r * 2.1, span = 1.15;   // 호 반지름·펼침 각
+  ctx.shadowBlur = 12; ctx.shadowColor = color;
+  ctx.strokeStyle = color; ctx.lineCap = 'round';
+  ctx.lineWidth = r * 0.9;
+  ctx.beginPath(); ctx.arc(-R2 * 0.55, 0, R2, -span, span); ctx.stroke();          // 본체 호(앞으로 볼록)
+  ctx.shadowBlur = 0; ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(1.4, r * 0.3);
+  ctx.beginPath(); ctx.arc(-R2 * 0.55, 0, R2 + r * 0.25, -span * 0.82, span * 0.82); ctx.stroke();  // 흰 날
+  ctx.restore();
+}
 // 화살 투사체: 가는 샤프트 + 삼각 화살촉 + 꼬리 깃(fletching).
 export function arrow(ctx, x, y, ang, r, color) {
   ctx.save(); ctx.translate(x, y); ctx.rotate(ang);

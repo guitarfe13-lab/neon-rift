@@ -65,11 +65,14 @@ function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
     else ctx.drawImage(img, -w / 2, foot - h, w, h);
     ctx.restore();
   } else {
-    // 동적 시인성: 네모 몹=회전+맥동, 중간보스(악시온)=맥동. 개체별 위상차로 동기화 방지.
+    // 동적 시인성: 일반 몹=이동 맥동, 네모 몹=회전 추가, 중간보스(악시온)=큰 맥동. 개체별 위상차로 동기화 방지.
     if (ent._ph === undefined) ent._ph = Math.random() * 6.283;
     let rr = r, rot = 0;
     if (ent.miniboss) rr = r * (1 + 0.09 * Math.sin(t * 0.07 + ent._ph));                       // 살짝 줄었다 커졌다
-    else if (ent.shape === 'square' && !ent.boss) { rr = r * (1 + 0.06 * Math.sin(t * 0.09 + ent._ph)); rot = t * 0.025 + ent._ph; } // 회전 + 맥동
+    else if (ent.hp != null && !ent.boss) {                                                     // 일반 몹(플레이어 제외)
+      rr = r * (1 + 0.05 * Math.sin(t * 0.1 + ent._ph));                                        // 이동 맥동
+      if (ent.shape === 'square') rot = t * 0.025 + ent._ph;                                    // 네모: 회전 추가
+    }
     if (rot) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); drawSprite(ctx, ent.sprite, 0, 0, rr, color, t, angle); ctx.restore(); }
     else drawSprite(ctx, ent.sprite, x, y, rr, color, t, angle);
   }
@@ -129,6 +132,7 @@ export function boot() {
     rs.potions = { hp: meta.potions?.hp || 0, mp: meta.potions?.mp || 0 };  // 상점 구매분 반입
     rs.potCd = { hp: 0, mp: 0 };                                            // 물약 쿨타임(30s, 스킬처럼)
     rs.oaths = meta.relics?.oath || 0;                                      // 신성의 맹세(부활) 반입
+    rs.projShape = ch.projShape || null;                                    // 직업 기본 투사체 모양(궁수=화살, 검사=검기)
     dir = makeDirector(rng, BIOMES);
     sstate = {}; scene = 'run'; overlay = null;
     announce = null; lastBoss = null;
@@ -470,6 +474,8 @@ export function boot() {
           R.lance(ctx, p.x-camX, p.y-camY, Math.atan2(p.vy, p.vx), p.radius, p.color||'#a9e8ff');
         else if (p.pshape === 'arrow' && (p.vx || p.vy))   // 화살 계열: 샤프트+촉+깃
           R.arrow(ctx, p.x-camX, p.y-camY, Math.atan2(p.vy, p.vx), p.radius, p.color||'#c98bff');
+        else if (p.pshape === 'slash' && (p.vx || p.vy))   // 검기: 초승달 참격파
+          R.slash(ctx, p.x-camX, p.y-camY, Math.atan2(p.vy, p.vx), p.radius, p.color||'#42e6ff');
         // 궤도/드론 스킬: 이름에 맞는 전용 모양
         else if (p.pshape === 'blade')   R.bladeOrb(ctx, p.x-camX, p.y-camY, (p.oa||0) + Math.PI/2, p.radius, p.color);        // 회전 검(궤도 접선 방향)
         else if (p.pshape === 'saw')     R.sawOrb(ctx, p.x-camX, p.y-camY, frameCount*0.45, p.radius, p.color);                 // 톱날(고속 자전)

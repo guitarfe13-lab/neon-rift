@@ -39,7 +39,7 @@ const RUNTIME = {
     for (let i=0;i<count;i++){ const a = base + (i-(count-1)/2)*0.18;
       world.spawnProjectile({ x:p.x, y:p.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,
         radius:5, dmg:rt.damage, pierce:rt.pierce||0, life:rt.life||120, crit:Math.random()<(rs.stats.crit||0),
-        color: skill.color||'#ffe14d', element: el, pshape: skill.proj }); }   // proj:'lance' → 창촉 렌더
+        color: skill.color||'#ffe14d', element: el, pshape: rs.projShape || skill.proj }); }   // 직업 모양 우선(궁수=화살, 검사=검기) → 스킬 고유(proj)
     FX.spawnMuzzle(world, p.x, p.y, skill.color, el);
     if (onFire) onFire();
   },
