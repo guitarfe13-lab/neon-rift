@@ -72,8 +72,8 @@ function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
     const foot = y + r * 1.2;                                   // 접지선을 아래로(뜬 느낌 완화)
     const sw = r * 0.95 * (ent.spriteScale || 1) * (1 - liftK * 0.14);  // 그림자 폭(들리면 살짝 축소)
     // 그림자·바닥 빛 기준선: 이미지 하단 투명 여백 탓에 foot이 실제 발보다 아래 → 위로 당겨 발에 밀착.
-    // 기본 0.4r, 이미지 여백이 다른 몬스터는 데이터 shadowOff(r 배수)로 개별 보정.
-    const shY = foot - r * (ent.shadowOff ?? 0.4);
+    // 기본 0.6r, 이미지 여백이 다른 몬스터는 데이터 shadowOff(r 배수)로 개별 보정.
+    const shY = foot - r * (ent.shadowOff ?? 0.6);
     // 접지 반사광: 몸 중심 원형 후광(공중부양 느낌) 대신 발밑에 납작하게 깔리는 빛 웅덩이.
     const g = ctx.createRadialGradient(x, shY, 0, x, shY, r * 1.7);
     g.addColorStop(0, hexA(color, 0.20)); g.addColorStop(1, hexA(color, 0));
