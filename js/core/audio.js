@@ -110,5 +110,13 @@ export function makeAudio(settings) {
     resume() { const c = ensure(); if (c && c.state === 'suspended') c.resume(); applyBgm(); },
     setBgm,
     stopBgm,
+    // 녹화용: 마스터 출력(BGM+SFX)을 MediaStream으로 — 캔버스 영상 녹화에 오디오 트랙 병합.
+    captureStream() {
+      const c = ensure(); if (!c) return null;
+      if (c.state === 'suspended') c.resume();
+      const dest = c.createMediaStreamDestination();
+      master.connect(dest);
+      return dest.stream;
+    },
   };
 }
