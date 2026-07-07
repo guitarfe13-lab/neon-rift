@@ -1,5 +1,43 @@
 # 스테이지 배경 생성 스크립트
 
+## 📋 일괄 생성 4종 — 복사용 프롬프트 모음
+
+아래 4개를 순서대로 생성해 `assets/bg/`에 저장하면 끝. 모두 **1024×1024 정사각 PNG**,
+**네 변 이음매 연결(특히 위↔아래)** 필수. Stable Diffusion이면 **tiling 옵션 ON**.
+
+**공통 네거티브(4종 모두):**
+```
+visible seam, misaligned edges, duplicated overlapping shapes at borders, horizon, sky, walls, perspective, 3d depth, vignette, strong highlights, centered emblem, single large object, borders, frame, text, watermark
+```
+
+### ① `toxic_rift.png` — 맹독 균열
+```
+seamless tileable texture, PERFECT vertical tiling: the TOP edge must continue exactly into the BOTTOM edge with no visible seam or overlapping shapes, also tiles left-to-right, top-down orthographic game ground texture, dark muted low-contrast background, uniform flat lighting, no vignette, no focal point, evenly distributed pattern, no large objects crossing the edges, no text --
+toxic rift floor: very dark green-black corroded ground (#0c1a10), thin glowing toxic green cracks and veins (#78ff8c) spreading evenly across the whole tile, a few small acid puddles and faint spore stains, subtle rocky grain, poisonous sci-fi mood, neon roguelike game background, 1024x1024
+```
+
+### ② `frost_core.png` — 서리 코어
+```
+seamless tileable texture, PERFECT vertical tiling: the TOP edge must continue exactly into the BOTTOM edge with no visible seam or overlapping shapes, also tiles left-to-right, top-down orthographic game ground texture, dark muted low-contrast background, uniform flat lighting, no vignette, no focal point, evenly distributed pattern, no large objects crossing the edges, no text --
+frozen data-core floor: deep navy blue ice sheet (#0d1a2c), faint cyan circuit veins (#8bd8ff) glowing dimly beneath translucent ice, thin frost patterns and hairline cracks spread evenly, subtle hexagonal panel seams, cold sci-fi atmosphere, neon roguelike game background, 1024x1024
+```
+
+### ③ `violet_abyss.png` — 보랏빛 심연
+```
+seamless tileable texture, PERFECT vertical tiling: the TOP edge must continue exactly into the BOTTOM edge with no visible seam or overlapping shapes, also tiles left-to-right, top-down orthographic game ground texture, dark muted low-contrast background, uniform flat lighting, no vignette, no focal point, evenly distributed pattern, no large objects crossing the edges, no text --
+void abyss floor: dark violet obsidian glassy stone (#150c24), scattered small worn arcane glyphs and rune fragments etched into the surface glowing faint magenta (#c98bff), very subtle nebula sheen, thin cracks, mysterious occult sci-fi mood, neon roguelike game background, 1024x1024
+```
+
+### ④ `aurum_circuit.png` — 황금 회로
+```
+seamless tileable texture, PERFECT vertical tiling: the TOP edge must continue exactly into the BOTTOM edge with no visible seam or overlapping shapes, also tiles left-to-right, top-down orthographic game ground texture, dark muted low-contrast background, uniform flat lighting, no vignette, no focal point, evenly distributed pattern, no large objects crossing the edges, no text --
+golden circuit board floor: near-black dark bronze PCB surface (#191307), thin gold circuit traces (#ffd166) branching evenly across the whole tile, subtle hexagonal armor plate seams, tiny warm amber glow dots as micro LEDs, luxurious dangerous final-zone mood, neon roguelike game background, 1024x1024
+```
+
+**검증(4종 공통):** Offset 필터 X·Y 각각 +512 → 십자 이음매 보이면 실패 → 재생성/보정.
+
+---
+
 ## 🔁 재생성: `toxic_rift.png` — 맹독 균열 (스테이지 2)
 
 > 기존 이미지는 **위↔아래 반복 시 그래픽이 겹치는 이음매 오류**가 있어 재생성합니다.
