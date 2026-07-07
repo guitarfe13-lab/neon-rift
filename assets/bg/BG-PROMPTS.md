@@ -1,4 +1,33 @@
-# 스테이지 배경 생성 스크립트 (신규 3종)
+# 스테이지 배경 생성 스크립트
+
+## 🔁 재생성: `toxic_rift.png` — 맹독 균열 (스테이지 2)
+
+> 기존 이미지는 **위↔아래 반복 시 그래픽이 겹치는 이음매 오류**가 있어 재생성합니다.
+> 이번엔 특히 **세로(상하) 이음매**가 완벽해야 합니다 — 아래 프롬프트에 그 요구를 강하게 넣었습니다.
+
+**컨셉(한국어):** 독에 침식된 균열 지대의 바닥. 아주 어두운 녹색·검정 부식토 위로
+**독성 초록 균열(맥)** 이 은은하게 발광하며 전면에 고르게 퍼져 있다. 작은 산성 웅덩이와
+포자 얼룩이 드문드문. 큰 오브젝트·중앙 문양 없음. 포인트 색 `#78ff8c`, 바탕 `#0c1a10` 부근.
+
+**프롬프트(복사용):**
+```
+seamless tileable texture, PERFECT vertical tiling: the TOP edge must continue exactly into the BOTTOM edge with no visible seam or overlapping shapes, also tiles left-to-right, top-down orthographic game ground texture, dark muted low-contrast background, uniform flat lighting, no vignette, no focal point, evenly distributed pattern, no large objects crossing the edges, no text --
+toxic rift floor: very dark green-black corroded ground (#0c1a10), thin glowing toxic green cracks and veins (#78ff8c) spreading evenly across the whole tile, a few small acid puddles and faint spore stains, subtle rocky grain, poisonous sci-fi mood, neon roguelike game background, 1024x1024
+```
+
+**네거티브 프롬프트:**
+```
+visible seam, misaligned edges, duplicated overlapping shapes at borders, horizon, sky, walls, perspective, 3d depth, vignette, strong highlights, centered emblem, single large object, borders, frame, text, watermark
+```
+
+**생성 후 검증(필수):** 포토샵/김프 **Offset 필터로 Y를 +512(이미지 절반)** 밀어보세요.
+가로 방향 가운데에 띠(이음매)가 보이면 실패 → 도장 툴로 메꾸거나 재생성.
+Stable Diffusion이라면 **tiling 옵션을 켜는 것**이 가장 확실합니다.
+완성본을 `assets/bg/toxic_rift.png`로 덮어쓰면 즉시 적용(새로고침).
+
+---
+
+# 신규 3종 (스테이지 4~6)
 
 AI 이미지 생성기(미드저니/DALL·E/Stable Diffusion 등)에 붙여넣을 프롬프트입니다.
 생성 후 아래 파일명 그대로 `assets/bg/`에 넣으면 즉시 적용됩니다(새로고침).
