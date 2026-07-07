@@ -65,7 +65,13 @@ function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
     else ctx.drawImage(img, -w / 2, foot - h, w, h);
     ctx.restore();
   } else {
-    drawSprite(ctx, ent.sprite, x, y, r, color, t, angle);
+    // 동적 시인성: 네모 몹=회전+맥동, 중간보스(악시온)=맥동. 개체별 위상차로 동기화 방지.
+    if (ent._ph === undefined) ent._ph = Math.random() * 6.283;
+    let rr = r, rot = 0;
+    if (ent.miniboss) rr = r * (1 + 0.09 * Math.sin(t * 0.07 + ent._ph));                       // 살짝 줄었다 커졌다
+    else if (ent.shape === 'square' && !ent.boss) { rr = r * (1 + 0.06 * Math.sin(t * 0.09 + ent._ph)); rot = t * 0.025 + ent._ph; } // 회전 + 맥동
+    if (rot) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); drawSprite(ctx, ent.sprite, 0, 0, rr, color, t, angle); ctx.restore(); }
+    else drawSprite(ctx, ent.sprite, x, y, rr, color, t, angle);
   }
 }
 
