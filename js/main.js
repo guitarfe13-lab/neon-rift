@@ -430,15 +430,16 @@ export function boot() {
         // 보스 빈사(HP 20% 이하): 붉은색 점멸(본체 색 + 붉은 글로우)
         const dying = e.boss && e.hp <= e.maxHp*0.2 && (frameCount>>3)%2===0;
         drawEntity(ctx, e, e.x-camX, e.y-camY, e.radius, e.flash>0?'#ffffff':(dying?'#ff2a2a':e.color), frameCount, Math.atan2(world.player.y-e.y, world.player.x-e.x), e.flash>0 ? true : (dying ? '#ff2a2a' : false));
-        // 머리 위 HP 바(피격으로 hp<maxHp일 때, 보스 제외 — 보스는 하단 바)
+        // 머리 위 HP 바(피격으로 hp<maxHp일 때, 보스 제외 — 보스는 하단 바). 중간보스는 몸체에 가깝게.
+        const headOff = e.miniboss ? 1.6 : 2.8;
         if (!e.boss && e.hp < e.maxHp) {
-          const bw = Math.max(22, e.radius*2.2), bh = 4, bx = e.x-camX-bw/2, by = e.y-camY - e.radius*2.8 - 6;
+          const bw = Math.max(22, e.radius*2.2), bh = 4, bx = e.x-camX-bw/2, by = e.y-camY - e.radius*headOff - 6;
           ctx.save(); ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(bx-1, by-1, bw+2, bh+2); ctx.restore();
           R.bar(ctx, bx, by, bw, bh, e.hp/e.maxHp, '#ff4d6d');
         }
         // 머리 위 이름표: 보스=붉은색, 중간보스=노란색 (검은 외곽선으로 가독성)
         if (e.boss || e.miniboss) {
-          const nx = e.x-camX, ny = e.y-camY - e.radius*2.8 - (e.miniboss ? 14 : 4);
+          const nx = e.x-camX, ny = e.y-camY - e.radius*headOff - (e.miniboss ? 12 : 4);
           ctx.save(); ctx.font = '800 12px system-ui'; ctx.textAlign = 'center';
           ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.strokeText(e.name, nx, ny);
           ctx.fillStyle = e.boss ? '#ff5c5c' : '#ffe14d'; ctx.fillText(e.name, nx, ny); ctx.restore();
