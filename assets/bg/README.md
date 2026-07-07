@@ -12,10 +12,12 @@
 | `frost_core.png` | 서리 코어(4스테이지) | 있음 |
 | `violet_abyss.png` | 보랏빛 심연(5스테이지) | 있음 |
 | `aurum_circuit.png` | 황금 회로(6스테이지) | 있음 |
-| `magenta_reactor.png` | 마젠타 리액터(7스테이지) | **생성 필요 → `BG-PROMPTS.md` ⑤** |
-| `deep_trench.png` | 심해 단층(8스테이지) | **생성 필요 → `BG-PROMPTS.md` ⑥** |
-| `ashen_void.png` | 잿빛 공허(9스테이지) | **생성 필요 → `BG-PROMPTS.md` ⑦** |
-| `omega_core.png` | 오메가 코어(10스테이지) | **생성 필요 → `BG-PROMPTS.md` ⑧** |
+| `magenta_reactor.png` | 마젠타 리액터(7스테이지) | 있음 |
+| `deep_trench.png` | 심해 단층(8스테이지) | 있음 |
+| `ashen_void.png` | 잿빛 공허(9스테이지) | 있음 |
+| `omega_core.png` | 오메가 코어(10스테이지) | 있음 |
+
+> **10스테이지 배경 전부 완비.** 새 스테이지를 추가할 때만 `BG-PROMPTS.md` 규격으로 생성.
 
 > 신규 3종의 **복사용 생성 프롬프트**(상하·좌우 이음매 연결 규격 포함)는 [`BG-PROMPTS.md`](BG-PROMPTS.md) 참고.
 
