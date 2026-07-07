@@ -321,15 +321,15 @@ export function boot() {
     for (const f of world.floaters){ if(!f.alive)continue; f.y+=f.vy; if(--f.life<=0) f.alive=false; }
     // 물약 자동 사용(옵션 ON): HP 25% 이하 / MP 20% 이하일 때 보유분을 자동 소비.
     // 종류별 30초 쿨타임(스킬처럼) — 연속 벌컥벌컥 방지, HUD에 남은 시간 표시.
-    const POTION_CD = 1200;   // 20s(60fps)
+    const POTION_CD_HP = 600, POTION_CD_MP = 1200;   // HP 10s / MP 20s(60fps) — 유리몸 캐릭터 생존 배려
     if (rs.potCd.hp > 0) rs.potCd.hp--;
     if (rs.potCd.mp > 0) rs.potCd.mp--;
     if (autoPotion && rs.potCd.hp <= 0 && rs.potions.hp > 0 && world.player.hp <= world.player.maxHp*0.25) {
-      world.player.hp = Math.min(world.player.maxHp, world.player.hp + world.player.maxHp*0.5); rs.potions.hp--; rs.potCd.hp = POTION_CD;
+      world.player.hp = Math.min(world.player.maxHp, world.player.hp + world.player.maxHp*0.5); rs.potions.hp--; rs.potCd.hp = POTION_CD_HP;
       world.spawnFloater({ x:world.player.x, y:world.player.y-26, text:'🧪 HP 물약!', color:'#ff6b8a', life:44, max:44, vy:-0.6 }); audio.sfx('upgrade');
     }
     if (autoPotion && rs.potCd.mp <= 0 && rs.potions.mp > 0 && (rs.mp||0) <= rs.stats.maxMp*0.2) {
-      rs.mp = Math.min(rs.stats.maxMp, (rs.mp||0) + rs.stats.maxMp*0.6); rs.potions.mp--; rs.potCd.mp = POTION_CD;
+      rs.mp = Math.min(rs.stats.maxMp, (rs.mp||0) + rs.stats.maxMp*0.6); rs.potions.mp--; rs.potCd.mp = POTION_CD_MP;
       world.spawnFloater({ x:world.player.x, y:world.player.y-26, text:'🔷 MP 물약!', color:'#4db3ff', life:44, max:44, vy:-0.6 }); audio.sfx('pick');
     }
     world.despawnDead();
