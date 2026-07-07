@@ -311,8 +311,15 @@ export function boot() {
         }
       }
     }
-    // MP 재생
-    rs.mp = Math.min(rs.stats.maxMp, (rs.mp||0) + rs.stats.mpRegen);
+    // MP 자연회복: 매 프레임 찔끔(사실상 무한) 대신 5초마다 일정량 회복(최대MP 6% + 회복력 보정).
+    rs.mpTick = (rs.mpTick || 0) + 1;
+    if (rs.mpTick >= 300) { rs.mpTick = 0;
+      if ((rs.mp||0) < rs.stats.maxMp) {
+        const gain = Math.round(rs.stats.maxMp * 0.06 + (rs.stats.mpRegen || 0) * 30);
+        rs.mp = Math.min(rs.stats.maxMp, (rs.mp||0) + gain);
+        world.spawnFloater({ x:world.player.x, y:world.player.y-20, text:`+${gain} MP`, color:'#7cc6ff', life:26, max:26, vy:-0.5 });
+      }
+    }
     // 픽업: 드랍 좌표에 고정(자석 없음) → 아이템이 정적 지면 기준이 되어 이동감 살아남.
     //       획득 반경(pickupRange) 안으로 플레이어가 다가오면 수집.
     // 성능: TTL(60s, 히든스킬 120s)로 소멸 + 총량 상한(오래된 것부터 정리) → 장기전 누적 방지.
