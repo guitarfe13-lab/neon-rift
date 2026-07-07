@@ -11,9 +11,9 @@ export function makeDirector(rng, biomes) {
   function enemyStatsAt(id, atMs, level = 1) {
     const e = getEnemy(id); const min = atMs / 60000; const lv = Math.max(0, level - 1);
     return { ...e,
-      hp: Math.round(e.hp * (1 + min * 0.6 + lv * 0.13)),
+      hp: Math.round(e.hp * (1 + min * 0.5 + lv * 0.11)),   // 후반 스펀지화 완화(0.6/0.13 → 0.5/0.11)
       speed: e.speed * (1.1 + min * 0.05 + lv * 0.05),   // 기본 +10%, 레벨↑마다 +5%(체감되게)
-      damage: Math.round(e.damage * (1 + lv * 0.09)) };   // 레벨↑ → 몬스터 공격력 강화(밸런스)
+      damage: Math.round(e.damage * (1 + lv * 0.075)) };  // 레벨↑ → 몬스터 공격력 강화(0.09 → 0.075)
   }
   function spawnOne(world, level) {
     const b = biome(); const id = rng.pick(b.enemySet); const st = enemyStatsAt(id, t, level);
@@ -36,7 +36,7 @@ export function makeDirector(rng, biomes) {
     // 플레이어 현재 위치를 중심으로 아레나 고정(무한 후퇴 방지). 보스는 화면 안에 등장.
     arena = { x: world.player.x, y: world.player.y, r: 360 };
     bossRef = world.spawnEnemy({ ...boss, hp, maxHp: hp, name: prefix + boss.name,
-      damage: Math.round(boss.damage * (1 + lv * 0.07 + cycle * 0.12)),
+      damage: Math.round(boss.damage * (1 + lv * 0.05 + cycle * 0.12)),   // 탄당 피해 성장 완화(0.07→0.05)
       skillTier: Math.min(3, biomeIdx + cycle),   // 진행할수록 보스 스킬 광역·강력(0~3)
       x: arena.x, y: arena.y - 170 });
     world.spawnParticle({ x: arena.x, y: arena.y - 170, r: 20, rMax: 160, life: 24, color: boss.color, shock: true });  // 등장 충격파

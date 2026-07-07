@@ -51,11 +51,12 @@ function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
     const iw = frame ? frame.fw : img.width, ih = frame ? frame.fh : img.height;
     const sc = 4.6 * (ent.spriteScale || 1) * (frame ? frame.scale : 1) * pulse; // 엔티티별 배율(+맥동)
     const w = r * sc, h = w * (ih / iw || 1);
-    // 걸음 바운스: 위로만 들렸다가 매 사이클 바닥에 '착지'(양방향 부유 → 접지감). 들릴 때 그림자 축소.
-    const liftK = Math.abs(Math.sin(t * 0.22 + ent._ph));      // 0(접지)~1(최고점)
-    const bob = -liftK * r * 0.06;
+    // 걸음 바운스: 위로만 살짝·빠르게 들렸다 매 사이클 '착지'(느린 큰 호=부유, 잦은 작은 스텝=걸음).
+    const liftK = Math.abs(Math.sin(t * 0.3 + ent._ph));       // 0(접지)~1(최고점)
+    const bob = -liftK * r * 0.045;
+    const rock = Math.sin(t * 0.3 + ent._ph) * 0.045;           // 걸음 리듬 좌우 갸우뚱(발 피벗)
     const foot = y + r * 1.2;                                   // 접지선을 아래로(뜬 느낌 완화)
-    const sw = r * 1.05 * (ent.spriteScale || 1) * (1 - liftK * 0.14);  // 그림자 폭(들리면 살짝 축소)
+    const sw = r * 0.95 * (ent.spriteScale || 1) * (1 - liftK * 0.14);  // 그림자 폭(들리면 살짝 축소)
     // 접지 반사광: 몸 중심 원형 후광(공중부양 느낌) 대신 발밑에 납작하게 깔리는 빛 웅덩이.
     const g = ctx.createRadialGradient(x, foot, 0, x, foot, r * 1.7);
     g.addColorStop(0, hexA(color, 0.20)); g.addColorStop(1, hexA(color, 0));
@@ -63,14 +64,16 @@ function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
     ctx.fillStyle = g; ctx.fill(); ctx.restore();
     // 접지 그림자(부드럽게: 가장자리 페이드 + 약하게)
     const sg = ctx.createRadialGradient(x, foot, 0, x, foot, sw);
-    sg.addColorStop(0, 'rgba(0,0,0,0.22)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
+    sg.addColorStop(0, 'rgba(0,0,0,0.34)'); sg.addColorStop(1, 'rgba(0,0,0,0)');   // 접촉 그림자 진하게(접지 앵커)
     ctx.save(); ctx.fillStyle = sg; ctx.beginPath(); ctx.ellipse(x, foot, sw, sw * 0.36, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    // 스프라이트(발이 접지선에 오도록 위로)
-    ctx.save(); ctx.translate(x, bob);
+    // 스프라이트: 발(접지점) 피벗 — 걸음 갸우뚱(rock)·착지 스쿼시/이륙 스트레치로 접지감.
+    ctx.save(); ctx.translate(x, foot + bob);
+    ctx.rotate(rock);
     if (Math.cos(angle) < 0) ctx.scale(-1, 1);                  // 진행/조준 방향으로 좌우 반전
     if (flash) { ctx.shadowBlur = 24; ctx.shadowColor = flash === true ? '#fff' : flash; }   // true=피격 흰색, 문자열=지정 색(빈사 등)
-    if (frame) ctx.drawImage(img, frame.sx, frame.sy, frame.fw, frame.fh, -w / 2, foot - h, w, h);
-    else ctx.drawImage(img, -w / 2, foot - h, w, h);
+    const wS = w * (1.03 - liftK * 0.05), hS = h * (0.97 + liftK * 0.06);   // 착지=납작, 최고점=늘씬
+    if (frame) ctx.drawImage(img, frame.sx, frame.sy, frame.fw, frame.fh, -wS / 2, -hS, wS, hS);
+    else ctx.drawImage(img, -wS / 2, -hS, wS, hS);
     ctx.restore();
   } else {
     // 코드 스프라이트: 위의 공통 맥동 + 네모 몹 회전 추가.
@@ -235,7 +238,7 @@ export function boot() {
     const critChance = Math.min(0.7, 0.1 + (p.hurtStreak - 1) * 0.03);   // 연속으로 맞을수록↑
     const crit = Math.random() < critChance;
     const d = raw * (crit ? 1.6 : 1);
-    p.hp -= d; p.invuln = 8;
+    p.hp -= d; p.invuln = 22;   // 피격 무적 0.37s — 보스 링 탄막 다중 적중(버스트 즉사) 방지
     shake = Math.min(14, shake + (crit ? 9 : 6)); audio.sfx('hurt');
     const shown = Math.max(1, Math.round(d));
     world.spawnFloater({ x:p.x, y:p.y-22, text: crit ? `Critical -${shown}` : `-${shown}`,
