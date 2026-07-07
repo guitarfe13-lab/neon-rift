@@ -42,9 +42,14 @@ function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
       img = si; frame = { sx:(idx % sh.cols)*fw, sy:Math.floor(idx / sh.cols)*fh, fw, fh, scale: sh.scale||1 }; }
   }
   if (!img) img = getSprite('assets/sprites/' + ent.id);
+  // 동적 시인성 맥동(이미지·코드 스프라이트 공통): 일반 몹 ±5%, 중간보스 ±9%. 플레이어(hp 없음)·보스 제외.
+  if (ent._ph === undefined) ent._ph = Math.random() * 6.283;
+  let pulse = 1;
+  if (ent.miniboss) pulse = 1 + 0.09 * Math.sin(t * 0.07 + ent._ph);
+  else if (ent.hp != null && !ent.boss) pulse = 1 + 0.05 * Math.sin(t * 0.1 + ent._ph);
   if (img) {
     const iw = frame ? frame.fw : img.width, ih = frame ? frame.fh : img.height;
-    const sc = 4.6 * (ent.spriteScale || 1) * (frame ? frame.scale : 1); // 엔티티별 배율
+    const sc = 4.6 * (ent.spriteScale || 1) * (frame ? frame.scale : 1) * pulse; // 엔티티별 배율(+맥동)
     const w = r * sc, h = w * (ih / iw || 1);
     const bob = Math.sin(t * 0.15 + x * 0.02) * r * 0.05;
     const foot = y + r * 1.2;                                   // 접지선을 아래로(뜬 느낌 완화)
@@ -65,14 +70,9 @@ function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
     else ctx.drawImage(img, -w / 2, foot - h, w, h);
     ctx.restore();
   } else {
-    // 동적 시인성: 일반 몹=이동 맥동, 네모 몹=회전 추가, 중간보스(악시온)=큰 맥동. 개체별 위상차로 동기화 방지.
-    if (ent._ph === undefined) ent._ph = Math.random() * 6.283;
-    let rr = r, rot = 0;
-    if (ent.miniboss) rr = r * (1 + 0.09 * Math.sin(t * 0.07 + ent._ph));                       // 살짝 줄었다 커졌다
-    else if (ent.hp != null && !ent.boss) {                                                     // 일반 몹(플레이어 제외)
-      rr = r * (1 + 0.05 * Math.sin(t * 0.1 + ent._ph));                                        // 이동 맥동
-      if (ent.shape === 'square') rot = t * 0.025 + ent._ph;                                    // 네모: 회전 추가
-    }
+    // 코드 스프라이트: 위의 공통 맥동 + 네모 몹 회전 추가.
+    const rr = r * pulse;
+    const rot = (ent.shape === 'square' && ent.hp != null && !ent.boss) ? t * 0.025 + ent._ph : 0;
     if (rot) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); drawSprite(ctx, ent.sprite, 0, 0, rr, color, t, angle); ctx.restore(); }
     else drawSprite(ctx, ent.sprite, x, y, rr, color, t, angle);
   }
@@ -311,11 +311,11 @@ export function boot() {
         }
       }
     }
-    // MP 자연회복: 매 프레임 찔끔(사실상 무한) 대신 5초마다 일정량 회복(최대MP 6% + 회복력 보정).
+    // MP 자연회복: 매 프레임 찔끔(사실상 무한) 대신 3초마다 일정량 회복(최대MP 7% + 회복력 보정).
     rs.mpTick = (rs.mpTick || 0) + 1;
-    if (rs.mpTick >= 300) { rs.mpTick = 0;
+    if (rs.mpTick >= 180) { rs.mpTick = 0;
       if ((rs.mp||0) < rs.stats.maxMp) {
-        const gain = Math.round(rs.stats.maxMp * 0.06 + (rs.stats.mpRegen || 0) * 30);
+        const gain = Math.round(rs.stats.maxMp * 0.07 + (rs.stats.mpRegen || 0) * 30);
         rs.mp = Math.min(rs.stats.maxMp, (rs.mp||0) + gain);
         world.spawnFloater({ x:world.player.x, y:world.player.y-20, text:`+${gain} MP`, color:'#7cc6ff', life:26, max:26, vy:-0.5 });
       }
