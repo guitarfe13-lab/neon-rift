@@ -735,21 +735,6 @@ export function boot() {
     }
   });
 
-  // [임시 개발도구] devcapture 연동(영상 제작 후 js/devcapture.js와 함께 삭제):
-  //  audioStream=녹화용 오디오, fullSkills=스킬 풀채움(진화 3택 즉시).
-  if (typeof window !== 'undefined') window.__neonDev = {
-    audioStream: () => audio.captureStream(),
-    fullSkills() {
-      if (scene !== 'run' || !rs) return;
-      for (const id of getCharacter(rs.charId).skillPool) {
-        const s = getSkill(id); if (s && !EVOLUTIONS.has(id)) rs.ownedSkills[id] = s.maxLevel;
-      }
-      for (const pid of ['power','haste','might_core','giant']) rs.passives[pid] = 8;
-      applyChoice(rs, { kind:'passive', id:'swift' });
-      overlay = null; openLevelUp();
-    },
-  };
-
   // 씬 내비게이션
   function toTitle(){ scene='title'; clearScreens(); showTitle({ meta, onPlay:toLoadout, onShop:toShop, onSettings:toSettings }); }
   function toLoadout(){ scene='loadout'; showLoadout({ meta, onStart:beginRun, onBack:toTitle }); }
