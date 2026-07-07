@@ -735,6 +735,20 @@ export function boot() {
     }
   });
 
+  // [임시 개발도구] devcapture 연동: 스킬 풀채움 → 진화 후보가 뜬 레벨업 화면 즉시 오픈(캡쳐용).
+  // 캡쳐 완료 후 이 블록과 js/devcapture.js를 함께 삭제.
+  if (typeof window !== 'undefined') window.__neonDev = {
+    fullSkills() {
+      if (scene !== 'run' || !rs) return;
+      for (const id of getCharacter(rs.charId).skillPool) {
+        const s = getSkill(id); if (s && !EVOLUTIONS.has(id)) rs.ownedSkills[id] = s.maxLevel;
+      }
+      for (const pid of ['power','haste','might_core','giant']) rs.passives[pid] = 8;   // 진화 요구 패시브 충족
+      applyChoice(rs, { kind:'passive', id:'swift' });   // 스탯 재계산 트리거
+      overlay = null; openLevelUp();                     // 진화(⚡) 후보가 포함된 3택 오픈
+    },
+  };
+
   // 씬 내비게이션
   function toTitle(){ scene='title'; clearScreens(); showTitle({ meta, onPlay:toLoadout, onShop:toShop, onSettings:toSettings }); }
   function toLoadout(){ scene='loadout'; showLoadout({ meta, onStart:beginRun, onBack:toTitle }); }

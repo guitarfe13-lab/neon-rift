@@ -16,6 +16,10 @@
   }
   var shotBtn = mk('📷 캡쳐');
   var recBtn = mk('🔴 녹화');
+  var fullBtn = mk('⚡ 풀스킬');   // 스킬 풀채움 → 진화 후보 레벨업 화면 즉시(캡쳐용 치트)
+  fullBtn.onclick = function () {
+    if (window.__neonDev) { window.__neonDev.fullSkills(); fullBtn.textContent = '⚡ 다시 굴리기'; }
+  };
 
   function dl(url, name) { var a = document.createElement('a'); a.href = url; a.download = name; a.click();
     setTimeout(function () { URL.revokeObjectURL(url); }, 5000); }
