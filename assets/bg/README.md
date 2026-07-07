@@ -9,9 +9,13 @@
 | `neon_grid.png` | 네온 그리드 | 있음 |
 | `toxic_rift.png` | 맹독 균열 | 있음 |
 | `ember_wastes.png` | 잿불 황야 | 있음 |
-| `frost_core.png` | 서리 코어(4스테이지) | **생성 필요 → `BG-PROMPTS.md`** |
-| `violet_abyss.png` | 보랏빛 심연(5스테이지) | **생성 필요 → `BG-PROMPTS.md`** |
-| `aurum_circuit.png` | 황금 회로(6스테이지) | **생성 필요 → `BG-PROMPTS.md`** |
+| `frost_core.png` | 서리 코어(4스테이지) | 있음 |
+| `violet_abyss.png` | 보랏빛 심연(5스테이지) | 있음 |
+| `aurum_circuit.png` | 황금 회로(6스테이지) | 있음 |
+| `magenta_reactor.png` | 마젠타 리액터(7스테이지) | **생성 필요 → `BG-PROMPTS.md` ⑤** |
+| `deep_trench.png` | 심해 단층(8스테이지) | **생성 필요 → `BG-PROMPTS.md` ⑥** |
+| `ashen_void.png` | 잿빛 공허(9스테이지) | **생성 필요 → `BG-PROMPTS.md` ⑦** |
+| `omega_core.png` | 오메가 코어(10스테이지) | **생성 필요 → `BG-PROMPTS.md` ⑧** |
 
 > 신규 3종의 **복사용 생성 프롬프트**(상하·좌우 이음매 연결 규격 포함)는 [`BG-PROMPTS.md`](BG-PROMPTS.md) 참고.
 

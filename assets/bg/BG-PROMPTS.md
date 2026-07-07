@@ -34,7 +34,35 @@ seamless tileable texture, PERFECT vertical tiling: the TOP edge must continue e
 golden circuit board floor: near-black dark bronze PCB surface (#191307), thin gold circuit traces (#ffd166) branching evenly across the whole tile, subtle hexagonal armor plate seams, tiny warm amber glow dots as micro LEDs, luxurious dangerous final-zone mood, neon roguelike game background, 1024x1024
 ```
 
-**검증(4종 공통):** Offset 필터 X·Y 각각 +512 → 십자 이음매 보이면 실패 → 재생성/보정.
+### ⑤ `magenta_reactor.png` — 마젠타 리액터 (스테이지 7)
+어두운 리액터 격납 바닥, 마젠타 플라스마 도관이 은은히 맥동. 포인트 `#ff5ca8`, 바탕 `#1c0a13`.
+```
+seamless tileable texture, PERFECT vertical tiling: the TOP edge must continue exactly into the BOTTOM edge with no visible seam or overlapping shapes, also tiles left-to-right, top-down orthographic game ground texture, dark muted low-contrast background, uniform flat lighting, no vignette, no focal point, evenly distributed pattern, no large objects crossing the edges, no text --
+reactor containment floor: very dark maroon-black metal plating (#1c0a13), thin glowing magenta plasma conduits (#ff5ca8) weaving evenly across the whole tile, small rivets and vent slits, faint heat shimmer stains, dangerous energy-core sci-fi mood, neon roguelike game background, 1024x1024
+```
+
+### ⑥ `deep_trench.png` — 심해 단층 (스테이지 8)
+검은 유리질 해저 바닥, 청록 발광 물결 문양(코스틱)과 가는 균열. 포인트 `#3fd8c8`, 바탕 `#06201d`.
+```
+seamless tileable texture, PERFECT vertical tiling: the TOP edge must continue exactly into the BOTTOM edge with no visible seam or overlapping shapes, also tiles left-to-right, top-down orthographic game ground texture, dark muted low-contrast background, uniform flat lighting, no vignette, no focal point, evenly distributed pattern, no large objects crossing the edges, no text --
+deep sea trench floor: black glassy basalt seabed (#06201d), faint teal bioluminescent caustic ripple patterns (#3fd8c8) spread evenly, thin hairline fissures, tiny glowing plankton dots, abyssal underwater sci-fi mood, neon roguelike game background, 1024x1024
+```
+
+### ⑦ `ashen_void.png` — 잿빛 공허 (스테이지 9)
+채도 낮은 잿빛 균열 평원, 창백한 은회색 잔광. 포인트 `#cfd6e4`, 바탕 `#171a20`.
+```
+seamless tileable texture, PERFECT vertical tiling: the TOP edge must continue exactly into the BOTTOM edge with no visible seam or overlapping shapes, also tiles left-to-right, top-down orthographic game ground texture, dark muted low-contrast background, uniform flat lighting, no vignette, no focal point, evenly distributed pattern, no large objects crossing the edges, no text --
+ashen void plain: desaturated dark gray cracked ash ground (#171a20), pale silver ghostly glow lines (#cfd6e4) tracing the cracks evenly, scattered fine ash grain and faint ember-less soot patches, bleak monochrome otherworld mood, neon roguelike game background, 1024x1024
+```
+
+### ⑧ `omega_core.png` — 오메가 코어 (스테이지 10)
+심연 보라의 특이점 바닥, 흰빛-라벤더 프리즘 균열이 방사 없이 고르게. 포인트 `#e0d0ff`, 바탕 `#140a24`.
+```
+seamless tileable texture, PERFECT vertical tiling: the TOP edge must continue exactly into the BOTTOM edge with no visible seam or overlapping shapes, also tiles left-to-right, top-down orthographic game ground texture, dark muted low-contrast background, uniform flat lighting, no vignette, no focal point, evenly distributed pattern, no large objects crossing the edges, no text --
+omega singularity core floor: deep dark violet crystalline surface (#140a24), thin white-lavender prismatic fractures (#e0d0ff) glowing softly and spread evenly across the whole tile, subtle starfield speckles embedded in the material, faint hexagonal lattice, ominous final-core sci-fi mood, neon roguelike game background, 1024x1024
+```
+
+**검증(전 종 공통):** Offset 필터 X·Y 각각 +512 → 십자 이음매 보이면 실패 → 재생성/보정.
 
 ---
 
