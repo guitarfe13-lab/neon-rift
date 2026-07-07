@@ -3,6 +3,7 @@
 //  runner: 빠르고 약함 / tank: 느리고 단단 / shooter: 원거리 투사 /
 //  splitter: 사망 시 분열 / charger: 주기적 돌진.
 // drop: 처치 시 마나/HP물약 드랍 확률, coins=추가 코인 수, skill=히든 스킬 확률.
+// spin: 공중 회전체(부유+자전, 접지 연출 없음). shadowOff: 그림자 발 밀착 보정(r 배수, 기본 0.4 — 이미지 하단 여백이 크면 값↑).
 export const ENEMIES = {
   grunt:    { id:'grunt',    name:'스워머', shape:'circle',   sprite:'blob',   spriteScale:0.72, color:'#ff4d6d', hp:6,  speed:1.1, radius:12, damage:6,  xp:3,  gold:2,  drop:{ mana:0.1, hp:0.02 } },
   runner:   { id:'runner',   name:'러너',   shape:'triangle', sprite:'dart',   color:'#ff9f45', hp:4,  speed:2.2, radius:11, damage:5,  xp:3,  gold:2, behavior:'none', drop:{ mana:0.08, hp:0.02 } },
