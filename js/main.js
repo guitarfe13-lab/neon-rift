@@ -453,9 +453,19 @@ export function boot() {
       for (const p of world.projectiles) { if (!p.alive) continue;
         if (p.beam) { const n=Math.hypot(p.vx,p.vy)||1, ux=p.vx/n, uy=p.vy/n;
           const ax=p.x-camX, ay=p.y-camY, bx=p.x-ux*p.len-camX, by=p.y-uy*p.len-camY;
-          // 슬림 레이저: 얇은 글로우 + 가는 흰 코어(화살과 구분). 판정(radius)은 그대로.
-          ctx.save(); ctx.globalAlpha=0.35; R.neonLine(ctx, ax,ay,bx,by, p.radius*1.4, p.color||'#7cf9ff'); ctx.restore(); // 글로우
-          R.neonLine(ctx, ax,ay,bx,by, Math.max(1.6, p.radius*0.4), '#ffffff'); }                                        // 코어
+          if (p.pshape === 'rail') {   // 레일건: 전자기 쌍레일 + 흰 탄체(슬러그) + 뾰족 탄두 — 레이저와 구분
+            const px=-uy, py=ux, off=p.radius*0.95;
+            ctx.save(); ctx.globalAlpha=0.8;
+            R.neonLine(ctx, ax+px*off, ay+py*off, bx+px*off, by+py*off, 1.5, p.color||'#a0f0ff');   // 상단 레일
+            R.neonLine(ctx, ax-px*off, ay-py*off, bx-px*off, by-py*off, 1.5, p.color||'#a0f0ff');   // 하단 레일
+            ctx.restore();
+            const mx=ax-ux*p.len*0.38, my=ay-uy*p.len*0.38;
+            R.neonLine(ctx, ax, ay, mx, my, p.radius*1.15, '#ffffff');                              // 탄체(앞쪽 굵은 코어)
+            R.lance(ctx, ax, ay, Math.atan2(uy,ux), p.radius*1.1, p.color||'#a0f0ff');              // 뾰족 탄두
+          } else {
+            // 슬림 레이저: 얇은 글로우 + 가는 흰 코어(화살과 구분). 판정(radius)은 그대로.
+            ctx.save(); ctx.globalAlpha=0.35; R.neonLine(ctx, ax,ay,bx,by, p.radius*1.4, p.color||'#7cf9ff'); ctx.restore(); // 글로우
+            R.neonLine(ctx, ax,ay,bx,by, Math.max(1.6, p.radius*0.4), '#ffffff'); } }                                        // 코어
         else if (p.pshape === 'lance' && (p.vx || p.vy))   // 창 계열: 진행 방향 뾰족한 창촉
           R.lance(ctx, p.x-camX, p.y-camY, Math.atan2(p.vy, p.vx), p.radius, p.color||'#a9e8ff');
         // 궤도/드론 스킬: 이름에 맞는 전용 모양

@@ -46,7 +46,7 @@ export const SKILLS = {
     base:{ damage:12, speed:16, cooldown:40, pierce:99 },
     scale:{ damage:+6, cooldown:-3 }, maxLevel:8,
     evolveInto:'prism_beam', evolveReq:{ passive:'power', level:8 } },
-  rail: { id:'rail', name:'레일건', type:'beam', tags:['physical'], color:'#a0f0ff', mpCost:0,
+  rail: { id:'rail', name:'레일건', type:'beam', tags:['physical'], color:'#a0f0ff', mpCost:0, proj:'rail',
     base:{ damage:26, speed:22, cooldown:98, pierce:99 },
     scale:{ damage:+12, cooldown:-6 }, maxLevel:8 },
 

@@ -52,7 +52,7 @@ const RUNTIME = {
     const a = Math.atan2(t.y-p.y, t.x-p.x);
     world.spawnProjectile({ x:p.x, y:p.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,
       radius:6, dmg:rt.damage, pierce:rt.pierce??99, life:36, crit:Math.random()<(rs.stats.crit||0),
-      color: skill.color||'#7cf9ff', beam:true, len: rt.speed*3.2, element: skill.tags && skill.tags[0] });
+      color: skill.color||'#7cf9ff', beam:true, len: rt.speed*3.2, element: skill.tags && skill.tags[0], pshape: skill.proj });
     FX.spawnMuzzle(world, p.x, p.y, skill.color, skill.tags && skill.tags[0]);
     if (onFire) onFire();
   },
