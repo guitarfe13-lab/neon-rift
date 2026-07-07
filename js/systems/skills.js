@@ -91,7 +91,8 @@ const RUNTIME = {
     const hit = new Set(); let cx=p.x, cy=p.y;
     for (let i=0;i<(rt.count||3) && node;i++){
       onDamage(node, rt.damage, el); hit.add(node);
-      FX.spawnChainArc(world, cx, cy, node.x, node.y, skill.color);
+      if (skill.proj === 'whip') FX.spawnWhipArc(world, cx, cy, node.x, node.y, skill.color);   // 채찍: 곡선 궤적+크랙
+      else FX.spawnChainArc(world, cx, cy, node.x, node.y, skill.color);
       cx=node.x; cy=node.y; node = nearestEnemies(world, cx, cy, 1, hit)[0];
     }
   },

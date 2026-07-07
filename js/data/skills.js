@@ -76,7 +76,7 @@ export const SKILLS = {
   chain_spark: { id:'chain_spark', name:'연쇄 번개', type:'chain', tags:['lightning'], color:'#b28bff', mpCost:4,
     base:{ damage:9, count:3, cooldown:56 }, scale:{ damage:+5, count:[3,3,4,4,5,6], cooldown:-4 }, maxLevel:8,
     evolveInto:'tempest', evolveReq:{ passive:'haste', level:8 } },
-  arc_whip: { id:'arc_whip', name:'전격 채찍', type:'chain', tags:['lightning'], color:'#8bb8ff', mpCost:5,
+  arc_whip: { id:'arc_whip', name:'전격 채찍', type:'chain', tags:['lightning'], color:'#8bb8ff', mpCost:5, proj:'whip',
     base:{ damage:14, count:2, cooldown:86 }, scale:{ damage:+7, count:[2,2,3,3,4], cooldown:-5 }, maxLevel:8 },
 
   // ── 소환(발사당 MP) ──

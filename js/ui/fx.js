@@ -27,7 +27,9 @@ function boltRay(world, x, y, ang, len, color) {
   for (let i = 1; i <= seg; i++) {
     const t = i / seg;
     let qx = x + Math.cos(ang) * len * t, qy = y + Math.sin(ang) * len * t;
-    if (i < seg) { const off = (i % 2 ? 1 : -1) * (len * 0.22 + Math.random() * len * 0.16);   // 좌우 교차
+    if (i < seg) {   // 좌우 교차 기반 + 진폭·부호 랜덤(자연스러운 번개)
+      let sign = (i % 2 ? 1 : -1); if (Math.random() < 0.3) sign = -sign;
+      const off = sign * len * (0.08 + Math.random() * 0.34);
       qx += nx * off; qy += ny * off; }
     world.spawnParticle({ bolt: true, x1: px, y1: py, x2: qx, y2: qy, life: 8, color });
     px = qx; py = qy;
@@ -100,11 +102,33 @@ export function spawnChainArc(world, x1, y1, x2, y2, color) {
   for (let i = 1; i <= seg; i++) {
     const t = i / seg;
     let qx = x1 + dx * t, qy = y1 + dy * t;
-    if (i < seg) { const off = (i % 2 ? 1 : -1) * (7 + Math.random() * 14);   // 좌우 교차 지그재그
+    if (i < seg) {   // 좌우 교차 기반 + 진폭·부호 랜덤(기계적 지그재그 방지)
+      let sign = (i % 2 ? 1 : -1); if (Math.random() < 0.3) sign = -sign;
+      const off = sign * (3 + Math.random() * 19);
       qx += nx * off; qy += ny * off; }
     world.spawnParticle({ x1: px, y1: py, x2: qx, y2: qy, bolt: true, color: color || '#c9a3ff', life: 8 });
     px = qx; py = qy;
   }
+}
+
+// 전격 채찍: 아래로 처진 곡선(2차 베지어) 궤적을 굵은 볼트로 그리고, 끝에서 '크랙' 섬광.
+export function spawnWhipArc(world, x1, y1, x2, y2, color) {
+  const dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1;
+  const nx = -dy / d, ny = dx / d;                                    // 수직 단위벡터
+  const sag = (Math.random() < 0.5 ? 1 : -1) * (d * 0.22 + Math.random() * d * 0.12);  // 휘어짐(좌/우 랜덤)
+  const cx = x1 + dx * 0.5 + nx * sag, cy = y1 + dy * 0.5 + ny * sag; // 제어점
+  const seg = 7; let px = x1, py = y1;
+  for (let i = 1; i <= seg; i++) {
+    const t = i / seg, u = 1 - t;
+    const qx = u * u * x1 + 2 * u * t * cx + t * t * x2;
+    const qy = u * u * y1 + 2 * u * t * cy + t * t * y2;
+    world.spawnParticle({ bolt: true, x1: px, y1: py, x2: qx, y2: qy, life: 11, color: color || '#8bb8ff',
+      w: 4.2 * (0.45 + t * 0.8) });                                   // 손잡이→끝으로 갈수록 굵게(휘두르는 맛)
+    px = qx; py = qy;
+  }
+  world.spawnParticle({ shock: true, x: x2, y: y2, r: 3, rMax: 26, life: 10, color: '#fff' });   // 끝 크랙 섬광
+  for (let i = 0; i < 4; i++) { const a = Math.random() * Math.PI * 2, s = 1.5 + Math.random() * 2;
+    world.spawnParticle({ spark: true, x: x2, y: y2, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 10, color: color || '#8bb8ff' }); }
 }
 
 // 오라 유지 필드(원소별 부유 파티클).
@@ -163,7 +187,7 @@ export function drawParticle(ctx, pt, camX, camY) {
     ctx.shadowColor = pt.color; ctx.shadowBlur = 10; ctx.beginPath(); ctx.arc(x, y, pt.arcR || 16, (pt.ang || 0) - 0.7, (pt.ang || 0) + 0.7); ctx.stroke(); }
   else if (pt.shock) { ctx.globalAlpha = Math.min(1, pt.life / 16); ctx.strokeStyle = pt.color || '#fff'; ctx.lineWidth = 4;
     ctx.shadowColor = pt.color || '#fff'; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(x, y, pt.r, 0, 7); ctx.stroke(); }
-  else if (pt.bolt) { ctx.globalAlpha = Math.min(1, pt.life / 6); ctx.strokeStyle = pt.color || '#c9a3ff'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+  else if (pt.bolt) { ctx.globalAlpha = Math.min(1, pt.life / 6); ctx.strokeStyle = pt.color || '#c9a3ff'; ctx.lineWidth = pt.w || 2.6; ctx.lineCap = 'round';
     ctx.shadowColor = pt.color || '#c9a3ff'; ctx.shadowBlur = 12; ctx.beginPath(); ctx.moveTo(pt.x1 - camX, pt.y1 - camY); ctx.lineTo(pt.x2 - camX, pt.y2 - camY); ctx.stroke();
     ctx.globalAlpha *= 0.6; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.shadowBlur = 0; ctx.stroke(); }               // 흰 코어
   else if (pt.ring) { ctx.globalAlpha = Math.min(1, pt.life / 8); ctx.strokeStyle = pt.color || '#5cf'; ctx.lineWidth = 2;
