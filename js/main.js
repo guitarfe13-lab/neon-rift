@@ -51,9 +51,11 @@ function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
     const iw = frame ? frame.fw : img.width, ih = frame ? frame.fh : img.height;
     const sc = 4.6 * (ent.spriteScale || 1) * (frame ? frame.scale : 1) * pulse; // 엔티티별 배율(+맥동)
     const w = r * sc, h = w * (ih / iw || 1);
-    const bob = Math.sin(t * 0.15 + x * 0.02) * r * 0.05;
+    // 걸음 바운스: 위로만 들렸다가 매 사이클 바닥에 '착지'(양방향 부유 → 접지감). 들릴 때 그림자 축소.
+    const liftK = Math.abs(Math.sin(t * 0.22 + ent._ph));      // 0(접지)~1(최고점)
+    const bob = -liftK * r * 0.06;
     const foot = y + r * 1.2;                                   // 접지선을 아래로(뜬 느낌 완화)
-    const sw = r * 1.05 * (ent.spriteScale || 1);              // 그림자 폭도 배율 반영
+    const sw = r * 1.05 * (ent.spriteScale || 1) * (1 - liftK * 0.14);  // 그림자 폭(들리면 살짝 축소)
     // 뒤 네온 글로우(엔티티 색)
     const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2.3);
     g.addColorStop(0, hexA(color, 0.30)); g.addColorStop(1, hexA(color, 0));

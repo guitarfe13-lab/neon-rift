@@ -18,11 +18,13 @@ function nearestEnemies(world, x, y, k, exclude) {
   return arr.slice(0, k);
 }
 function cd(rt, stats) { return Math.max(4, rt.cooldown / (stats.atkSpeed || 1)); }
-// 마법 스킬 MP 지불. 부족하면 발사 보류(짧게 재시도). rs.mp가 없으면(테스트) 무제한.
+// 마법 스킬 MP 지불. 직업별 배율(mpCostMul — 공속 빠른 궁수는 발사당 저렴) 적용.
+// 부족하면 발사 보류(짧게 재시도). rs.mp가 없으면(테스트) 무제한.
 function payMp(rs, skill, st, retry = 4) {
   if (!skill.mpCost) return true;
-  if ((rs.mp ?? Infinity) < skill.mpCost) { st.timer = retry; return false; }
-  if (rs.mp != null) rs.mp -= skill.mpCost;
+  const cost = skill.mpCost * (rs.stats?.mpCostMul || 1);
+  if ((rs.mp ?? Infinity) < cost) { st.timer = retry; return false; }
+  if (rs.mp != null) rs.mp -= cost;
   return true;
 }
 
