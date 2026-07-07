@@ -70,5 +70,6 @@ export function applyChoice(rs, choice) {
   else if (choice.kind === 'upgrade') rs.ownedSkills[choice.id] = (rs.ownedSkills[choice.id]||0) + 1;
   else if (choice.kind === 'passive') rs.passives[choice.id] = (rs.passives[choice.id]||0) + 1;
   else if (choice.kind === 'evolve') { delete rs.ownedSkills[choice.id]; rs.ownedSkills[choice.into] = 1; }
-  rs.stats = computeStats({ charId: rs.charId, metaUpgrades: rs.metaUpgrades, runMods: passiveMods(rs) });
+  rs.stats = computeStats({ charId: rs.charId, metaUpgrades: rs.metaUpgrades,
+    runMods: passiveMods(rs).concat(rs.treeMods || []) });   // 테크트리 보너스 보존
 }

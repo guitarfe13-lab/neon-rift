@@ -14,6 +14,7 @@ import { BIOMES } from './data/biomes.js';
 import { getSkill, SKILLS, EVOLUTIONS } from './data/skills.js';
 import { updateSkills, updateProjectiles } from './systems/skills.js';
 import { addXp, rollChoices, applyChoice } from './systems/levelup.js';
+import { getTrees, chooseTree, applyDueNodes, TECH_UNLOCK_LEVEL } from './systems/techtree.js';
 import { makeInput } from './core/input.js';
 import { makeAudio } from './core/audio.js';
 import { drawHud } from './ui/hud.js';
@@ -119,6 +120,9 @@ export function boot() {
   function onLevelGain() {
     pendingLevelUp = true; levelupDelay = 20; goldFlash = 12;
     const p = world.player;
+    // 테크트리 노드 자동 개방(25/30/35 도달 시) — 트리 선택 후에만 동작
+    for (const node of applyDueNodes(rs))
+      world.spawnFloater({ x:p.x, y:p.y-52, text:`🌟 ${rs.techTreeName}: ${node.name}!`, color:rs.techTreeColor||'#ffe14d', life:70, max:70, vy:-0.35, crit:true });
     world.spawnParticle({ x:p.x, y:p.y, r:12, rMax:100, life:26, color:'#ffe14d', shock:true });
     for (let i=0;i<16;i++){ const a=i/16*Math.PI*2; world.spawnParticle({ x:p.x, y:p.y, vx:Math.cos(a)*2.4, vy:Math.sin(a)*2.4-1, life:24, color:'#ffe14d', spark:true }); }
     world.spawnFloater({ x:p.x, y:p.y-34, text:'LEVEL UP!', color:'#ffe14d', life:44, max:44, vy:-0.5, crit:true });
@@ -156,6 +160,9 @@ export function boot() {
     d = Math.max(1, Math.round(d));
     const res = applyHit(e, d);
     e.flash = 6;
+    // 테크트리 특수: 흡혈(피의 광전사) — 가한 피해의 일부 회복
+    if (rs.lifesteal > 0 && world.player.hp < world.player.maxHp)
+      world.player.hp = Math.min(world.player.maxHp, world.player.hp + d * rs.lifesteal);
     if (world.particles.length < 600) FX.spawnImpact(world, e.x, e.y, element || 'physical', crit);   // 원소별 명중 이펙트
     if (crit || world.floaters.length < 120)   // 성능: 텍스트 폭주 방지(크리는 항상 표시)
       world.spawnFloater({ x:e.x, y:e.y-10, text: crit ? `Critical -${d}` : `-${d}`, color: crit?'#ffe14d':'#fff', life: crit?54:40, max: crit?54:40, vy:-0.7, crit });
@@ -357,11 +364,27 @@ export function boot() {
     }
     world.despawnDead();
     // 레벨업 창은 (보스 슬로우모션 + 레벨업 버스트 연출)이 끝난 뒤에 연다.
-    if (pendingLevelUp && slowmo <= 0 && levelupDelay <= 0 && !overlay) { pendingLevelUp = false; openLevelUp(); }
+    if (pendingLevelUp && slowmo <= 0 && levelupDelay <= 0 && !overlay) {
+      pendingLevelUp = false;
+      // 레벨 20 돌파: 테크트리 선택(그 레벨의 3택 대신 운명의 갈림길)
+      if (rs.level >= TECH_UNLOCK_LEVEL && !rs.techTree && getTrees(rs.charId).length) openTechChoice();
+      else openLevelUp();
+    }
     if (world.player.hp <= 0) { if (rs.oaths > 0) reviveWithOath(); else gameOver(); }
   }
 
   function openLevelUp(){ audio.sfx('levelup'); overlay = { type:'levelup', choices: rollChoices(rs, rng, 3) }; }
+  function openTechChoice(){ audio.sfx('levelup'); overlay = { type:'tech', choices: getTrees(rs.charId) }; }
+  function selectTech(i){
+    const tr = overlay?.choices?.[i]; if (!tr) return;
+    audio.sfx('upgrade'); goldFlash = 16;
+    const applied = chooseTree(rs, tr);
+    const p = world.player;
+    world.spawnFloater({ x:p.x, y:p.y-40, text:`🌟 테크트리: ${tr.name}`, color:tr.color, life:80, max:80, vy:-0.3, crit:true });
+    for (const node of applied)
+      world.spawnFloater({ x:p.x, y:p.y-62, text:`${node.name} 개방!`, color:tr.color, life:70, max:70, vy:-0.35 });
+    overlay = null;
+  }
   // 레벨업 선택지 카드 위치(그리기·클릭 공용)
   function choiceRect(i){ const bw=Math.min(540, canvas.width-64), bh=66, gap=14, y0=178;
     return { x:canvas.width/2-bw/2, y:y0+i*(bh+gap), w:bw, h:bh }; }
@@ -587,8 +610,30 @@ export function boot() {
     if (goldFlash > 0) { ctx.save(); ctx.globalAlpha = (goldFlash/12)*0.32; ctx.fillStyle='#ffe14d';
       ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore(); goldFlash--; }
     if (overlay?.type==='levelup') drawLevelUp();
+    if (overlay?.type==='tech') drawTechChoice();
     if (scene==='gameover') { R.text(ctx,'GAME OVER',canvas.width/2,canvas.height/2-20,{size:44,align:'center',color:'#ff4d9d'});
       R.text(ctx,'클릭하면 다시 시작',canvas.width/2,canvas.height/2+24,{size:16,align:'center'}); }
+  }
+  // 테크트리 선택 카드(계열명 + 설명 + 4노드 로드맵)
+  function techRect(i){ const bw=Math.min(560, canvas.width-64), bh=118, gap=18, y0=168;
+    return { x:canvas.width/2-bw/2, y:y0+i*(bh+gap), w:bw, h:bh }; }
+  function drawTechChoice(){
+    ctx.save(); ctx.fillStyle='rgba(4,6,14,0.82)'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore();
+    ctx.save(); ctx.shadowBlur=22; ctx.shadowColor='#8ffcff'; ctx.fillStyle='#8ffcff';
+    ctx.font='800 30px system-ui'; ctx.textAlign='center'; ctx.fillText('🌟 테크트리 각성', canvas.width/2, 108); ctx.restore();
+    R.text(ctx,'운명을 선택하라 — 이후 25/30/35레벨에서 자동으로 강화된다 (1/2 키 또는 클릭)',canvas.width/2,138,{size:13,align:'center',color:'#9fb'});
+    overlay.choices.forEach((tr,i)=>{
+      const R0=techRect(i);
+      ctx.save(); ctx.fillStyle='rgba(18,24,44,0.94)'; ctx.strokeStyle=tr.color; ctx.lineWidth=2;
+      roundRect(ctx, R0.x, R0.y, R0.w, R0.h, 12); ctx.fill(); ctx.stroke(); ctx.restore();
+      R.text(ctx, tr.name, R0.x+18, R0.y+30, { size:19, align:'left', color:tr.color, weight:'800' });
+      R.text(ctx, `${i+1}`, R0.x+R0.w-20, R0.y+28, { size:14, align:'center', color:'#7fa', weight:'800' });
+      R.text(ctx, tr.desc, R0.x+18, R0.y+54, { size:13, align:'left', color:'#c6d2e6' });
+      const road = tr.nodes.map(n=>`Lv${n.lv} ${n.name}`).join('  →  ');
+      R.text(ctx, road, R0.x+18, R0.y+82, { size:12, align:'left', color:'#8592a8' });
+      const done = tr.nodes.filter(n=>n.lv<=rs.level).length;
+      if (done) R.text(ctx, `지금 즉시 ${done}개 노드 개방`, R0.x+18, R0.y+103, { size:12, align:'left', color:'#ffe14d', weight:'700' });
+    });
   }
   function drawLevelUp(){
     ctx.save(); ctx.fillStyle='rgba(4,6,14,0.76)'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore();
@@ -607,16 +652,18 @@ export function boot() {
   }
 
   addEventListener('keydown', e => {
+    if (overlay?.type==='tech') { const i='123'.indexOf(e.key); if (i>=0) selectTech(i); return; }
     if (overlay?.type==='levelup') { const i='123'.indexOf(e.key); if (i>=0) selectChoice(i); return; }
     if (e.key.toLowerCase()==='o') { autoPotion = !autoPotion; meta.settings.autoPotion = autoPotion; saveMeta(meta); }
   });
   canvas.addEventListener('pointerdown', (e) => {
     if (scene==='gameover') { toTitle(); return; }
-    if (overlay?.type==='levelup') {
+    if (overlay?.type==='levelup' || overlay?.type==='tech') {
+      const isTech = overlay.type==='tech';
       const rct = canvas.getBoundingClientRect();
       const px=(e.clientX-rct.left)*canvas.width/rct.width, py=(e.clientY-rct.top)*canvas.height/rct.height;
-      for (let i=0;i<overlay.choices.length;i++){ const R0=choiceRect(i);
-        if (px>=R0.x && px<=R0.x+R0.w && py>=R0.y && py<=R0.y+R0.h) { selectChoice(i); break; } }
+      for (let i=0;i<overlay.choices.length;i++){ const R0=isTech?techRect(i):choiceRect(i);
+        if (px>=R0.x && px<=R0.x+R0.w && py>=R0.y && py<=R0.y+R0.h) { isTech?selectTech(i):selectChoice(i); break; } }
     }
   });
 

@@ -57,6 +57,7 @@ export function drawHud(ctx, rs, world, frame = 0, souls = 0) {
   text(ctx, `MP ${Math.max(0,Math.floor(rs.mp ?? 0))}/${Math.round(maxMp)}`, BX+4, 38, { size:10, color: mpLow && blinkOn ? '#ffdada' : '#eaf2ff' });
   bar(ctx, BX, 43, BW, 7, rs.xp / (8*Math.pow(rs.level,1.55)+4), '#42e6ff');
   text(ctx, `Lv ${rs.level}`, BX+BW+8, 49, { size:13, color:'#42e6ff', weight:'800' });   // 경험치 바 옆
+  if (rs.techTreeName) text(ctx, `🌟 ${rs.techTreeName}`, BX+BW+46, 49, { size:12, color: rs.techTreeColor || '#ffe14d', weight:'700' });
   const c = (n) => Math.round(n).toLocaleString('en-US');                              // 천단위 콤마
   const info = `⏱ ${c(rs.timeMs/1000)}s   ⭐ ${c(rs.stage)}   💰 ${c(rs.gold)}   `;
   text(ctx, info, 16, 74, { size:13 });
