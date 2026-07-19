@@ -18,7 +18,7 @@ function stepBossSkill(e, world) {
   if (--e._skCd > 0) return;
   e._skCd = cd;
   const tier = Math.max(0, Math.min(3, e.skillTier || 0));
-  e._skillName = e.skill.name; e._skillNameT = 100;    // HUD 표시(약 1.6s)
+  e._skillName = e.skill.name; e._skillNameT = 100; e._atk = 34;    // HUD 표시(약 1.6s) + 공격 애니
   const dmg = Math.round(e.damage * ((e.skill.dmgMul || 1.2) + tier * 0.12));
   const rings = 1 + tier;                              // 링 수↑ = 광역화
   const baseN = 12 + tier * 6;                         // 링당 탄 수↑
@@ -46,6 +46,7 @@ function stepBossPattern(e, world, angToP) {
   e._shootCd = (e._shootCd ?? eff.shootCd);
   if (--e._shootCd > 0) return;
   e._shootCd = eff.shootCd;
+  e._atk = 20;   // 발사 순간 공격 애니(스프라이트시트 attack) 재생
   const n = eff.shotCount, sp = e.shotSpeed;
   if (e.pattern === 'ring') {
     for (let i=0;i<n;i++){ const a=(i/n)*Math.PI*2; fireHazard(world, e.x, e.y, a, sp, e.damage); }
@@ -76,6 +77,7 @@ export function stepEnemy(e, world, rng) {
     stepBossPattern(e, world, angToP);
     stepBossSkill(e, world);
     if (e._skillNameT > 0) e._skillNameT--;   // HUD 스킬명 표시 타이머 감쇠
+    if (e._atk > 0) e._atk--;                 // 공격 애니(스프라이트시트) 타이머 감쇠
   }
   e.x += Math.cos(ang)*spd*MOVE_SCALE; e.y += Math.sin(ang)*spd*MOVE_SCALE;
 }

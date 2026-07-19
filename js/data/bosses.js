@@ -5,11 +5,13 @@
 //   name(HUD 표시) / cd(시전 간격 프레임) / dmgMul(기본 데미지 배수).
 export const BOSSES = {
   warden: { id:'warden', name:'감시자', shape:'square', color:'#ff5cc8', boss:true, sprite:'boss', spriteScale:1.7, behavior:'boss',
+    sheet:{ cols:3, rows:2, fps:6, anims:{ idle:[0,1], attack:[2,3,4,5] } },
     hp:900, speed:1.25, radius:40, damage:24, xp:150, gold:150,
     pattern:'ring', shootCd:74, shotSpeed:3.0, shotCount:14,
     skill:{ name:'감시의 원환', cd:320, dmgMul:1.25 },
     phases:[{ at:0.6, speed:1.55, shootCd:58 }, { at:0.3, speed:1.9, shootCd:42, shotCount:18 }] },
   hydra: { id:'hydra', name:'히드라', shape:'diamond', color:'#5cff9e', boss:true, sprite:'boss', spriteScale:1.7, behavior:'boss',
+    sheet:{ cols:3, rows:2, fps:6, anims:{ idle:[0,1], attack:[2,3,4,5] } },
     hp:1450, speed:1.3, radius:42, damage:26, xp:210, gold:210,
     pattern:'spiral', shootCd:7, shotSpeed:3.0, shotCount:2,
     skill:{ name:'맹독의 나선', cd:300, dmgMul:1.2 },
