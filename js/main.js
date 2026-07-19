@@ -304,13 +304,14 @@ export function boot() {
     { const bref = dir.getBossRef();
       if (bref && bref !== lastBoss) { announce = { text: `${bref.name} 출현!`, color: bref.color || '#ff5cc8', life: 170, max: 170 }; audio.sfx('boss'); shake = Math.min(14, shake + 8); }
       lastBoss = bref; }
-    // 바이옴 전환(보스 처치 → 다음 바이옴) 감지 → 네온 원형 쇼크웨이브 와이프 + 화이트 플래시
+    // 바이옴 전환(보스 처치 → 다음 바이옴) 감지 → 새 필드 색 플래시 + 쇼크웨이브 + 필드명 대형 표시
     { const bi = dir.biomeIndex();
       if (lastBiome !== null && bi !== lastBiome) {
-        const m = /(\d+),\s*(\d+),\s*(\d+)/.exec(dir.biome().grid || '');
+        const b = dir.biome();
+        const m = /(\d+),\s*(\d+),\s*(\d+)/.exec(b.grid || '');
         const col = m ? `rgb(${m[1]},${m[2]},${m[3]})` : '#8ffcff';   // 새 바이옴 네온 그리드 색
-        biomeSwipe = { life: 50, max: 50, color: col };
-        whiteFlash = Math.max(whiteFlash, 12); shake = Math.min(12, shake + 5);
+        biomeSwipe = { life: 80, max: 80, color: col, name: b.name };
+        shake = Math.min(12, shake + 6); audio.sfx('levelup');
       }
       lastBiome = bi; }
     for (const e of world.enemies) { if (!e.alive) continue;
@@ -699,22 +700,30 @@ export function boot() {
     // 보스 처치 화면 플래시(렌더 프레임마다 감쇠 — 슬로우모션 영향 안 받음)
     if (whiteFlash > 0) { ctx.save(); ctx.globalAlpha = (whiteFlash/14)*0.6; ctx.fillStyle='#fff';
       ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore(); whiteFlash--; }
-    // 바이옴 전환 네온 쇼크웨이브 와이프: 화면 중앙에서 링이 밖으로 확장하며 새 세계를 드러냄
+    // 바이옴 전환 연출: 새 필드 색 플래시 + 굵은 네온 쇼크웨이브 + 필드명 대형 표시(전환을 확실히 인지)
     if (biomeSwipe && biomeSwipe.life > 0) {
       const cx = canvas.width/2, cy = canvas.height/2;
+      const k = biomeSwipe.life / biomeSwipe.max;             // 1→0
+      const p = 1 - k;                                        // 0→1
+      // 1) 화면 전체를 새 필드 색으로 물들였다가 빠르게 걷힘("색이 바뀐다"를 즉각 전달)
+      ctx.save(); ctx.globalAlpha = 0.5 * k * k; ctx.fillStyle = biomeSwipe.color;
+      ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.restore();
+      // 2) 굵은 네온 쇼크웨이브 링(ease-out 확장) + 흰 코어
       const maxR = Math.hypot(canvas.width, canvas.height) * 0.62;
-      const p = 1 - biomeSwipe.life / biomeSwipe.max;          // 0→1
-      const rr = (1 - Math.pow(1 - p, 3)) * maxR;              // ease-out(초반 빠르게 확장)
-      ctx.save();
-      // 확장 링 뒤로 옅은 색면(지나간 자리 = 새 바이옴 색 물듦), 링 앞은 아직 흰 잔광
-      ctx.globalAlpha = 0.16 * (biomeSwipe.life / biomeSwipe.max);
-      ctx.fillStyle = biomeSwipe.color; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2); ctx.fill();
-      // 네온 링 본체(글로우)
-      ctx.globalAlpha = Math.min(1, biomeSwipe.life / 16);
-      ctx.strokeStyle = biomeSwipe.color; ctx.lineWidth = 10; ctx.shadowColor = biomeSwipe.color; ctx.shadowBlur = 34;
+      const rr = (1 - Math.pow(1 - p, 3)) * maxR;
+      ctx.save(); ctx.globalAlpha = Math.min(1, biomeSwipe.life / 22);
+      ctx.strokeStyle = biomeSwipe.color; ctx.lineWidth = 16; ctx.shadowColor = biomeSwipe.color; ctx.shadowBlur = 42;
       ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2); ctx.stroke();
-      ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.shadowBlur = 0;   // 흰 코어
+      ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.shadowBlur = 0;
       ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2); ctx.stroke();
+      ctx.restore();
+      // 3) 중앙 대형 필드명(인→아웃 페이드)
+      const ta = Math.min(1, biomeSwipe.life / 26) * Math.min(1, p * 5);
+      ctx.save(); ctx.globalAlpha = ta; ctx.textAlign = 'center';
+      ctx.font = '800 15px system-ui'; ctx.fillStyle = '#cfe0f2';
+      ctx.fillText('▼  N E X T   F I E L D  ▼', cx, cy - 34);
+      ctx.font = '900 40px system-ui'; ctx.shadowColor = biomeSwipe.color; ctx.shadowBlur = 26; ctx.fillStyle = biomeSwipe.color;
+      ctx.fillText(biomeSwipe.name, cx, cy + 12);
       ctx.restore();
       biomeSwipe.life--;
     }
