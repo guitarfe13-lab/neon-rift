@@ -284,9 +284,12 @@ export function boot() {
     if (slowmo > 0) { slowmo--; if (frameCount % 3 !== 0) return; }
     rs.timeMs += dt;
     rs.stage = Math.max(1, (rs.timeMs/30000|0)+1);
-    // 이동
+    // 이동: 목표 속도로 즉시 튀지 않고 관성(가속·감속)으로 부드럽게 접근 → 방향전환·정지가 매끄럽다.
     const mv = input.moveVector(world), sp = rs.stats.moveSpeed * MOVE_SCALE;
-    world.player.x += mv.x * sp; world.player.y += mv.y * sp;
+    const pl = world.player;
+    pl.vx = (pl.vx || 0) + (mv.x * sp - (pl.vx || 0)) * 0.28;
+    pl.vy = (pl.vy || 0) + (mv.y * sp - (pl.vy || 0)) * 0.28;
+    pl.x += pl.vx; pl.y += pl.vy;
     // 좌우 반전은 사람처럼: 반대 방향 이동이 15프레임(0.25s) 유지될 때만 전환(자동조작 잔떨림 방지)
     if (mv.x) {
       const want = mv.x < 0 ? Math.PI : 0;
@@ -371,7 +374,7 @@ export function boot() {
     for (const f of world.floaters){ if(!f.alive)continue; f.y+=f.vy; if(--f.life<=0) f.alive=false; }
     // 물약 자동 사용(옵션 ON): HP 25% 이하 / MP 20% 이하일 때 보유분을 자동 소비.
     // 종류별 30초 쿨타임(스킬처럼) — 연속 벌컥벌컥 방지, HUD에 남은 시간 표시.
-    const POTION_CD_HP = 600, POTION_CD_MP = 1200;   // HP 10s / MP 20s(60fps) — 유리몸 캐릭터 생존 배려
+    const POTION_CD_HP = 600, POTION_CD_MP = 900;   // HP 10s / MP 15s(60fps)
     if (rs.potCd.hp > 0) rs.potCd.hp--;
     if (rs.potCd.mp > 0) rs.potCd.mp--;
     if (autoPotion && rs.potCd.hp <= 0 && rs.potions.hp > 0 && world.player.hp <= world.player.maxHp*0.25) {
