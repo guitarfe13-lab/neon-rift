@@ -17,6 +17,8 @@ export const BOSSES = {
     skill:{ name:'맹독의 나선', cd:300, dmgMul:1.2 },
     phases:[{ at:0.5, speed:1.55, shootCd:5 }, { at:0.25, speed:1.85, shootCd:4 }] },
   colossus: { id:'colossus', name:'콜로서스', shape:'square', color:'#ffb03d', boss:true, sprite:'boss', spriteScale:1.85, behavior:'boss',
+    // 콜로서스 시트 포즈: 0·2 서기(대기), 1·3 주먹 준비, 4 내려찍기 충격파(공격 절정)
+    sheet:{ cols:3, rows:2, fps:6, anims:{ idle:[0,2], attack:[1,3,4] } },
     hp:2350, speed:1.0, radius:48, damage:32, xp:300, gold:300,
     pattern:'burst', shootCd:58, shotSpeed:3.8, shotCount:4,
     skill:{ name:'대지 붕괴', cd:340, dmgMul:1.35 },
