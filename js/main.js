@@ -346,7 +346,7 @@ export function boot() {
       if (Math.hypot(hz.x-world.player.x, hz.y-world.player.y) < hz.radius+world.player.radius) { hurtPlayer(hz.damage*0.1); hz.alive=false; }
     }
     // 스킬 실행 + 투사체 이동 (발사 시 슛 사운드, 과다 방지 스로틀)
-    updateSkills(world, rs, rng, sstate, damageEnemy, () => { world.player._atk = 14; if (frameCount % 5 === 0) audio.sfx('shoot'); });
+    updateSkills(world, rs, rng, sstate, damageEnemy, () => { world.player._atk = 30; if (frameCount % 5 === 0) audio.sfx('shoot'); });
     updateProjectiles(world);
     // 투사체 트레일(직선 투사체만, 저빈도)
     if (frameCount % 2 === 0 && world.particles.length < 550) {

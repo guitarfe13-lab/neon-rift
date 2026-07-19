@@ -5,20 +5,20 @@
 //   name(HUD 표시) / cd(시전 간격 프레임) / dmgMul(기본 데미지 배수).
 export const BOSSES = {
   warden: { id:'warden', name:'감시자', shape:'square', color:'#ff5cc8', boss:true, sprite:'boss', spriteScale:1.7, behavior:'boss',
-    sheet:{ cols:3, rows:2, fps:6, anims:{ idle:[0,1], attack:[2,3,4,5] } },
+    sheet:{ cols:3, rows:2, fps:5, anims:{ idle:[0,1], attack:[2,3,4,5] } },
     hp:2000, speed:1.25, radius:40, damage:24, xp:150, gold:150,
     pattern:'ring', shootCd:74, shotSpeed:3.0, shotCount:14,
     skill:{ name:'감시의 원환', cd:320, dmgMul:1.25 },
     phases:[{ at:0.6, speed:1.55, shootCd:58 }, { at:0.3, speed:1.9, shootCd:42, shotCount:18 }] },
   hydra: { id:'hydra', name:'히드라', shape:'diamond', color:'#5cff9e', boss:true, sprite:'boss', spriteScale:1.7, behavior:'boss',
-    sheet:{ cols:3, rows:2, fps:6, anims:{ idle:[0,1], attack:[2,3,4,5] } },
+    sheet:{ cols:3, rows:2, fps:5, anims:{ idle:[0,1], attack:[2,3,4,5] } },
     hp:3000, speed:1.3, radius:42, damage:26, xp:210, gold:210,
     pattern:'spiral', shootCd:7, shotSpeed:3.0, shotCount:2,
     skill:{ name:'맹독의 나선', cd:300, dmgMul:1.2 },
     phases:[{ at:0.5, speed:1.55, shootCd:5 }, { at:0.25, speed:1.85, shootCd:4 }] },
   colossus: { id:'colossus', name:'콜로서스', shape:'square', color:'#ffb03d', boss:true, sprite:'boss', spriteScale:1.85, behavior:'boss',
     // 콜로서스 시트 포즈: 0·2 서기(대기), 1·3 주먹 준비, 4 내려찍기 충격파(공격 절정)
-    sheet:{ cols:3, rows:2, fps:6, anims:{ idle:[0,2], attack:[1,3,4] } },
+    sheet:{ cols:3, rows:2, fps:5, anims:{ idle:[0,2], attack:[1,3,4] } },
     hp:4500, speed:1.0, radius:48, damage:32, xp:300, gold:300,
     pattern:'burst', shootCd:58, shotSpeed:3.8, shotCount:4,
     skill:{ name:'대지 붕괴', cd:340, dmgMul:1.35 },
