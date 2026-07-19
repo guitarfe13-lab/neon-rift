@@ -85,17 +85,18 @@ const RUNTIME = {
     world.spawnParticle({ x:p.x, y:p.y, r:R*0.35, rMax:R, life:18, color: skill.color||'#5cf', shock:true }); // 확장 펄스
   },
   // 연쇄: 쿨다운마다 가장 가까운 적에서 인접 적으로 rt.count회 도약하며 피해.
-  chain(world, rs, rt, skill, st, rng, onDamage) {
+  chain(world, rs, rt, skill, st, rng, onDamage, onFire, level) {
     if ((st.timer -= 1) > 0) return;
     if (!payMp(rs, skill, st)) return;
     st.timer = st.cdMax = cd(rt, rs.stats);
     const el = skill.tags && skill.tags[0];
     const p = world.player; let node = nearestEnemy(world, p.x, p.y); if (!node) return;
     const hit = new Set(); let cx=p.x, cy=p.y;
+    const boltW = Math.min(6, 2.6 + Math.max(0, (level || 1) - 1) * 0.4);   // 연쇄 번개: 레벨↑ → 조금씩 굵게(기본 2.6, 상한 6)
     for (let i=0;i<(rt.count||3) && node;i++){
       onDamage(node, rt.damage, el); hit.add(node);
       if (skill.proj === 'whip') FX.spawnWhipArc(world, cx, cy, node.x, node.y, skill.color);   // 채찍: 곡선 궤적+크랙
-      else FX.spawnChainArc(world, cx, cy, node.x, node.y, skill.color);
+      else FX.spawnChainArc(world, cx, cy, node.x, node.y, skill.color, boltW);
       cx=node.x; cy=node.y; node = nearestEnemies(world, cx, cy, 1, hit)[0];
     }
   },
@@ -124,7 +125,7 @@ export function updateSkills(world, rs, rng, sstate, onDamage, onFire) {
     const skill = getSkill(id); if (!skill) continue;
     const rt = runtimeStats(skill, level);
     const st = sstate[id] || (sstate[id] = { timer: 0 });
-    RUNTIME[skill.type]?.(world, rs, rt, skill, st, rng, onDamage, onFire);
+    RUNTIME[skill.type]?.(world, rs, rt, skill, st, rng, onDamage, onFire, level);
   }
 }
 

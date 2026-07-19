@@ -94,7 +94,8 @@ export function spawnImpact(world, x, y, el, crit) {
 }
 
 // 연쇄 번개: 두 점 사이를 진행 수직 방향으로 좌우 번갈아 꺾이는 지그재그로(거리 비례 세그먼트).
-export function spawnChainArc(world, x1, y1, x2, y2, color) {
+// w: 볼트 굵기(스킬 레벨↑ → 조금씩 굵게). 미지정 시 bolt 기본(2.6).
+export function spawnChainArc(world, x1, y1, x2, y2, color, w) {
   const dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1;
   const nx = -dy / d, ny = dx / d;                                   // 수직 단위벡터
   const seg = Math.max(4, Math.min(7, Math.round(d / 26)));          // 멀수록 더 많이 꺾임
@@ -106,7 +107,7 @@ export function spawnChainArc(world, x1, y1, x2, y2, color) {
       let sign = (i % 2 ? 1 : -1); if (Math.random() < 0.3) sign = -sign;
       const off = sign * (3 + Math.random() * 19);
       qx += nx * off; qy += ny * off; }
-    world.spawnParticle({ x1: px, y1: py, x2: qx, y2: qy, bolt: true, color: color || '#c9a3ff', life: 8 });
+    world.spawnParticle({ x1: px, y1: py, x2: qx, y2: qy, bolt: true, color: color || '#c9a3ff', life: 8, w });
     px = qx; py = qy;
   }
 }
@@ -187,9 +188,9 @@ export function drawParticle(ctx, pt, camX, camY) {
     ctx.shadowColor = pt.color; ctx.shadowBlur = 10; ctx.beginPath(); ctx.arc(x, y, pt.arcR || 16, (pt.ang || 0) - 0.7, (pt.ang || 0) + 0.7); ctx.stroke(); }
   else if (pt.shock) { ctx.globalAlpha = Math.min(1, pt.life / 16); ctx.strokeStyle = pt.color || '#fff'; ctx.lineWidth = 4;
     ctx.shadowColor = pt.color || '#fff'; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(x, y, pt.r, 0, 7); ctx.stroke(); }
-  else if (pt.bolt) { ctx.globalAlpha = Math.min(1, pt.life / 6); ctx.strokeStyle = pt.color || '#c9a3ff'; ctx.lineWidth = pt.w || 2.6; ctx.lineCap = 'round';
+  else if (pt.bolt) { const bw = pt.w || 2.6; ctx.globalAlpha = Math.min(1, pt.life / 6); ctx.strokeStyle = pt.color || '#c9a3ff'; ctx.lineWidth = bw; ctx.lineCap = 'round';
     ctx.shadowColor = pt.color || '#c9a3ff'; ctx.shadowBlur = 12; ctx.beginPath(); ctx.moveTo(pt.x1 - camX, pt.y1 - camY); ctx.lineTo(pt.x2 - camX, pt.y2 - camY); ctx.stroke();
-    ctx.globalAlpha *= 0.6; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.shadowBlur = 0; ctx.stroke(); }               // 흰 코어
+    ctx.globalAlpha *= 0.6; ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(1, bw * 0.42); ctx.shadowBlur = 0; ctx.stroke(); }   // 흰 코어(굵기 비례)
   else if (pt.ring) { ctx.globalAlpha = Math.min(1, pt.life / 8); ctx.strokeStyle = pt.color || '#5cf'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(x, y, pt.r, 0, 7); ctx.stroke(); }
   ctx.restore();

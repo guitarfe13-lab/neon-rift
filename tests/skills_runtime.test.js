@@ -30,6 +30,18 @@ test('연쇄는 인접 적들에게 피해(onDamage 호출)', () => {
   for (let i=0;i<80;i++) updateSkills(w, rsWith({ chain_spark:1 }), makeRng('c'), st, ()=>calls++);
   assert.ok(calls >= 1);
 });
+test('연쇄 번개는 스킬 레벨이 높을수록 볼트가 굵어짐(bolt.w↑)', () => {
+  const maxBoltW = (level) => {
+    const w = createWorld(); w.player.x=0; w.player.y=0;
+    w.spawnEnemy({ x:20,y:0,hp:9999,radius:8 }); w.spawnEnemy({ x:40,y:0,hp:9999,radius:8 });
+    const st={};
+    for (let i=0;i<120;i++) updateSkills(w, rsWith({ chain_spark:level }), makeRng('bw'), st, ()=>{});
+    const bolts = w.particles.filter(p=>p.bolt);
+    assert.ok(bolts.length > 0, '볼트 파티클이 생성되어야 함');
+    return Math.max(...bolts.map(p=>p.w));
+  };
+  assert.ok(maxBoltW(6) > maxBoltW(1), '레벨6 볼트가 레벨1보다 굵어야 함');
+});
 test('투사체 스킬은 적이 있을 때 발사', () => {
   const w = createWorld(); w.player.x=0; w.player.y=0;
   w.spawnEnemy({ x:50,y:0,hp:10,radius:8 });
