@@ -176,6 +176,14 @@ export function boot() {
     d = Math.max(1, Math.round(d));
     const res = applyHit(e, d);
     e.flash = 6;
+    // 15레벨 이후 마법 몹(arcane): 피격당하면 즉시 반격 마법(순삭돼 자동 시전 전에 죽어도 마법을 쓰게).
+    // 짧은 반격 쿨(_retCd)로 다중히트 도배 방지.
+    if (e.arcane && (e._retCd || 0) <= 0 && world.hazards.length < 380) {
+      const a = Math.atan2(world.player.y - e.y, world.player.x - e.x);
+      world.spawnHazard({ x:e.x, y:e.y, vx:Math.cos(a)*3.4, vy:Math.sin(a)*3.4, radius:8, damage:Math.max(1,Math.round(e.damage*0.8)), life:220, color:'#c98bff' });
+      e._atk = 16; e._retCd = 45;
+    }
+    if (e._retCd > 0) e._retCd--;
     // 테크트리 특수: 흡혈(피의 광전사) — 가한 피해의 일부 회복
     if (rs.lifesteal > 0 && world.player.hp < world.player.maxHp)
       world.player.hp = Math.min(world.player.maxHp, world.player.hp + d * rs.lifesteal);

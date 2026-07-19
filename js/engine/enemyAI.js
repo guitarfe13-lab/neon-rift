@@ -83,10 +83,10 @@ export function stepEnemy(e, world, rng) {
 
   // 15레벨 이후 스폰 몹(arcane): 가끔 마법 투사체(보라)를 플레이어에게 발사 → 근접 몹에도 원거리 위협.
   if (e.arcane && e.behavior !== 'boss') {
-    e._castCd = e._castCd ?? (150 + Math.floor(rng.next() * 220));   // 첫 시전 랜덤 지연
+    e._castCd = e._castCd ?? (45 + Math.floor(rng.next() * 90));    // 첫 시전 0.7~2.2초(빨리 한 발)
     if (--e._castCd <= 0) {
-      e._castCd = 320 + Math.floor(rng.next() * 260);               // 다음 시전까지 5~10초(가끔)
-      if (rng.next() < 0.6) {
+      e._castCd = 220 + Math.floor(rng.next() * 200);               // 다음 시전까지 3.7~7초
+      if (rng.next() < 0.7) {
         fireHazard(world, e.x, e.y, angToP, 3.2, Math.max(1, Math.round(e.damage * 0.8)), { radius: 8, color: '#c98bff' });
         e._atk = 16;
       }
