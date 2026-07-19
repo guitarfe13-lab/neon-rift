@@ -584,7 +584,8 @@ export function boot() {
       drawHud(ctx, rs, world, frameCount, meta.souls);
       // ── 좌하단 원형 레이더(미니맵): 플레이어 중심, 주변 적·보스·중요 아이템 표시 ──
       {
-        const rad = 64, mx = 20 + rad, my = canvas.height - 20 - rad, p = world.player, range = 900;
+        // 좌하단 모서리에 바짝 — 중심을 모서리 쪽으로 밀어 원의 좌·하단이 화면 밖으로 조금 잘리게.
+        const rad = 64, mx = rad * 0.72, my = canvas.height - rad * 0.72, p = world.player, range = 900;
         ctx.save();
         // 배경 원 + 네온 링
         ctx.beginPath(); ctx.arc(mx, my, rad, 0, Math.PI * 2);
