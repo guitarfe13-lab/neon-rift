@@ -28,6 +28,9 @@ import * as R from './ui/render.js';
 // #rrggbb → rgba(a)
 function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }
 
+// 마법 크리 피격 스턴 지속(프레임, 60fps 기준 ~3초). 이 동안 MP 사용(스킬 시전)이 봉인된다.
+const STUN_FRAMES = 180;
+
 // 엔티티 렌더: 이미지 에셋(assets/sprites/<id>.png)이 있으면 그걸로, 없으면 코드 스프라이트로.
 // 크기 확대 + 접지 그림자 + 은은한 네온 글로우로 '떠 있는 느낌' 제거.
 function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
@@ -155,6 +158,7 @@ export function boot() {
     rs.stats = computeStats({ charId, metaUpgrades: meta.upgrades, runMods: [] });
     world.player.maxHp = rs.stats.maxHp; world.player.hp = rs.stats.maxHp;
     rs.mp = rs.stats.maxMp;
+    rs.stun = 0; rs.stunMax = STUN_FRAMES;                                   // 마법 크리 스턴(MP 봉인) 잔여/최대 프레임
     rs.potions = { hp: meta.potions?.hp || 0, mp: meta.potions?.mp || 0 };  // 상점 구매분 반입
     rs.potCd = { hp: 0, mp: 0 };                                            // 물약 쿨타임(30s, 스킬처럼)
     rs.oaths = meta.relics?.oath || 0;                                      // 신성의 맹세(부활) 반입
@@ -180,7 +184,7 @@ export function boot() {
     // 짧은 반격 쿨(_retCd)로 다중히트 도배 방지.
     if (e.arcane && (e._retCd || 0) <= 0 && world.hazards.length < 380) {
       const a = Math.atan2(world.player.y - e.y, world.player.x - e.x);
-      world.spawnHazard({ x:e.x, y:e.y, vx:Math.cos(a)*3.4, vy:Math.sin(a)*3.4, radius:8, damage:Math.max(1,Math.round(e.damage*0.8)), life:220, color:'#c98bff' });
+      world.spawnHazard({ x:e.x, y:e.y, vx:Math.cos(a)*3.4, vy:Math.sin(a)*3.4, radius:8, damage:Math.max(1,Math.round(e.damage*0.8)), life:220, color:'#c98bff', magic:true });
       e._atk = 16; e._retCd = 45;
     }
     if (e._retCd > 0) e._retCd--;
@@ -262,11 +266,13 @@ export function boot() {
   }
 
   // 플레이어 피격(적 크리 가능, 연속 피격 시 크리 확률↑). raw = 적 피해 × 0.1.
-  function hurtPlayer(raw) {
+  // magic=true(마법 투사체)면 크리 기저 확률이 높고, 크리 시 ~3초 MP 봉인 스턴을 건다.
+  function hurtPlayer(raw, magic = false) {
     if ((world.player.invuln || 0) > 0) return;
     const p = world.player;
     p.hurtStreak = (p.hurtStreak || 0) + 1; p.hurtTimer = 120;   // 연속 피격 스트릭(2s 창)
-    const critChance = Math.min(0.7, 0.1 + (p.hurtStreak - 1) * 0.03);   // 연속으로 맞을수록↑
+    const base = magic ? 0.3 : 0.1, cap = magic ? 0.75 : 0.7;    // 마법 공격은 크리(→스턴)가 더 잘 터짐
+    const critChance = Math.min(cap, base + (p.hurtStreak - 1) * 0.03);   // 연속으로 맞을수록↑
     const crit = Math.random() < critChance;
     const d = raw * (crit ? 1.6 : 1);
     p.hp -= d; p.invuln = 22;   // 피격 무적 0.37s — 보스 링 탄막 다중 적중(버스트 즉사) 방지
@@ -274,6 +280,12 @@ export function boot() {
     const shown = Math.max(1, Math.round(d));
     world.spawnFloater({ x:p.x, y:p.y-22, text: crit ? `Critical -${shown}` : `-${shown}`,
       color: crit ? '#ff3b3b' : '#ff9a9a', life: crit?52:34, max: crit?52:34, vy:-0.7, crit });
+    // 마법 공격에 크리로 맞으면 ~3초 MP 봉인 스턴(초상 붉게 + 잔여시간 표시). 스턴 중 다시 맞으면 시간 갱신.
+    if (magic && crit) {
+      rs.stun = STUN_FRAMES; rs.stunMax = STUN_FRAMES;
+      shake = Math.min(16, shake + 6);
+      world.spawnFloater({ x:p.x, y:p.y-42, text:'⚡ 스턴! MP 봉인', color:'#ff5cf0', life:72, max:72, vy:-0.5, crit:true });
+    }
   }
 
   function cleanupSkillState() {
@@ -335,6 +347,7 @@ export function boot() {
       if (Math.hypot(e.x-world.player.x, e.y-world.player.y) < e.radius+world.player.radius) hurtPlayer(e.damage*0.1);
     }
     if (world.player.invuln>0) world.player.invuln--;
+    if (rs.stun > 0) rs.stun--;   // 마법 크리 스턴 경과(0 되면 MP 봉인 자동 해제)
     if (world.player.hurtTimer > 0 && --world.player.hurtTimer === 0) world.player.hurtStreak = 0; // 연속 피격 스트릭 소멸
     if (comboTimer>0) comboTimer--; else combo=0;
     if (levelupDelay>0) levelupDelay--;
@@ -343,7 +356,7 @@ export function boot() {
     // 적 투사체(hazard) 이동/플레이어 피격
     for (const hz of world.hazards) { if (!hz.alive) continue;
       hz.x += hz.vx; hz.y += hz.vy; if (--hz.life <= 0) { hz.alive=false; continue; }
-      if (Math.hypot(hz.x-world.player.x, hz.y-world.player.y) < hz.radius+world.player.radius) { hurtPlayer(hz.damage*0.1); hz.alive=false; }
+      if (Math.hypot(hz.x-world.player.x, hz.y-world.player.y) < hz.radius+world.player.radius) { hurtPlayer(hz.damage*0.1, hz.magic); hz.alive=false; }
     }
     // 스킬 실행 + 투사체 이동 (발사 시 슛 사운드, 과다 방지 스로틀)
     updateSkills(world, rs, rng, sstate, damageEnemy, () => { world.player._atk = 30; if (frameCount % 5 === 0) audio.sfx('shoot'); });
@@ -447,7 +460,7 @@ export function boot() {
     rs.oaths--;
     meta.relics = meta.relics || { oath: 0 }; meta.relics.oath = rs.oaths; saveMeta(meta);   // 소모 즉시 저장(중복 사용 방지)
     world.player.hp = Math.round(world.player.maxHp * 0.5);
-    world.player.invuln = 120;
+    world.player.invuln = 120; rs.stun = 0;                               // 부활 시 스턴(MP 봉인)도 해제
     world.hazards.length = 0;                                              // 주변 탄막 소거(부활 즉사 방지)
     const p = world.player;
     for (const e of world.enemies) if (e.alive && !e.boss && Math.hypot(e.x-p.x, e.y-p.y) < 140) e.hp = 0;  // 밀착 몹 정리

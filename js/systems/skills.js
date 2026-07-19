@@ -21,7 +21,8 @@ function cd(rt, stats) { return Math.max(4, rt.cooldown / (stats.atkSpeed || 1))
 // 마법 스킬 MP 지불. 직업별 배율(mpCostMul — 공속 빠른 궁수는 발사당 저렴) 적용.
 // 부족하면 발사 보류(짧게 재시도). rs.mp가 없으면(테스트) 무제한.
 function payMp(rs, skill, st, retry = 4) {
-  if (!skill.mpCost) return true;
+  if (!skill.mpCost) return true;                         // MP 안 쓰는 스킬은 스턴과 무관(계속 발동)
+  if (rs.stun > 0) { st.timer = retry; return false; }    // 마법 크리 스턴 중: MP 사용(시전) 봉인
   const cost = skill.mpCost * (rs.stats?.mpCostMul || 1);
   if ((rs.mp ?? Infinity) < cost) { st.timer = retry; return false; }
   if (rs.mp != null) rs.mp -= cost;

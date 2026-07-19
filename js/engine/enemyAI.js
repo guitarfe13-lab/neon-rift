@@ -7,7 +7,7 @@ export const MOVE_SCALE = 0.5;
 // 적 투사체(플레이어에게 피해) 발사. 아군 투사체와 구분되도록 붉은색(스킬탄은 크고 주황빛).
 function fireHazard(world, x, y, ang, speed, damage, opt) {
   world.spawnHazard({ x, y, vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed,
-    radius: opt?.radius || 7, damage, life: opt?.life || 220, color: opt?.color || '#ff2e2e' });
+    radius: opt?.radius || 7, damage, life: opt?.life || 220, color: opt?.color || '#ff2e2e', magic: opt?.magic || false });
 }
 
 // 보스 전용 스킬: 상시 탄막과 별개 쿨다운. skillTier(0~3, 진행도)가 높을수록 링 수·탄 수·데미지↑(광역·강력).
@@ -25,7 +25,7 @@ function stepBossSkill(e, world) {
   for (let r = 0; r < rings; r++) {
     const n = baseN + r * 2, off = (r % 2) * (Math.PI / n), sp = e.shotSpeed * (1 + r * 0.28);
     for (let i = 0; i < n; i++) { const a = off + (i / n) * Math.PI * 2;
-      fireHazard(world, e.x, e.y, a, sp, dmg, { radius: 9, color: '#ff7a2e' }); }
+      fireHazard(world, e.x, e.y, a, sp, dmg, { radius: 9, color: '#ff7a2e', magic: true }); }   // 보스 스킬 = 마법(크리 시 스턴)
   }
   if (world.spawnParticle) world.spawnParticle({ x:e.x, y:e.y, r:e.radius*0.8, rMax:e.radius*(3+tier), life:16, color:e.color, shock:true });
 }
@@ -87,7 +87,7 @@ export function stepEnemy(e, world, rng) {
     if (--e._castCd <= 0) {
       e._castCd = 220 + Math.floor(rng.next() * 200);               // 다음 시전까지 3.7~7초
       if (rng.next() < 0.7) {
-        fireHazard(world, e.x, e.y, angToP, 3.2, Math.max(1, Math.round(e.damage * 0.8)), { radius: 8, color: '#c98bff' });
+        fireHazard(world, e.x, e.y, angToP, 3.2, Math.max(1, Math.round(e.damage * 0.8)), { radius: 8, color: '#c98bff', magic: true });   // 아케인 몹 마법(크리 시 스턴)
         e._atk = 16;
       }
     }

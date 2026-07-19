@@ -6,7 +6,8 @@ import { drawSprite } from './sprites.js';
 import { getCharacter } from '../data/characters.js';
 
 // 캐릭터 초상: 구형 원 안에 캐릭터 이미지(단일 → 시트 첫 프레임 → 코드 스프라이트 폴백).
-function drawPortrait(ctx, ch, cx, cy, r, t) {
+// stun>0(마법 크리 스턴)이면 붉은 오버레이 + 줄어드는 잔여시간 링 + 남은 초를 덧그린다.
+function drawPortrait(ctx, ch, cx, cy, r, t, stun = 0, stunMax = 180) {
   ctx.save();
   ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
   ctx.fillStyle = 'rgba(10,12,22,0.92)'; ctx.shadowColor = ch.color; ctx.shadowBlur = 12; ctx.fill(); ctx.shadowBlur = 0;
@@ -22,8 +23,23 @@ function drawPortrait(ctx, ch, cx, cy, r, t) {
     const sc = Math.max((r-2)*2/fw, (r-2)*2/fh), dw = fw*sc, dh = fh*sc;
     ctx.drawImage(sheetImg, fx, fy, fw, fh, cx-dw/2, cy-r, dw, dh);
   } else drawSprite(ctx, ch.sprite, cx, cy, r-5, ch.color, t, 0);
+  if (stun > 0) {   // 스턴: 초상 내부를 붉게 맥동(피격/봉인 느낌) — clip 안에서 채움
+    const pulse = 0.34 + 0.22 * Math.sin(t * 0.4);
+    ctx.fillStyle = `rgba(255,40,60,${pulse})`; ctx.fillRect(cx-r, cy-r, r*2, r*2);
+  }
   ctx.restore();
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.lineWidth = 2.5; ctx.strokeStyle = ch.color; ctx.stroke();
+  if (stun > 0) {   // 붉은 외곽 링 + 위에서 시계방향으로 줄어드는 잔여시간 호(시간이 흐르는 표시) + 남은 초
+    const frac = Math.max(0, Math.min(1, stun / (stunMax || 180)));
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.lineWidth = 2.5; ctx.strokeStyle = '#ff5c6e'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, r+3.5, -Math.PI/2, -Math.PI/2 + frac*Math.PI*2);
+    ctx.lineWidth = 4; ctx.strokeStyle = '#ff2e4e'; ctx.shadowColor = '#ff2e4e'; ctx.shadowBlur = 8; ctx.stroke(); ctx.shadowBlur = 0;
+    ctx.font = '800 15px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const secs = `${Math.ceil(stun / 60)}`;
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.strokeText(secs, cx, cy);
+    ctx.fillStyle = '#fff'; ctx.fillText(secs, cx, cy);
+  } else {
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.lineWidth = 2.5; ctx.strokeStyle = ch.color; ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -46,7 +62,7 @@ export function drawHud(ctx, rs, world, frame = 0, souls = 0) {
   const blinkOn = Math.floor(frame / 8) % 2 === 0;   // 저잔량 경고 점멸
   // 캐릭터 초상(HP/MP 바 앞) → 바들은 우측으로 이동
   const ch = getCharacter(rs.charId);
-  if (ch) drawPortrait(ctx, ch, 40, 32, 26, frame);
+  if (ch) drawPortrait(ctx, ch, 40, 32, 26, frame, rs.stun || 0, rs.stunMax || 180);
   const BX = 76, BW = 208;                          // 바 시작 x / 폭(초상 자리 확보)
   const hpPct = p.hp / p.maxHp, hpLow = hpPct <= 0.3;
   bar(ctx, BX, 14, BW, 13, hpPct, hpLow ? (blinkOn ? '#ff2a2a' : '#5a1018') : '#ff4d6d');
