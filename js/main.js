@@ -284,11 +284,11 @@ export function boot() {
     if (slowmo > 0) { slowmo--; if (frameCount % 3 !== 0) return; }
     rs.timeMs += dt;
     rs.stage = Math.max(1, (rs.timeMs/30000|0)+1);
-    // 이동: 목표 속도로 즉시 튀지 않고 관성(가속·감속)으로 부드럽게 접근 → 방향전환·정지가 매끄럽다.
-    const mv = input.moveVector(world), sp = rs.stats.moveSpeed * MOVE_SCALE;
+    // 이동: 최고 속도를 낮추고(×0.8) 관성(가속·감속)을 크게 걸어 방향전환·정지가 미끄러지듯 부드럽게.
+    const mv = input.moveVector(world), sp = rs.stats.moveSpeed * MOVE_SCALE * 0.8;
     const pl = world.player;
-    pl.vx = (pl.vx || 0) + (mv.x * sp - (pl.vx || 0)) * 0.28;
-    pl.vy = (pl.vy || 0) + (mv.y * sp - (pl.vy || 0)) * 0.28;
+    pl.vx = (pl.vx || 0) + (mv.x * sp - (pl.vx || 0)) * 0.16;
+    pl.vy = (pl.vy || 0) + (mv.y * sp - (pl.vy || 0)) * 0.16;
     pl.x += pl.vx; pl.y += pl.vy;
     // 좌우 반전은 사람처럼: 반대 방향 이동이 15프레임(0.25s) 유지될 때만 전환(자동조작 잔떨림 방지)
     if (mv.x) {
