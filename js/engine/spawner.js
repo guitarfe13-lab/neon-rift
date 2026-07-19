@@ -14,7 +14,8 @@ export function makeDirector(rng, biomes) {
     return { ...e,
       hp: Math.round(e.hp * (1 + min * 0.5 + lv * 0.11)),   // 후반 스펀지화 완화(0.6/0.13 → 0.5/0.11)
       speed: e.speed * (1.1 + min * 0.05 + lv * 0.05),   // 기본 +10%, 레벨↑마다 +5%(체감되게)
-      damage: Math.round(e.damage * (1 + lv * 0.075)) };  // 레벨↑ → 몬스터 공격력 강화(0.09 → 0.075)
+      damage: Math.round(e.damage * (1 + lv * 0.075)),   // 레벨↑ → 몬스터 공격력 강화(0.09 → 0.075)
+      arcane: level >= 15 };   // 15레벨 이후 스폰 몹은 가끔 마법 투사체 사용(enemyAI에서 처리)
   }
   function spawnOne(world, level) {
     const b = biome(); const id = rng.pick(b.enemySet); const st = enemyStatsAt(id, t, level);

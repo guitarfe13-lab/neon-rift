@@ -77,9 +77,21 @@ export function stepEnemy(e, world, rng) {
     stepBossPattern(e, world, angToP);
     stepBossSkill(e, world);
     if (e._skillNameT > 0) e._skillNameT--;   // HUD 스킬명 표시 타이머 감쇠
-    if (e._atk > 0) e._atk--;                 // 공격 애니(스프라이트시트) 타이머 감쇠
   }
   e.x += Math.cos(ang)*spd*MOVE_SCALE; e.y += Math.sin(ang)*spd*MOVE_SCALE;
+  if (e._atk > 0) e._atk--;   // 공격 애니 타이머(마법 몹 등)
+
+  // 15레벨 이후 스폰 몹(arcane): 가끔 마법 투사체(보라)를 플레이어에게 발사 → 근접 몹에도 원거리 위협.
+  if (e.arcane && e.behavior !== 'boss') {
+    e._castCd = e._castCd ?? (150 + Math.floor(rng.next() * 220));   // 첫 시전 랜덤 지연
+    if (--e._castCd <= 0) {
+      e._castCd = 320 + Math.floor(rng.next() * 260);               // 다음 시전까지 5~10초(가끔)
+      if (rng.next() < 0.6) {
+        fireHazard(world, e.x, e.y, angToP, 3.2, Math.max(1, Math.round(e.damage * 0.8)), { radius: 8, color: '#c98bff' });
+        e._atk = 16;
+      }
+    }
+  }
 }
 
 export function onEnemyDeath(e, world, rng) {
