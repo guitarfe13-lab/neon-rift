@@ -285,7 +285,7 @@ export function boot() {
     rs.timeMs += dt;
     rs.stage = Math.max(1, (rs.timeMs/30000|0)+1);
     // 이동: 최고 속도를 낮추고(×0.8) 관성(가속·감속)을 크게 걸어 방향전환·정지가 미끄러지듯 부드럽게.
-    const mv = input.moveVector(world), sp = rs.stats.moveSpeed * MOVE_SCALE * 0.6;
+    const mv = input.moveVector(world), sp = rs.stats.moveSpeed * MOVE_SCALE * 0.4;
     const pl = world.player;
     pl.vx = (pl.vx || 0) + (mv.x * sp - (pl.vx || 0)) * 0.16;
     pl.vy = (pl.vy || 0) + (mv.y * sp - (pl.vy || 0)) * 0.16;
