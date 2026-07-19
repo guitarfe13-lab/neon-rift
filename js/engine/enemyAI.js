@@ -14,7 +14,7 @@ function fireHazard(world, x, y, ang, speed, damage, opt) {
 function stepBossSkill(e, world) {
   if (!e.skill) return;
   const cd = e.skill.cd || 320;
-  e._skCd = (e._skCd ?? Math.floor(cd * 0.55));   // 첫 시전은 조금 빨리
+  e._skCd = (e._skCd ?? 90);   // 첫 시전은 등장 ~1.5초 후(기술을 일찍 보여줌), 이후 정규 cd
   if (--e._skCd > 0) return;
   e._skCd = cd;
   const tier = Math.max(0, Math.min(3, e.skillTier || 0));
