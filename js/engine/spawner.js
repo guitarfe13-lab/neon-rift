@@ -9,12 +9,15 @@ export function makeDirector(rng, biomes) {
   const biome = () => biomes[biomeIdx % biomes.length];
 
   // 경과 시간 + 플레이어 레벨에 따라 적 hp/피해 스케일(레벨↑ → 몹도 강해짐).
+  // 보상(xp·gold)도 동반 상승 — 몹 hp만 커지고 보상은 고정이라 후반 레벨업·경제가 정체되던 문제 해결.
   function enemyStatsAt(id, atMs, level = 1) {
     const e = getEnemy(id); const min = atMs / 60000; const lv = Math.max(0, level - 1);
     return { ...e,
       hp: Math.round(e.hp * (1 + min * 0.5 + lv * 0.11)),   // 후반 스펀지화 완화(0.6/0.13 → 0.5/0.11)
-      speed: e.speed * (1.1 + min * 0.05 + lv * 0.05),   // 기본 +10%, 레벨↑마다 +5%(체감되게)
+      speed: e.speed * Math.min(2.0, 1.1 + min * 0.05 + lv * 0.05),   // 기본 +10%, 레벨당 +5% — 상한 2배(느린 플레이어가 후반에 절대 못 피하는 상황 방지)
       damage: Math.round(e.damage * (1 + lv * 0.075)),   // 레벨↑ → 몬스터 공격력 강화(0.09 → 0.075)
+      xp: Math.round(e.xp * (1 + min * 0.3 + lv * 0.06)),      // 몹 hp 성장(0.5/0.11)의 ~60% 속도로 보상 성장 → 난이도는 완만히 오르되 정체 없음
+      gold: Math.round(e.gold * (1 + min * 0.2 + lv * 0.04)),  // 경제도 완만히 동반 성장(메타 상점 교환 대비)
       arcane: level >= 15 };   // 15레벨 이후 스폰 몹은 가끔 마법 투사체 사용(enemyAI에서 처리)
   }
   function spawnOne(world, level) {
@@ -35,10 +38,12 @@ export function makeDirector(rng, biomes) {
     const prefix = EPITHETS[Math.min(seen, EPITHETS.length - 1)];
     const scale = (1 + biomeIdx * 0.6 + lv * 0.06) * (1 + seen * 0.12);   // 재등장마다 조금씩 더 강하게
     const hp = Math.round(boss.hp * scale);
+    const rew = 1 + biomeIdx * 0.35 + lv * 0.05 + seen * 0.1;   // 보상(xp·gold)도 진행도 동반 성장(hp 성장의 ~60%)
     // 플레이어 현재 위치를 중심으로 아레나 고정(무한 후퇴 방지). 보스는 화면 안에 등장.
     arena = { x: world.player.x, y: world.player.y, r: 360 };
     bossRef = world.spawnEnemy({ ...boss, hp, maxHp: hp, name: prefix + boss.name,
       damage: Math.round(boss.damage * (1 + lv * 0.05 + seen * 0.1)),   // 탄당 피해: 레벨 완화 + 재등장 보정
+      xp: Math.round(boss.xp * rew), gold: Math.round(boss.gold * rew),
       skillTier: Math.min(3, Math.floor(biomeIdx / 2) + seen),   // 진행·재등장할수록 보스 스킬 광역·강력(0~3)
       x: arena.x, y: arena.y - 170 });
     world.spawnParticle({ x: arena.x, y: arena.y - 170, r: 20, rMax: 160, life: 24, color: boss.color, shock: true });  // 등장 충격파
@@ -51,11 +56,13 @@ export function makeDirector(rng, biomes) {
     const cycle = Math.floor(biomeIdx / biomes.length);
     const scale = (1 + biomeIdx * 0.5 + lv * 0.06) * (1 + cycle * 0.15);
     const hp = Math.round(mb.hp * scale);
+    const rew = 1 + biomeIdx * 0.3 + lv * 0.05 + cycle * 0.15;   // 보상(xp·gold)도 진행도 동반 성장
     // 화면 안(캔버스 960×540 시야) 타원 반경에 생성 — 등장이 눈에 보이게.
     const ang = rng.next() * Math.PI * 2;
     const mx = world.player.x + Math.cos(ang) * 330, my = world.player.y + Math.sin(ang) * 175;
     world.spawnEnemy({ ...mb, hp, maxHp: hp,
       damage: Math.round(mb.damage * (1 + lv * 0.06 + cycle * 0.1)),
+      xp: Math.round(mb.xp * rew), gold: Math.round(mb.gold * rew),
       skillTier: Math.min(2, biomeIdx + cycle),
       x: mx, y: my });
     world.spawnParticle({ x: mx, y: my, r: 14, rMax: 110, life: 20, color: mb.color, shock: true });  // 등장 충격파

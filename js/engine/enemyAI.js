@@ -80,6 +80,7 @@ export function stepEnemy(e, world, rng) {
   }
   e.x += Math.cos(ang)*spd*MOVE_SCALE; e.y += Math.sin(ang)*spd*MOVE_SCALE;
   if (e._atk > 0) e._atk--;   // 공격 애니 타이머(마법 몹 등)
+  if (e._retCd > 0) e._retCd--;   // 아케인 반격 마법 쿨(main damageEnemy에서 설정) — 프레임당 감소
 
   // 15레벨 이후 스폰 몹(arcane): 가끔 마법 투사체(보라)를 플레이어에게 발사 → 근접 몹에도 원거리 위협.
   if (e.arcane && e.behavior !== 'boss') {
@@ -97,8 +98,16 @@ export function stepEnemy(e, world, rng) {
 export function onEnemyDeath(e, world, rng) {
   if (e.behavior === 'splitter') {
     const mini = getEnemy(e.splitInto); if (!mini) return;
+    // 부모(분열체)의 성장 배율을 분열자에게 승계 — 후반 분열자가 기본 스탯(hp4, 순삭)으로 나오던 버그 수정.
+    const src = getEnemy(e.id);
+    const kHp  = (src?.hp && e.maxHp) ? e.maxHp / src.hp : 1;
+    const kDmg = (src?.damage && e.damage) ? e.damage / src.damage : 1;
+    const kXp  = (src?.xp && e.xp) ? e.xp / src.xp : 1;
     for (let i=0;i<(e.splitCount||2);i++){ const a=rng.next()*Math.PI*2;
-      world.spawnEnemy({ ...mini, x:e.x+Math.cos(a)*14, y:e.y+Math.sin(a)*14, maxHp:mini.hp }); }
+      const hp = Math.max(1, Math.round(mini.hp * kHp));
+      world.spawnEnemy({ ...mini, x:e.x+Math.cos(a)*14, y:e.y+Math.sin(a)*14, hp, maxHp:hp,
+        damage: Math.max(1, Math.round(mini.damage * kDmg)),
+        xp: Math.max(1, Math.round(mini.xp * kXp)) }); }
   } else if (e.behavior === 'bomber') {
     // 사망 폭발: 빠르게 퍼지는 짧은 수명 탄막(폭발감) + 충격파 링
     for (let i=0;i<10;i++){ const a=i/10*Math.PI*2 + rng.next()*0.2; fireHazard(world, e.x, e.y, a, 5.2, e.damage, { life:80 }); }

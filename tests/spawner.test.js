@@ -23,6 +23,19 @@ test('적 hp·피해는 플레이어 레벨에 따라 증가', () => {
   assert.ok(lv15.hp > lv1.hp);
   assert.ok(lv15.damage > lv1.damage);
 });
+test('적 xp·gold 보상도 시간·레벨에 따라 증가(후반 레벨업 정체 방지)', () => {
+  const dir = makeDirector(makeRng('s'), BIOMES);
+  const early = dir.enemyStatsAt('grunt', 0, 1);
+  const late = dir.enemyStatsAt('grunt', 600000, 20);
+  assert.ok(late.xp > early.xp);
+  assert.ok(late.gold > early.gold);
+});
+test('적 이속 배율은 2배 상한(후반 무한 가속 방지)', () => {
+  const dir = makeDirector(makeRng('s'), BIOMES);
+  const base = dir.enemyStatsAt('grunt', 0, 1).speed / 1.1;   // 기본 배율 1.1 역산
+  const late = dir.enemyStatsAt('grunt', 3600000, 99);        // 극후반
+  assert.ok(late.speed <= base * 2.0 + 1e-9);
+});
 test('durationMs 경과 시 보스 스폰 + 아레나 설정', () => {
   const dir = makeDirector(makeRng('s'), BIOMES);
   const w = createWorld();

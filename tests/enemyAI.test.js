@@ -12,6 +12,24 @@ test('분열체 사망 시 미니 적 2기 생성', () => {
   onEnemyDeath(e, w, makeRng('s'));
   assert.equal(w.enemies.length, 2);
 });
+test('스케일된 분열체의 분열자는 부모 성장 배율을 승계(후반 순삭 방지)', () => {
+  const w = createWorld();
+  const base = getEnemy('splitter');
+  // 후반 스폰처럼 hp 5배·damage 2배로 성장한 분열체
+  const e = { ...base, x:0, y:0, alive:true, hp:0, maxHp: base.hp*5, damage: base.damage*2 };
+  onEnemyDeath(e, w, makeRng('s'));
+  const mini = getEnemy(base.splitInto);
+  for (const m of w.enemies) {
+    assert.equal(m.maxHp, Math.round(mini.hp * 5));
+    assert.equal(m.damage, Math.round(mini.damage * 2));
+  }
+});
+test('아케인 반격 쿨(_retCd)은 프레임당 감소', () => {
+  const w = createWorld(); w.player.x = 500; w.player.y = 0;
+  const e = { ...getEnemy('grunt'), x:0, y:0, alive:true, _retCd: 10 };
+  for (let i=0;i<10;i++) stepEnemy(e, w, makeRng('r'));
+  assert.equal(e._retCd, 0);
+});
 test('슈터는 사거리 내에서 hazard 발사', () => {
   const w = createWorld(); w.player.x=0; w.player.y=0;
   const e = { ...getEnemy('shooter'), x:100, y:0, alive:true };

@@ -71,10 +71,11 @@ function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
       return;
     }
     // 걸음 바운스: sin²(θ)로 착지·최고점 양끝이 부드러운 포물선 반등(|sin|의 뾰족한 V자 착지 제거).
-    const phase = t * 0.26 + ent._ph;
+    // 주파수 0.16 ≈ 초당 ~3보 — 느려진 이동 속도(40%)에 맞춰 잔떨림 없는 걸음 템포.
+    const phase = t * 0.16 + ent._ph;
     const liftK = Math.sin(phase) ** 2;                        // 0(접지)~1(최고점), 양끝 도함수 0 → 매끄러움
     const bob = -liftK * r * 0.05;
-    const rock = Math.sin(phase * 0.5) * 0.05;                  // 좌우 갸우뚱은 절반 주기(왼발/오른발 번갈아)
+    const rock = Math.sin(phase * 0.5) * 0.04;                  // 좌우 갸우뚱은 절반 주기(왼발/오른발 번갈아)
     const foot = y + r * 1.2;                                   // 접지선을 아래로(뜬 느낌 완화)
     const sw = r * 0.95 * (ent.spriteScale || 1) * (1 - liftK * 0.14);  // 그림자 폭(들리면 살짝 축소)
     // 그림자·바닥 빛 기준선: 이미지 하단 투명 여백 탓에 foot이 실제 발보다 아래 → 위로 당겨 발에 밀착.
@@ -134,15 +135,16 @@ export function boot() {
     ...BIOMES.map((b) => `assets/bg/${b.id}.png`),
   ]);
   let scene = 'title', overlay = null, world, rs, dir, rng, sstate, frameCount = 0;
-  let shake = 0, combo = 0, comboTimer = 0, slowmo = 0, whiteFlash = 0, pendingLevelUp = false;
+  let shake = 0, combo = 0, comboTimer = 0, slowmo = 0, whiteFlash = 0, pendingLevels = 0;   // 대기 레벨업 수(다중 레벨 큐)
   let announce = null, lastBoss = null;   // 보스 출현 중앙 경고 배너 {text,color,life,max}
   let lastBiome = null, biomeSwipe = null;  // 바이옴 전환(보스 처치) 네온 쇼크웨이브 와이프 {life,max,color}
   let levelupDelay = 0, goldFlash = 0, comboPop = 0;
   let autoPotion = meta.settings.autoPotion !== false;   // 물약 자동 사용(O 키/설정 토글)
 
   // 레벨업 순간 연출(버스트 + 골드 플래시 + 문구). 오버레이는 잠시 뒤 열림.
-  function onLevelGain() {
-    pendingLevelUp = true; levelupDelay = 20; goldFlash = 12;
+  // levels: 이번에 오른 레벨 수 — 큐에 쌓아 한 레벨당 3택 1회씩 차례로 연다(다중 레벨 손실 방지).
+  function onLevelGain(levels = 1) {
+    pendingLevels += levels; levelupDelay = 20; goldFlash = 12;
     const p = world.player;
     world.spawnParticle({ x:p.x, y:p.y, r:12, rMax:100, life:26, color:'#ffe14d', shock:true });
     for (let i=0;i<16;i++){ const a=i/16*Math.PI*2; world.spawnParticle({ x:p.x, y:p.y, vx:Math.cos(a)*2.4, vy:Math.sin(a)*2.4-1, life:24, color:'#ffe14d', spark:true }); }
@@ -183,13 +185,12 @@ export function boot() {
     const res = applyHit(e, d);
     e.flash = 6;
     // 15레벨 이후 마법 몹(arcane): 피격당하면 즉시 반격 마법(순삭돼 자동 시전 전에 죽어도 마법을 쓰게).
-    // 짧은 반격 쿨(_retCd)로 다중히트 도배 방지.
+    // 반격 쿨(_retCd)은 stepEnemy에서 프레임당 감소 — 피격당 감소(사실상 재반격 불가)하던 버그 수정.
     if (e.arcane && (e._retCd || 0) <= 0 && world.hazards.length < 380) {
       const a = Math.atan2(world.player.y - e.y, world.player.x - e.x);
       world.spawnHazard({ x:e.x, y:e.y, vx:Math.cos(a)*3.4, vy:Math.sin(a)*3.4, radius:8, damage:Math.max(1,Math.round(e.damage*0.8)), life:220, color:'#c98bff', magic:true });
-      e._atk = 16; e._retCd = 45;
+      e._atk = 16; e._retCd = 70;   // 정상 감소하게 되면서 45→70(반격 최대 ~0.85/s)으로 완화
     }
-    if (e._retCd > 0) e._retCd--;
     // 테크트리 특수: 흡혈(피의 광전사) — 가한 피해의 일부 회복
     if (rs.lifesteal > 0 && world.player.hp < world.player.maxHp)
       world.player.hp = Math.min(world.player.maxHp, world.player.hp + d * rs.lifesteal);
@@ -264,7 +265,7 @@ export function boot() {
     else if (g.kind === 'hp') { world.player.hp = Math.min(world.player.maxHp, world.player.hp + g.value);
       world.spawnFloater({ x:world.player.x, y:world.player.y-22, text:`+${g.value} HP`, color:'#ff6b8a', life:36, max:36, vy:-0.7 }); audio.sfx('upgrade'); }
     else if (g.kind === 'skill') { grantHiddenSkill(); }
-    else { if (frameCount%3===0) audio.sfx('pick'); if (addXp(rs, g.value*rs.stats.xpGain).leveled) onLevelGain(); }
+    else { if (frameCount%3===0) audio.sfx('pick'); const r = addXp(rs, g.value*rs.stats.xpGain); if (r.leveled) onLevelGain(r.levels); }
   }
 
   // 플레이어 피격(적 크리 가능, 연속 피격 시 크리 확률↑). raw = 적 피해 × 0.1.
@@ -305,11 +306,11 @@ export function boot() {
     if (slowmo > 0) { slowmo--; if (frameCount % 3 !== 0) return; }
     rs.timeMs += dt;
     rs.stage = Math.max(1, (rs.timeMs/30000|0)+1);
-    // 이동: 최고 속도를 낮추고(×0.8) 관성(가속·감속)을 크게 걸어 방향전환·정지가 미끄러지듯 부드럽게.
+    // 이동: 최고 속도 40% + 강한 관성(가속·감속 lerp 0.12 ≈ 0.14s 응답) — 방향전환·정지가 미끄러지듯 부드럽게.
     const mv = input.moveVector(world), sp = rs.stats.moveSpeed * MOVE_SCALE * 0.4;
     const pl = world.player;
-    pl.vx = (pl.vx || 0) + (mv.x * sp - (pl.vx || 0)) * 0.16;
-    pl.vy = (pl.vy || 0) + (mv.y * sp - (pl.vy || 0)) * 0.16;
+    pl.vx = (pl.vx || 0) + (mv.x * sp - (pl.vx || 0)) * 0.12;
+    pl.vy = (pl.vy || 0) + (mv.y * sp - (pl.vy || 0)) * 0.12;
     pl.x += pl.vx; pl.y += pl.vy;
     // 좌우 반전은 사람처럼: 반대 방향 이동이 15프레임(0.25s) 유지될 때만 전환(자동조작 잔떨림 방지)
     if (mv.x) {
@@ -379,6 +380,10 @@ export function boot() {
     // MP 자연회복: HP처럼 매 프레임 부드럽게 차오른다(mpRegen 기반, 초당 = mpRegen×15).
     // 마법 주류(마법사·정령술사)일수록 mpRegen이 높아 회복이 빠르다.
     if ((rs.mp||0) < rs.stats.maxMp) rs.mp = Math.min(rs.stats.maxMp, (rs.mp||0) + (rs.stats.mpRegen||0) * 0.25);
+    // HP 자연회복: 초당 hpRegen(캐릭터 스탯·테크트리 "체력 재생"). 물약·드랍을 보조하는 느린 트리클.
+    // (버그픽스: 스탯은 존재했지만 어디에서도 적용되지 않던 죽은 스탯이었음)
+    if (world.player.hp > 0 && world.player.hp < world.player.maxHp)
+      world.player.hp = Math.min(world.player.maxHp, world.player.hp + (rs.stats.hpRegen || 0) / 60);
     // 픽업: 드랍 좌표에 고정(자석 없음) → 아이템이 정적 지면 기준이 되어 이동감 살아남.
     //       획득 반경(pickupRange) 안으로 플레이어가 다가오면 수집.
     // 성능: TTL(60s, 히든스킬 120s)로 소멸 + 총량 상한(오래된 것부터 정리) → 장기전 누적 방지.
@@ -396,7 +401,7 @@ export function boot() {
     for (const pt of world.particles){ if(!pt.alive)continue; if(!FX.stepParticle(pt)) pt.alive=false; }
     for (const f of world.floaters){ if(!f.alive)continue; f.y+=f.vy; if(--f.life<=0) f.alive=false; }
     // 물약 자동 사용(옵션 ON): HP 25% 이하 / MP 20% 이하일 때 보유분을 자동 소비.
-    // 종류별 30초 쿨타임(스킬처럼) — 연속 벌컥벌컥 방지, HUD에 남은 시간 표시.
+    // 종류별 쿨타임(HP 10s / MP 15s) — 연속 벌컥벌컥 방지, HUD에 남은 시간 표시.
     const POTION_CD_HP = 600, POTION_CD_MP = 900;   // HP 10s / MP 15s(60fps)
     if (rs.potCd.hp > 0) rs.potCd.hp--;
     if (rs.potCd.mp > 0) rs.potCd.mp--;
@@ -409,9 +414,9 @@ export function boot() {
       world.spawnFloater({ x:world.player.x, y:world.player.y-26, text:'🔷 MP 물약!', color:'#4db3ff', life:44, max:44, vy:-0.6 }); audio.sfx('pick');
     }
     world.despawnDead();
-    // 레벨업 창은 (보스 슬로우모션 + 레벨업 버스트 연출)이 끝난 뒤에 연다.
-    if (pendingLevelUp && slowmo <= 0 && levelupDelay <= 0 && !overlay) {
-      pendingLevelUp = false;
+    // 레벨업 창은 (보스 슬로우모션 + 레벨업 버스트 연출)이 끝난 뒤에 연다. 큐에 남으면 다음 프레임 연달아.
+    if (pendingLevels > 0 && slowmo <= 0 && levelupDelay <= 0 && !overlay) {
+      pendingLevels--;
       // 레벨 20 돌파: 테크트리 선택(그 레벨의 3택 대신 운명의 갈림길)
       if (rs.level >= TECH_UNLOCK_LEVEL && !rs.techTree && getTrees(rs.charId).length) openTechChoice();
       else openLevelUp();
@@ -695,8 +700,13 @@ export function boot() {
         ctx.fillStyle = 'rgba(10,12,22,0.92)'; ctx.shadowColor = '#ff5cc8'; ctx.shadowBlur = 12; ctx.fill(); ctx.shadowBlur = 0;
         ctx.save(); ctx.beginPath(); ctx.arc(pcx, pcy, pr-2, 0, Math.PI*2); ctx.clip();
         const bi = getSprite('assets/sprites/' + boss.id);
+        const bsh = !bi && boss.sheet ? getSprite('assets/sprites/' + boss.id + '_sheet') : null;   // 단일 이미지 없으면 시트 대기 첫 프레임(버그픽스)
         if (bi) { const sc = Math.max((pr-2)*2/bi.width, (pr-2)*2/bi.height), iw = bi.width*sc, ih = bi.height*sc;
           ctx.drawImage(bi, pcx-iw/2, pcy-ih/2, iw, ih); }
+        else if (bsh) { const sh = boss.sheet, idx = (sh.anims.idle && sh.anims.idle[0]) || 0;
+          const fw = bsh.width/sh.cols, fh = bsh.height/sh.rows;
+          const sc = Math.max((pr-2)*2/fw, (pr-2)*2/fh), dw = fw*sc, dh = fh*sc;
+          ctx.drawImage(bsh, (idx%sh.cols)*fw, Math.floor(idx/sh.cols)*fh, fw, fh, pcx-dw/2, pcy-dh/2, dw, dh); }
         else drawSprite(ctx, boss.sprite, pcx, pcy, pr-5, boss.color, frameCount, 0);
         ctx.restore();
         ctx.beginPath(); ctx.arc(pcx, pcy, pr, 0, Math.PI*2); ctx.lineWidth = 2.5; ctx.strokeStyle = '#ff9ee0'; ctx.stroke();
