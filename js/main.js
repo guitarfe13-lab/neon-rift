@@ -582,6 +582,45 @@ export function boot() {
         ctx.fillStyle = f.color; ctx.fillText(f.text, f.x-camX, f.y-camY); ctx.restore();
       }
       drawHud(ctx, rs, world, frameCount, meta.souls);
+      // ── 좌하단 원형 레이더(미니맵): 플레이어 중심, 주변 적·보스·중요 아이템 표시 ──
+      {
+        const rad = 64, mx = 20 + rad, my = canvas.height - 20 - rad, p = world.player, range = 900;
+        ctx.save();
+        // 배경 원 + 네온 링
+        ctx.beginPath(); ctx.arc(mx, my, rad, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(6,10,20,0.62)'; ctx.fill();
+        ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(66,230,255,0.55)'; ctx.shadowColor = '#42e6ff'; ctx.shadowBlur = 8; ctx.stroke(); ctx.shadowBlur = 0;
+        // 십자선 + 내부 링 + 회전 스캔
+        ctx.strokeStyle = 'rgba(66,230,255,0.14)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(mx - rad, my); ctx.lineTo(mx + rad, my); ctx.moveTo(mx, my - rad); ctx.lineTo(mx, my + rad); ctx.stroke();
+        ctx.beginPath(); ctx.arc(mx, my, rad * 0.5, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(mx, my, rad - 1, 0, Math.PI * 2); ctx.clip();   // 원 안으로 클립
+        const sweep = frameCount * 0.03;
+        ctx.strokeStyle = 'rgba(66,230,255,0.3)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(sweep) * rad, my + Math.sin(sweep) * rad); ctx.stroke();
+        // 월드 → 레이더 좌표. clamp=true면 범위 밖을 가장자리에 방향 표시, false면 범위 밖 생략.
+        const blip = (wx, wy, col, size, clamp) => {
+          let dx = (wx - p.x) / range * rad, dy = (wy - p.y) / range * rad;
+          const d = Math.hypot(dx, dy);
+          if (d > rad - 3) { if (!clamp) return; const k = (rad - 3) / d; dx *= k; dy *= k; }
+          ctx.fillStyle = col; ctx.beginPath(); ctx.arc(mx + dx, my + dy, size, 0, Math.PI * 2); ctx.fill();
+        };
+        // 중요 아이템(체력·히든스킬)만 표시(코인·마나는 도배 방지로 생략)
+        for (const g of world.pickups) if (g.alive) {
+          if (g.kind === 'hp') blip(g.x, g.y, '#ff6b8a', 1.8, false);
+          else if (g.kind === 'skill') blip(g.x, g.y, '#ff8cff', 2.2, false);
+        }
+        // 적(빨강)·중간보스(노랑)·보스(고유색, 큼) — 범위 밖은 가장자리에 방향 표시
+        for (const e of world.enemies) if (e.alive) {
+          if (e.boss) blip(e.x, e.y, e.color || '#ff5cc8', 4.5, true);
+          else if (e.miniboss) blip(e.x, e.y, '#ffe14d', 3.2, true);
+          else blip(e.x, e.y, '#ff4d5e', 2, true);
+        }
+        ctx.restore();
+        // 플레이어(중앙, 클립 밖에서 위에)
+        ctx.save(); ctx.fillStyle = ch.color; ctx.shadowColor = ch.color; ctx.shadowBlur = 6;
+        ctx.beginPath(); ctx.arc(mx, my, 3, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      }
       // 상단 중앙: 필드명(위) → 콤보(아래) 순으로 배치(겹침 방지)
       R.text(ctx, `— ${bio.name} —`, canvas.width/2, 28, { size:13, align:'center', color:'#9ab' });
       if (combo > 2) {
