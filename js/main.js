@@ -30,6 +30,8 @@ function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${(n>
 
 // 마법 크리 피격 스턴 지속(프레임, 60fps 기준 ~3초). 이 동안 MP 사용(스킬 시전)이 봉인된다.
 const STUN_FRAMES = 180;
+// 스턴 재발동 쿨다운(프레임, ~10초). 한 번 걸리면 이 동안 면역 → 연속/과다 스턴 방지.
+const STUN_COOLDOWN = 600;
 
 // 엔티티 렌더: 이미지 에셋(assets/sprites/<id>.png)이 있으면 그걸로, 없으면 코드 스프라이트로.
 // 크기 확대 + 접지 그림자 + 은은한 네온 글로우로 '떠 있는 느낌' 제거.
@@ -158,7 +160,7 @@ export function boot() {
     rs.stats = computeStats({ charId, metaUpgrades: meta.upgrades, runMods: [] });
     world.player.maxHp = rs.stats.maxHp; world.player.hp = rs.stats.maxHp;
     rs.mp = rs.stats.maxMp;
-    rs.stun = 0; rs.stunMax = STUN_FRAMES;                                   // 마법 크리 스턴(MP 봉인) 잔여/최대 프레임
+    rs.stun = 0; rs.stunMax = STUN_FRAMES; rs.stunCd = 0;                    // 마법 크리 스턴(MP 봉인) 잔여/최대/재발동쿨
     rs.potions = { hp: meta.potions?.hp || 0, mp: meta.potions?.mp || 0 };  // 상점 구매분 반입
     rs.potCd = { hp: 0, mp: 0 };                                            // 물약 쿨타임(30s, 스킬처럼)
     rs.oaths = meta.relics?.oath || 0;                                      // 신성의 맹세(부활) 반입
@@ -271,8 +273,7 @@ export function boot() {
     if ((world.player.invuln || 0) > 0) return;
     const p = world.player;
     p.hurtStreak = (p.hurtStreak || 0) + 1; p.hurtTimer = 120;   // 연속 피격 스트릭(2s 창)
-    const base = magic ? 0.3 : 0.1, cap = magic ? 0.75 : 0.7;    // 마법 공격은 크리(→스턴)가 더 잘 터짐
-    const critChance = Math.min(cap, base + (p.hurtStreak - 1) * 0.03);   // 연속으로 맞을수록↑
+    const critChance = Math.min(0.7, 0.1 + (p.hurtStreak - 1) * 0.03);   // 연속으로 맞을수록↑
     const crit = Math.random() < critChance;
     const d = raw * (crit ? 1.6 : 1);
     p.hp -= d; p.invuln = 22;   // 피격 무적 0.37s — 보스 링 탄막 다중 적중(버스트 즉사) 방지
@@ -280,9 +281,9 @@ export function boot() {
     const shown = Math.max(1, Math.round(d));
     world.spawnFloater({ x:p.x, y:p.y-22, text: crit ? `Critical -${shown}` : `-${shown}`,
       color: crit ? '#ff3b3b' : '#ff9a9a', life: crit?52:34, max: crit?52:34, vy:-0.7, crit });
-    // 마법 공격에 크리로 맞으면 ~3초 MP 봉인 스턴(초상 붉게 + 잔여시간 표시). 스턴 중 다시 맞으면 시간 갱신.
-    if (magic && crit) {
-      rs.stun = STUN_FRAMES; rs.stunMax = STUN_FRAMES;
+    // 마법 공격에 크리로 맞으면 ~3초 MP 봉인 스턴(초상 붉게 + 잔여시간). 단, 쿨다운 중엔 면역 → 과다 스턴 방지.
+    if (magic && crit && (rs.stunCd || 0) <= 0) {
+      rs.stun = STUN_FRAMES; rs.stunMax = STUN_FRAMES; rs.stunCd = STUN_COOLDOWN;
       shake = Math.min(16, shake + 6);
       world.spawnFloater({ x:p.x, y:p.y-42, text:'⚡ 스턴! MP 봉인', color:'#ff5cf0', life:72, max:72, vy:-0.5, crit:true });
     }
@@ -348,6 +349,7 @@ export function boot() {
     }
     if (world.player.invuln>0) world.player.invuln--;
     if (rs.stun > 0) rs.stun--;   // 마법 크리 스턴 경과(0 되면 MP 봉인 자동 해제)
+    if (rs.stunCd > 0) rs.stunCd--;   // 스턴 재발동 쿨다운 경과(끝나야 다시 스턴 가능)
     if (world.player.hurtTimer > 0 && --world.player.hurtTimer === 0) world.player.hurtStreak = 0; // 연속 피격 스트릭 소멸
     if (comboTimer>0) comboTimer--; else combo=0;
     if (levelupDelay>0) levelupDelay--;
