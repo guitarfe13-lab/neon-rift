@@ -13,7 +13,7 @@ import { BOSSES } from './data/bosses.js';
 import { BIOMES } from './data/biomes.js';
 import { getSkill, SKILLS, EVOLUTIONS } from './data/skills.js';
 import { updateSkills, updateProjectiles } from './systems/skills.js';
-import { addXp, rollChoices, applyChoice, passiveMods } from './systems/levelup.js';
+import { addXp, rollChoices, applyChoice, allRunMods } from './systems/levelup.js';
 import { getTrees, chooseTree, nextDueNode, applyNode, describeMods, TECH_UNLOCK_LEVEL } from './systems/techtree.js';
 import { makeInput } from './core/input.js';
 import { makeAudio } from './core/audio.js';
@@ -149,6 +149,10 @@ export function boot() {
     world.spawnParticle({ x:p.x, y:p.y, r:12, rMax:100, life:26, color:'#ffe14d', shock:true });
     for (let i=0;i<16;i++){ const a=i/16*Math.PI*2; world.spawnParticle({ x:p.x, y:p.y, vx:Math.cos(a)*2.4, vy:Math.sin(a)*2.4-1, life:24, color:'#ffe14d', spark:true }); }
     world.spawnFloater({ x:p.x, y:p.y-34, text:'LEVEL UP!', color:'#ffe14d', life:44, max:44, vy:-0.5, crit:true });
+    // 직업별 레벨 성장 안내(마법계열 MP · 물리계열 HP). 실제 반영은 스탯 재계산 시(선택 직후) 이뤄진다.
+    const lg = getCharacter(rs.charId).levelGain;
+    if (lg) { const amt = lg.value * levels, isHp = lg.stat === 'maxHp';
+      world.spawnFloater({ x:p.x, y:p.y-56, text:`${isHp?'❤ 최대 HP':'🔷 최대 MP'} +${amt}`, color:isHp?'#ff8ba0':'#5cc0ff', life:52, max:52, vy:-0.4 }); }
   }
 
   function startRun(charId = 'blade') {
@@ -161,7 +165,7 @@ export function boot() {
       ownedSkills:{ [ch.startingSkill]:1 }, passives:{}, metaUpgrades: meta.upgrades, stats:{} };
     rs.stats = computeStats({ charId, metaUpgrades: meta.upgrades, runMods: [] });
     world.player.maxHp = rs.stats.maxHp; world.player.hp = rs.stats.maxHp;
-    rs.mp = rs.stats.maxMp;
+    rs.mp = rs.stats.maxMp; rs._maxMp = rs.stats.maxMp;                      // MP 현재값 + 성장 추적 기준
     rs.stun = 0; rs.stunMax = STUN_FRAMES; rs.stunCd = 0;                    // 마법 크리 스턴(MP 봉인) 잔여/최대/재발동쿨
     rs.potions = { hp: meta.potions?.hp || 0, mp: meta.potions?.mp || 0 };  // 상점 구매분 반입
     rs.potCd = { hp: 0, mp: 0 };                                            // 물약 쿨타임(30s, 스킬처럼)
@@ -306,6 +310,19 @@ export function boot() {
     if (slowmo > 0) { slowmo--; if (frameCount % 3 !== 0) return; }
     rs.timeMs += dt;
     rs.stage = Math.max(1, (rs.timeMs/30000|0)+1);
+    // 파생 maxHp/maxMp 변경(레벨 성장·테크트리 방어 노드 등)을 실제 HP/MP 풀에 반영.
+    //  · maxHp: world.player.maxHp가 진짜 소스라 startRun 이후 재동기화 필요(기존 테크 maxHp 노드 미반영 버그도 함께 해결).
+    //  · 늘어난 만큼 현재값도 함께 올려 레벨업·각성이 즉시 체감되게(감소 시엔 상한 클램프).
+    if (world.player.maxHp !== rs.stats.maxHp) {
+      const dHp = rs.stats.maxHp - world.player.maxHp; world.player.maxHp = rs.stats.maxHp;
+      world.player.hp = dHp > 0 ? Math.min(rs.stats.maxHp, world.player.hp + dHp) : Math.min(world.player.hp, rs.stats.maxHp);
+    }
+    if (rs._maxMp == null) rs._maxMp = rs.stats.maxMp;
+    if (rs.stats.maxMp !== rs._maxMp) {
+      const dMp = rs.stats.maxMp - rs._maxMp;
+      rs.mp = dMp > 0 ? Math.min(rs.stats.maxMp, (rs.mp||0) + dMp) : Math.min(rs.mp||0, rs.stats.maxMp);
+      rs._maxMp = rs.stats.maxMp;
+    }
     // 이동: 최고 속도 40% + 강한 관성(가속·감속 lerp 0.12 ≈ 0.14s 응답) — 방향전환·정지가 미끄러지듯 부드럽게.
     const mv = input.moveVector(world), sp = rs.stats.moveSpeed * MOVE_SCALE * 0.4;
     const pl = world.player;
@@ -858,7 +875,7 @@ export function boot() {
         const s = getSkill(id); if (s && !EVOLUTIONS.has(id)) rs.ownedSkills[id] = Math.min(4, s.maxLevel);
       }
       rs.passives = { power: 3, haste: 3, swift: 2 };       // 15레벨 수준 패시브
-      rs.stats = computeStats({ charId: rs.charId, metaUpgrades: rs.metaUpgrades, runMods: passiveMods(rs).concat(rs.treeMods || []) });
+      rs.stats = computeStats({ charId: rs.charId, metaUpgrades: rs.metaUpgrades, runMods: allRunMods(rs) });
       cleanupSkillState();
       world.spawnFloater({ x: world.player.x, y: world.player.y - 34, text: '⚡ TEST: 15레벨', color: '#ff8b8b', life: 60, max: 60, vy: -0.5, crit: true });
     },

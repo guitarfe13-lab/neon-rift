@@ -5,24 +5,25 @@ function base(overrides) {
     goldGain:1, soulGain:1, xpGain:1, ...overrides };
 }
 // skillPool: 해당 직업이 레벨업으로 얻을 수 있는 신규 스킬(무작위 아님, 직업별 고정).
+// levelGain: 레벨업마다 자동 성장하는 스탯 — 마법계열은 maxMp, 물리계열은 maxHp. value=레벨당 증가량(flat).
 export const CHARACTERS = {
   // 스프라이트시트(전 캐릭터 공통): assets/sprites/<id>_sheet.png, 3열×2행=6칸.
   //   0 대기A · 1 대기B · 2 공격준비 / 3 공격 · 4 공격 · 5 마무리
   blade: { id:'blade', name:'검사', shape:'triangle', sprite:'knight', color:'#42e6ff', projShape:'slash', desc:'높은 체력·근접 물리. MP 거의 안 씀.',
     sheet:{ cols:3, rows:2, fps:5, anims:{ idle:[0,1], attack:[2,3,4,5] } },
-    base: base({ maxHp:160, maxMp:40, mpRegen:0.1, damage:12, moveSpeed:2.4 }), startingSkill:'strike', passive:'bulwark',
+    base: base({ maxHp:160, maxMp:40, mpRegen:0.1, damage:12, moveSpeed:2.4 }), startingSkill:'strike', passive:'bulwark', levelGain:{ stat:'maxHp', value:6 },
     skillPool:['strike','blade_orbit','spread_shot','orbit_blade','rail','turret','twin_shot','quake'] },
   mage: { id:'mage', name:'마법사', shape:'diamond', sprite:'mage', color:'#c98bff', desc:'유리 대포·강한 마법. MP 소모 큼.', unlockCost:200,
     sheet:{ cols:3, rows:2, fps:5, anims:{ idle:[0,1], attack:[2,3,4,5] } },
-    base: base({ maxHp:85, maxMp:150, mpRegen:0.7, damage:16, crit:0.08, area:1.1, moveSpeed:2.2 }), startingSkill:'arcane_bolt', passive:'focus',
+    base: base({ maxHp:85, maxMp:150, mpRegen:0.7, damage:16, crit:0.08, area:1.1, moveSpeed:2.2 }), startingSkill:'arcane_bolt', passive:'focus', levelGain:{ stat:'maxMp', value:4 },
     skillPool:['arcane_bolt','fireball','laser','chain_spark','frost_aura','ice_shard','flame_aura'] },
   ranger: { id:'ranger', name:'궁수', shape:'triangle', sprite:'ranger', color:'#7cf9ff', projShape:'arrow', desc:'빠른 공속·관통. 중간 MP.', unlockCost:350,
     sheet:{ cols:3, rows:2, fps:5, anims:{ idle:[0,1], attack:[2,3,4,5] } },
-    base: base({ maxHp:100, maxMp:90, mpRegen:0.5, mpCostMul:0.45, damage:11, atkSpeed:1.25, crit:0.12, moveSpeed:2.6 }), startingSkill:'laser', passive:'eagle',
+    base: base({ maxHp:100, maxMp:90, mpRegen:0.5, mpCostMul:0.45, damage:11, atkSpeed:1.25, crit:0.12, moveSpeed:2.6 }), startingSkill:'laser', passive:'eagle', levelGain:{ stat:'maxHp', value:6 },
     skillPool:['laser','rail','arcane_bolt','spread_shot','spirit','twin_shot','ice_shard'] },
   elementalist: { id:'elementalist', name:'정령술사', shape:'square', sprite:'crystal', color:'#5cd0ff', desc:'광역 오라·지속. 높은 MP.', unlockCost:500,
     sheet:{ cols:3, rows:2, fps:5, anims:{ idle:[0,1], attack:[2,3,4,5] } },
-    base: base({ maxHp:125, maxMp:130, mpRegen:0.6, damage:10, area:1.25, moveSpeed:2.2 }), startingSkill:'ice_lance', passive:'attune',
+    base: base({ maxHp:125, maxMp:130, mpRegen:0.6, damage:10, area:1.25, moveSpeed:2.2 }), startingSkill:'ice_lance', passive:'attune', levelGain:{ stat:'maxMp', value:4 },
     skillPool:['ice_lance','frost_aura','holy_field','venom_cloud','frost_ring','chain_spark','flame_aura','holy_lance'] },
 };
 export function getCharacter(id) { return CHARACTERS[id]; }

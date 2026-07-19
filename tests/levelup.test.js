@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { xpForLevel, addXp, rollChoices } from '../js/systems/levelup.js';
+import { xpForLevel, addXp, rollChoices, levelMods, allRunMods } from '../js/systems/levelup.js';
 import { getCharacter } from '../js/data/characters.js';
+import { computeStats } from '../js/engine/stats.js';
 import { makeRng } from '../js/core/rng.js';
 
 function runState() {
@@ -31,4 +32,30 @@ test('신규 스킬 후보는 직업 스킬풀 내에서만 등장', () => {
   const news = [];
   for (let i=0;i<40;i++) for (const c of rollChoices(rs, makeRng('p'+i), 3)) if (c.kind==='new') news.push(c.id);
   assert.ok(news.length > 0 && news.every(id => pool.includes(id)));
+});
+test('레벨 성장: 레벨1은 성장 없음, 이후 레벨당 value씩 누적', () => {
+  assert.deepEqual(levelMods({ charId:'blade', level:1 }), []);
+  const m = levelMods({ charId:'blade', level:11 });   // 10레벨 성장
+  assert.deepEqual(m, [{ stat:'maxHp', kind:'flat', value:60 }]);   // blade 6×10
+});
+test('물리계열(검사)은 레벨업 시 maxHp만 성장, maxMp 불변', () => {
+  const mk = (level) => computeStats({ charId:'blade', metaUpgrades:{}, runMods: allRunMods({ charId:'blade', level, passives:{} }) });
+  const lo = mk(1), hi = mk(21);
+  assert.ok(hi.maxHp > lo.maxHp);            // HP 성장
+  assert.equal(hi.maxMp, lo.maxMp);          // MP 불변
+  assert.equal(hi.maxHp - lo.maxHp, 6 * 20); // 레벨당 +6
+});
+test('마법계열(마법사)은 레벨업 시 maxMp만 성장, maxHp 불변', () => {
+  const mk = (level) => computeStats({ charId:'mage', metaUpgrades:{}, runMods: allRunMods({ charId:'mage', level, passives:{} }) });
+  const lo = mk(1), hi = mk(21);
+  assert.ok(hi.maxMp > lo.maxMp);            // MP 성장
+  assert.equal(hi.maxHp, lo.maxHp);          // HP 불변
+  assert.equal(hi.maxMp - lo.maxMp, 4 * 20); // 레벨당 +4
+});
+test('레벨 성장은 패시브·테크 보정과 함께 합성', () => {
+  const rs = { charId:'blade', level:11, passives:{ power:2 }, treeMods:[{ stat:'maxHp', kind:'mult', value:0.3 }] };
+  const mods = allRunMods(rs);
+  assert.ok(mods.some(m => m.stat==='damage'));                          // 패시브(power)
+  assert.ok(mods.some(m => m.stat==='maxHp' && m.kind==='flat' && m.value===60));  // 레벨 성장
+  assert.ok(mods.some(m => m.stat==='maxHp' && m.kind==='mult'));        // 테크(강철 피부)
 });

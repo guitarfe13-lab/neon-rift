@@ -1,7 +1,7 @@
 // 테크트리 런타임(순수): 선택·분기 노드 개방·스탯 재계산·효과 설명. DOM 비의존 → node 테스트 안전.
 import { getTrees, TECH_UNLOCK_LEVEL } from '../data/techTrees.js';
 import { computeStats } from '../engine/stats.js';
-import { passiveMods } from './levelup.js';
+import { allRunMods } from './levelup.js';
 
 export { getTrees, TECH_UNLOCK_LEVEL };
 
@@ -9,7 +9,7 @@ function findTree(rs) { return getTrees(rs.charId).find((t) => t.id === rs.techT
 
 function recompute(rs) {
   rs.stats = computeStats({ charId: rs.charId, metaUpgrades: rs.metaUpgrades,
-    runMods: passiveMods(rs).concat(rs.treeMods || []) });
+    runMods: allRunMods(rs) });   // 패시브 + 레벨 성장 + 테크트리 보존
 }
 
 // 트리 선택(런당 1회). 노드 적용은 nextDueNode/applyNode로 별도 진행.

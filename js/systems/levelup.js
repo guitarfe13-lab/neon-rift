@@ -30,6 +30,20 @@ export function passiveMods(rs) {
   });
 }
 
+// 직업별 레벨 성장(마법계열 maxMp · 물리계열 maxHp) → runMod. 레벨 1은 성장 0, 이후 레벨당 value씩 flat 가산.
+export function levelMods(rs) {
+  const lg = getCharacter(rs.charId)?.levelGain;
+  const steps = Math.max(0, (rs.level || 1) - 1);
+  if (!lg || steps === 0) return [];
+  return [{ stat: lg.stat, kind: 'flat', value: lg.value * steps }];
+}
+
+// 스탯 재계산에 쓰는 모든 런타임 보정(패시브 + 레벨 성장 + 테크트리)을 한 곳에서 합성.
+// 재계산 지점(레벨업 선택·테크 노드·테스트훅)이 이걸 공유해야 레벨 성장이 유실되지 않는다.
+export function allRunMods(rs) {
+  return passiveMods(rs).concat(levelMods(rs)).concat(rs.treeMods || []);
+}
+
 export function rollChoices(rs, rng, count = 3) {
   const pool = [];
   // 진화(최우선): 보유 스킬이 최대레벨 + 요구 패시브 보유 시.
@@ -71,5 +85,5 @@ export function applyChoice(rs, choice) {
   else if (choice.kind === 'passive') rs.passives[choice.id] = (rs.passives[choice.id]||0) + 1;
   else if (choice.kind === 'evolve') { delete rs.ownedSkills[choice.id]; rs.ownedSkills[choice.into] = 1; }
   rs.stats = computeStats({ charId: rs.charId, metaUpgrades: rs.metaUpgrades,
-    runMods: passiveMods(rs).concat(rs.treeMods || []) });   // 테크트리 보너스 보존
+    runMods: allRunMods(rs) });   // 패시브 + 레벨 성장 + 테크트리 보존
 }
