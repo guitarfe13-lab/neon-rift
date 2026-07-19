@@ -13,7 +13,7 @@ import { BOSSES } from './data/bosses.js';
 import { BIOMES } from './data/biomes.js';
 import { getSkill, SKILLS, EVOLUTIONS } from './data/skills.js';
 import { updateSkills, updateProjectiles } from './systems/skills.js';
-import { addXp, rollChoices, applyChoice } from './systems/levelup.js';
+import { addXp, rollChoices, applyChoice, passiveMods } from './systems/levelup.js';
 import { getTrees, chooseTree, nextDueNode, applyNode, describeMods, TECH_UNLOCK_LEVEL } from './systems/techtree.js';
 import { makeInput } from './core/input.js';
 import { makeAudio } from './core/audio.js';
@@ -810,6 +810,26 @@ export function boot() {
           break; } }
     }
   });
+
+  // [임시 테스트도구] devtest 연동: 즉시 15레벨 + 15레벨 수준 스킬·패시브 부여(마법 몹 등 후반 테스트).
+  //  완료 후 이 블록과 js/devtest.js, play.html의 스크립트 한 줄을 삭제.
+  if (typeof window !== 'undefined') window.__neonTest = {
+    jumpTo15() {
+      if (scene !== 'run' || !rs) return;
+      rs.level = 15;
+      rs.timeMs = Math.max(rs.timeMs, 8 * 60000);   // 시간도 당겨 몹 스케일(15레벨 스폰=마법 몹) 반영
+      rs.stage = Math.max(1, (rs.timeMs / 30000 | 0) + 1);
+      const c = getCharacter(rs.charId);
+      rs.ownedSkills = { [c.startingSkill]: 5 };     // 시작 스킬 5레벨
+      for (const id of (c.skillPool || []).slice(0, 4)) {   // 직업 풀 앞 4개를 4레벨로
+        const s = getSkill(id); if (s && !EVOLUTIONS.has(id)) rs.ownedSkills[id] = Math.min(4, s.maxLevel);
+      }
+      rs.passives = { power: 3, haste: 3, swift: 2 };       // 15레벨 수준 패시브
+      rs.stats = computeStats({ charId: rs.charId, metaUpgrades: rs.metaUpgrades, runMods: passiveMods(rs).concat(rs.treeMods || []) });
+      cleanupSkillState();
+      world.spawnFloater({ x: world.player.x, y: world.player.y - 34, text: '⚡ TEST: 15레벨', color: '#ff8b8b', life: 60, max: 60, vy: -0.5, crit: true });
+    },
+  };
 
   // 씬 내비게이션
   function toTitle(){ scene='title'; clearScreens(); showTitle({ meta, onPlay:toLoadout, onShop:toShop, onSettings:toSettings }); }
