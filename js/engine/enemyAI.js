@@ -81,13 +81,15 @@ export function stepEnemy(e, world, rng) {
   e.x += Math.cos(ang)*spd*MOVE_SCALE; e.y += Math.sin(ang)*spd*MOVE_SCALE;
   if (e._atk > 0) e._atk--;   // 공격 애니 타이머(마법 몹 등)
   if (e._retCd > 0) e._retCd--;   // 아케인 반격 마법 쿨(main damageEnemy에서 설정) — 프레임당 감소
+  if (e._silence > 0) e._silence--;   // 침묵(마법 봉인) 경과 — 0 되면 다시 마법 사용 가능
 
   // 15레벨 이후 스폰 몹(arcane): 가끔 마법 투사체(보라)를 플레이어에게 발사 → 근접 몹에도 원거리 위협.
   if (e.arcane && e.behavior !== 'boss') {
     e._castCd = e._castCd ?? (45 + Math.floor(rng.next() * 90));    // 첫 시전 0.7~2.2초(빨리 한 발)
     if (--e._castCd <= 0) {
       e._castCd = 220 + Math.floor(rng.next() * 200);               // 다음 시전까지 3.7~7초
-      if (rng.next() < 0.7) {
+      // rng.next()는 항상 소비(결정성 유지) — 침묵(_silence) 중이면 실제 발사만 건너뛴다.
+      if (rng.next() < 0.7 && !(e._silence > 0)) {
         fireHazard(world, e.x, e.y, angToP, 3.2, Math.max(1, Math.round(e.damage * 0.8)), { radius: 8, color: '#c98bff', magic: true });   // 아케인 몹 마법(크리 시 스턴)
         e._atk = 16;
       }

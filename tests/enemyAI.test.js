@@ -30,6 +30,27 @@ test('아케인 반격 쿨(_retCd)은 프레임당 감소', () => {
   for (let i=0;i<10;i++) stepEnemy(e, w, makeRng('r'));
   assert.equal(e._retCd, 0);
 });
+// 아케인 몹 자동 시전(보라 마법) — 침묵 여부에 따른 발사 제어
+const purpleCount = (silence) => {
+  const w = createWorld(); w.player.x = 500; w.player.y = 0;
+  const e = { ...getEnemy('grunt'), arcane:true, x:0, y:0, alive:true };
+  if (silence != null) e._silence = silence;
+  const rng = makeRng('arc-cast');
+  for (let i=0;i<3000;i++) stepEnemy(e, w, rng);
+  return w.hazards.filter(h => h.color === '#c98bff').length;
+};
+test('아케인 몹은 침묵이 아니면 자동 마법(보라)을 시전', () => {
+  assert.ok(purpleCount(null) > 0, '침묵 아닌 아케인 몹은 보라 마법을 발사해야 함');
+});
+test('침묵(_silence)된 아케인 몹은 자동 마법을 시전하지 않는다', () => {
+  assert.equal(purpleCount(100000), 0, '침묵 중엔 보라 마법이 나가면 안 됨');
+});
+test('_silence는 프레임당 감소(침묵 자동 해제)', () => {
+  const w = createWorld(); w.player.x = 500; w.player.y = 0;
+  const e = { ...getEnemy('grunt'), x:0, y:0, alive:true, _silence: 12 };
+  for (let i=0;i<12;i++) stepEnemy(e, w, makeRng('s'));
+  assert.equal(e._silence, 0);
+});
 test('슈터는 사거리 내에서 hazard 발사', () => {
   const w = createWorld(); w.player.x=0; w.player.y=0;
   const e = { ...getEnemy('shooter'), x:100, y:0, alive:true };

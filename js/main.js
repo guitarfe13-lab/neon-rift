@@ -32,6 +32,10 @@ function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${(n>
 const STUN_FRAMES = 180;
 // 스턴 재발동 쿨다운(프레임, ~10초). 한 번 걸리면 이 동안 면역 → 연속/과다 스턴 방지.
 const STUN_COOLDOWN = 600;
+// 적 침묵(마법 봉인): 플레이어의 마법 속성 공격 피격 시 확률로 발생. 이 동안 몹은 마법(자동 시전·피격 반격)을 못 쓴다.
+//  침묵 상태로 죽어도 반격 마법이 안 나간다(반격 블록이 _silence로 차단). 값은 밸런스 튜닝 지점.
+const SILENCE_CHANCE = 0.2;      // 마법 피격당 침묵 확률
+const SILENCE_FRAMES = 180;      // 침묵 지속(~3초)
 
 // 엔티티 렌더: 이미지 에셋(assets/sprites/<id>.png)이 있으면 그걸로, 없으면 코드 스프라이트로.
 // 크기 확대 + 접지 그림자 + 은은한 네온 글로우로 '떠 있는 느낌' 제거.
@@ -188,9 +192,17 @@ export function boot() {
     d = Math.max(1, Math.round(d));
     const res = applyHit(e, d);
     e.flash = 6;
+    // 마법 속성(비물리) 공격에 맞으면 확률로 침묵(마법 봉인) — 아케인 몹 한정(마법을 쓰는 몹).
+    // 침묵 중엔 자동 시전·피격 반격이 모두 막히므로, 이 상태로 죽어도 반격 마법이 안 나간다.
+    // 이미 침묵 중이면 재굴림 안 함(플로터 도배·영구 갱신 방지).
+    const isMagic = element && element !== 'physical';
+    if (isMagic && e.arcane && (e._silence || 0) <= 0 && Math.random() < SILENCE_CHANCE) {
+      e._silence = SILENCE_FRAMES;
+      world.spawnFloater({ x:e.x, y:e.y - e.radius - 6, text:'🔇 침묵', color:'#b98bff', life:46, max:46, vy:-0.5 });
+    }
     // 15레벨 이후 마법 몹(arcane): 피격당하면 즉시 반격 마법(순삭돼 자동 시전 전에 죽어도 마법을 쓰게).
-    // 반격 쿨(_retCd)은 stepEnemy에서 프레임당 감소 — 피격당 감소(사실상 재반격 불가)하던 버그 수정.
-    if (e.arcane && (e._retCd || 0) <= 0 && world.hazards.length < 380) {
+    // 반격 쿨(_retCd)은 stepEnemy에서 프레임당 감소. 단, 침묵(_silence) 중이면 반격 마법 봉인.
+    if (e.arcane && !(e._silence > 0) && (e._retCd || 0) <= 0 && world.hazards.length < 380) {
       const a = Math.atan2(world.player.y - e.y, world.player.x - e.x);
       world.spawnHazard({ x:e.x, y:e.y, vx:Math.cos(a)*3.4, vy:Math.sin(a)*3.4, radius:8, damage:Math.max(1,Math.round(e.damage*0.8)), life:220, color:'#c98bff', magic:true });
       e._atk = 16; e._retCd = 70;   // 정상 감소하게 되면서 45→70(반격 최대 ~0.85/s)으로 완화
@@ -577,6 +589,12 @@ export function boot() {
           ctx.save(); ctx.font = '800 12px system-ui'; ctx.textAlign = 'center';
           ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.strokeText(e.name, nx, ny);
           ctx.fillStyle = e.boss ? '#ff5c5c' : '#ffe14d'; ctx.fillText(e.name, nx, ny); ctx.restore();
+        }
+        // 침묵(마법 봉인) 표시: 머리 위 맥동하는 🔇 — 마법을 못 쓰는 상태임을 알림
+        if (e._silence > 0) {
+          const sx = e.x-camX, sy = e.y-camY - e.radius*headOff - (e.hp < e.maxHp ? 14 : 4);
+          ctx.save(); ctx.globalAlpha = 0.6 + 0.4*Math.sin(frameCount*0.2);
+          ctx.font = '700 13px system-ui'; ctx.textAlign = 'center'; ctx.fillText('🔇', sx, sy); ctx.restore();
         } }
       for (const p of world.projectiles) { if (!p.alive) continue;
         if (p.beam) { const n=Math.hypot(p.vx,p.vy)||1, ux=p.vx/n, uy=p.vy/n;
