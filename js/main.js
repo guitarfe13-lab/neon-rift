@@ -65,10 +65,11 @@ function drawEntity(ctx, ent, x, y, r, color, t, angle, flash, live) {
       ctx.restore();
       return;
     }
-    // 걸음 바운스: 위로만 살짝·빠르게 들렸다 매 사이클 '착지'(느린 큰 호=부유, 잦은 작은 스텝=걸음).
-    const liftK = Math.abs(Math.sin(t * 0.3 + ent._ph));       // 0(접지)~1(최고점)
-    const bob = -liftK * r * 0.045;
-    const rock = Math.sin(t * 0.3 + ent._ph) * 0.045;           // 걸음 리듬 좌우 갸우뚱(발 피벗)
+    // 걸음 바운스: sin²(θ)로 착지·최고점 양끝이 부드러운 포물선 반등(|sin|의 뾰족한 V자 착지 제거).
+    const phase = t * 0.26 + ent._ph;
+    const liftK = Math.sin(phase) ** 2;                        // 0(접지)~1(최고점), 양끝 도함수 0 → 매끄러움
+    const bob = -liftK * r * 0.05;
+    const rock = Math.sin(phase * 0.5) * 0.05;                  // 좌우 갸우뚱은 절반 주기(왼발/오른발 번갈아)
     const foot = y + r * 1.2;                                   // 접지선을 아래로(뜬 느낌 완화)
     const sw = r * 0.95 * (ent.spriteScale || 1) * (1 - liftK * 0.14);  // 그림자 폭(들리면 살짝 축소)
     // 그림자·바닥 빛 기준선: 이미지 하단 투명 여백 탓에 foot이 실제 발보다 아래 → 위로 당겨 발에 밀착.
@@ -130,6 +131,7 @@ export function boot() {
   let scene = 'title', overlay = null, world, rs, dir, rng, sstate, frameCount = 0;
   let shake = 0, combo = 0, comboTimer = 0, slowmo = 0, whiteFlash = 0, pendingLevelUp = false;
   let announce = null, lastBoss = null;   // 보스 출현 중앙 경고 배너 {text,color,life,max}
+  let lastBiome = null, biomeSwipe = null;  // 바이옴 전환(보스 처치) 네온 쇼크웨이브 와이프 {life,max,color}
   let levelupDelay = 0, goldFlash = 0, comboPop = 0;
   let autoPotion = meta.settings.autoPotion !== false;   // 물약 자동 사용(O 키/설정 토글)
 
@@ -159,7 +161,7 @@ export function boot() {
     rs.projShape = ch.projShape || null;                                    // 직업 기본 투사체 모양(궁수=화살, 검사=검기)
     dir = makeDirector(rng, BIOMES);
     sstate = {}; scene = 'run'; overlay = null;
-    announce = null; lastBoss = null;
+    announce = null; lastBoss = null; lastBiome = null; biomeSwipe = null;
   }
 
   // 중앙 피해 처리: 스킬 데미지 × 공격력 배수 × (MP·편차) → 콤보에 따라 크리 확률↑.
@@ -302,6 +304,15 @@ export function boot() {
     { const bref = dir.getBossRef();
       if (bref && bref !== lastBoss) { announce = { text: `${bref.name} 출현!`, color: bref.color || '#ff5cc8', life: 170, max: 170 }; audio.sfx('boss'); shake = Math.min(14, shake + 8); }
       lastBoss = bref; }
+    // 바이옴 전환(보스 처치 → 다음 바이옴) 감지 → 네온 원형 쇼크웨이브 와이프 + 화이트 플래시
+    { const bi = dir.biomeIndex();
+      if (lastBiome !== null && bi !== lastBiome) {
+        const m = /(\d+),\s*(\d+),\s*(\d+)/.exec(dir.biome().grid || '');
+        const col = m ? `rgb(${m[1]},${m[2]},${m[3]})` : '#8ffcff';   // 새 바이옴 네온 그리드 색
+        biomeSwipe = { life: 50, max: 50, color: col };
+        whiteFlash = Math.max(whiteFlash, 12); shake = Math.min(12, shake + 5);
+      }
+      lastBiome = bi; }
     for (const e of world.enemies) { if (!e.alive) continue;
       if (e._orbCd > 0) e._orbCd--;
       if (e.flash > 0) e.flash--;
@@ -338,15 +349,9 @@ export function boot() {
         }
       }
     }
-    // MP 자연회복: 매 프레임 찔끔(사실상 무한) 대신 3초마다 일정량 회복(최대MP 7% + 회복력 보정).
-    rs.mpTick = (rs.mpTick || 0) + 1;
-    if (rs.mpTick >= 180) { rs.mpTick = 0;
-      if ((rs.mp||0) < rs.stats.maxMp) {
-        const gain = Math.round(rs.stats.maxMp * 0.07 + (rs.stats.mpRegen || 0) * 30);
-        rs.mp = Math.min(rs.stats.maxMp, (rs.mp||0) + gain);
-        world.spawnFloater({ x:world.player.x, y:world.player.y-20, text:`+${gain} MP`, color:'#7cc6ff', life:26, max:26, vy:-0.5 });
-      }
-    }
+    // MP 자연회복: HP처럼 매 프레임 부드럽게 차오른다(mpRegen 기반, 초당 = mpRegen×15).
+    // 마법 주류(마법사·정령술사)일수록 mpRegen이 높아 회복이 빠르다.
+    if ((rs.mp||0) < rs.stats.maxMp) rs.mp = Math.min(rs.stats.maxMp, (rs.mp||0) + (rs.stats.mpRegen||0) * 0.25);
     // 픽업: 드랍 좌표에 고정(자석 없음) → 아이템이 정적 지면 기준이 되어 이동감 살아남.
     //       획득 반경(pickupRange) 안으로 플레이어가 다가오면 수집.
     // 성능: TTL(60s, 히든스킬 120s)로 소멸 + 총량 상한(오래된 것부터 정리) → 장기전 누적 방지.
@@ -654,6 +659,25 @@ export function boot() {
     // 보스 처치 화면 플래시(렌더 프레임마다 감쇠 — 슬로우모션 영향 안 받음)
     if (whiteFlash > 0) { ctx.save(); ctx.globalAlpha = (whiteFlash/14)*0.6; ctx.fillStyle='#fff';
       ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore(); whiteFlash--; }
+    // 바이옴 전환 네온 쇼크웨이브 와이프: 화면 중앙에서 링이 밖으로 확장하며 새 세계를 드러냄
+    if (biomeSwipe && biomeSwipe.life > 0) {
+      const cx = canvas.width/2, cy = canvas.height/2;
+      const maxR = Math.hypot(canvas.width, canvas.height) * 0.62;
+      const p = 1 - biomeSwipe.life / biomeSwipe.max;          // 0→1
+      const rr = (1 - Math.pow(1 - p, 3)) * maxR;              // ease-out(초반 빠르게 확장)
+      ctx.save();
+      // 확장 링 뒤로 옅은 색면(지나간 자리 = 새 바이옴 색 물듦), 링 앞은 아직 흰 잔광
+      ctx.globalAlpha = 0.16 * (biomeSwipe.life / biomeSwipe.max);
+      ctx.fillStyle = biomeSwipe.color; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2); ctx.fill();
+      // 네온 링 본체(글로우)
+      ctx.globalAlpha = Math.min(1, biomeSwipe.life / 16);
+      ctx.strokeStyle = biomeSwipe.color; ctx.lineWidth = 10; ctx.shadowColor = biomeSwipe.color; ctx.shadowBlur = 34;
+      ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2); ctx.stroke();
+      ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.shadowBlur = 0;   // 흰 코어
+      ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2); ctx.stroke();
+      ctx.restore();
+      biomeSwipe.life--;
+    }
     if (goldFlash > 0) { ctx.save(); ctx.globalAlpha = (goldFlash/12)*0.32; ctx.fillStyle='#ffe14d';
       ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore(); goldFlash--; }
     if (overlay?.type==='levelup') drawLevelUp();
