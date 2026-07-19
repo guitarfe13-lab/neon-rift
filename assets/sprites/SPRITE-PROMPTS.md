@@ -154,3 +154,114 @@ sheet: { cols:3, rows:2, fps:8, anims:{ idle:[0,1], attack:[2,3,4,5] } }
 
 > 네 캐릭터 모두 **동일 격자(3×2·256px 칸)·동일 설정 형식**입니다. 색·무기·복장만 프리픽스에서 다릅니다.
 > 시트를 `assets/sprites/<id>_sheet.png` 로 넣으면 위 `sheet` 설정을 `characters.js`에 붙여 바로 움직이게 할 수 있습니다.
+
+---
+
+# 보스 스프라이트시트 (3종)
+
+보스는 캐릭터와 **동일한 3열×2행 격자**이되, 거대·위협적이라 **칸당 512×512**(전체 **1536×1024**) 권장.
+포즈: `0 대기A · 1 대기B · 2 준비 / 3 공격 · 4 공격절정 · 5 마무리`. 정면·전신(공중형은 부유), 아래가 바닥/발.
+
+> ⚠️ 보스는 지금 단일 이미지(`warden.png` 등)나 코드 스프라이트로 폴백됩니다. `<id>_sheet.png` 를 넣으면
+> `bosses.js`에 `sheet` 설정을 붙여 애니를 켤 수 있습니다(공격 애니 재생 트리거는 넣을 때 코드로 함께 연결).
+
+---
+
+## 👁️ 감시자 (warden) — `warden_sheet.png`
+
+**컨셉**: 핑크 네온(#ff5cc8)의 **떠 있는 기계 감시자(센티넬)**, 중앙의 거대한 외눈 + 주위를 도는 방사형 룬 링. 방사 탄막을 뿌린다.
+**격자**: 3열×2행=6칸, 각 칸 512×512 → 전체 1536×1024.
+
+### 공통 프리픽스
+```
+2D game boss sprite, front-facing full-body, clean cel-shaded style with crisp lineart,
+a massive floating mechanical sentinel with one giant glowing central eye and rotating rune rings around it,
+hot-pink magenta neon energy (#ff5cc8), menacing and powerful, ornate armored plating,
+boss centered in frame, hovering with the base near the bottom edge, flat even lighting,
+transparent background, no ground, no cast shadow, no glow bloom,
+the exact same boss in every image, 1:1 square, high detail
+```
+
+### 칸별 포즈 프롬프트 (프리픽스 + 아래 한 줄)
+| 칸 | 용도 | 포즈 프롬프트(뒤에 이어붙임) |
+|---|---|---|
+| **0** | 대기 A | `, idle hovering, central eye half-closed, rune rings still` |
+| **1** | 대기 B | `, idle awakened, eye open and glowing, rune rings slowly rotating` |
+| **2** | 준비 | `, charging, rune rings expanding outward, eye brightening intensely` |
+| **3** | 공격 | `, firing a radial barrage, energy bolts bursting outward in all directions` |
+| **4** | 공격 절정 | `, peak blast, blinding eye flare, maximum omni-directional energy discharge` |
+| **5** | 마무리 | `, recovery, rune rings contracting back, eye dimming` |
+
+### 완성 후 (`js/data/bosses.js`의 warden)
+```js
+sheet:{ cols:3, rows:2, fps:6, anims:{ idle:[0,1], attack:[2,3,4,5] } }
+```
+
+---
+
+## 🐍 히드라 (hydra) — `hydra_sheet.png`
+
+**컨셉**: 초록 네온(#5cff9e)의 **다두 독룡**, 여러 개의 뱀 머리와 스멀거리는 맹독 안개. 나선형 독 탄막을 뿜는다.
+**격자**: 3열×2행=6칸, 각 칸 512×512 → 전체 1536×1024.
+
+### 공통 프리픽스
+```
+2D game boss sprite, front-facing full-body, clean cel-shaded style with crisp lineart,
+a massive multi-headed hydra serpent with several snake heads and drifting toxic mist,
+venomous green neon energy (#5cff9e), scaled hide, menacing and powerful,
+boss centered in frame, base coiled at the bottom edge, flat even lighting,
+transparent background, no ground, no cast shadow, no glow bloom,
+the exact same boss in every image, 1:1 square, high detail
+```
+
+### 칸별 포즈 프롬프트
+| 칸 | 용도 | 포즈 프롬프트(뒤에 이어붙임) |
+|---|---|---|
+| **0** | 대기 A | `, idle, heads lowered and coiled, calm` |
+| **1** | 대기 B | `, idle, heads swaying, faint poison mist rising` |
+| **2** | 준비 | `, winding up, heads reared back, venom condensing in the mouths` |
+| **3** | 공격 | `, spewing venom, heads spitting spiraling toxic projectiles` |
+| **4** | 공격 절정 | `, peak spray, explosive spiral of poison from all heads` |
+| **5** | 마무리 | `, recovery, heads drawing back, lingering mist` |
+
+### 완성 후 (`js/data/bosses.js`의 hydra)
+```js
+sheet:{ cols:3, rows:2, fps:6, anims:{ idle:[0,1], attack:[2,3,4,5] } }
+```
+
+---
+
+## 🗿 콜로서스 (colossus) — `colossus_sheet.png`
+
+**컨셉**: 주황 네온(#ffb03d)의 **거대한 암석·용암 골렘**, 몸 곳곳에 발광하는 주황 균열. 집중 강타로 짓누른다.
+**격자**: 3열×2행=6칸, 각 칸 512×512 → 전체 1536×1024.
+
+### 공통 프리픽스
+```
+2D game boss sprite, front-facing full-body, clean cel-shaded style with crisp lineart,
+a colossal rock-and-lava golem with glowing orange molten cracks across its stone body,
+amber-orange neon energy (#ffb03d), hulking and heavy, menacing and powerful,
+boss centered in frame, feet planted at the bottom edge, flat even lighting,
+transparent background, no ground, no cast shadow, no glow bloom,
+the exact same boss in every image, 1:1 square, high detail
+```
+
+### 칸별 포즈 프롬프트
+| 칸 | 용도 | 포즈 프롬프트(뒤에 이어붙임) |
+|---|---|---|
+| **0** | 대기 A | `, idle standing tall, arms hanging, cracks dim` |
+| **1** | 대기 B | `, idle, molten cracks pulsing like breathing` |
+| **2** | 준비 | `, raising a massive fist overhead, cracks glowing bright` |
+| **3** | 공격 | `, slamming the fist down, focused ground-pound strike` |
+| **4** | 공격 절정 | `, impact shockwave, cracks bursting with lava, debris flying` |
+| **5** | 마무리 | `, recovery, straightening back up, cracks cooling` |
+
+### 완성 후 (`js/data/bosses.js`의 colossus)
+```js
+sheet:{ cols:3, rows:2, fps:6, anims:{ idle:[0,1], attack:[2,3,4,5] } }
+```
+
+---
+
+> 보스 3종 모두 **동일 격자(3×2)·512px 칸·동일 설정**입니다. 캐릭터보다 큰 칸(512)만 다릅니다.
+> `<id>_sheet.png` 를 넣고 알려주시면 `bosses.js`에 `sheet` 설정 + **보스 공격 시 attack 애니 재생** 코드를 함께 연결하겠습니다.
