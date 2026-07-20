@@ -16,6 +16,7 @@ import { updateSkills, updateProjectiles } from './systems/skills.js';
 import { addXp, rollChoices, applyChoice, allRunMods } from './systems/levelup.js';
 import { getTrees, chooseTree, nextDueNode, applyNode, describeMods, TECH_UNLOCK_LEVEL, KEYSTONES } from './systems/techtree.js';
 import { rollSigils, applySigil, sigilsEligible } from './systems/ascension.js';
+import { abyssTier, MUTATIONS } from './data/mutations.js';
 import { makeInput } from './core/input.js';
 import { makeAudio } from './core/audio.js';
 import { drawHud } from './ui/hud.js';
@@ -143,6 +144,7 @@ export function boot() {
   let shake = 0, combo = 0, comboTimer = 0, slowmo = 0, whiteFlash = 0, pendingLevels = 0;   // 대기 레벨업 수(다중 레벨 큐)
   let announce = null, lastBoss = null;   // 보스 출현 중앙 경고 배너 {text,color,life,max}
   let lastBiome = null, biomeSwipe = null;  // 바이옴 전환(보스 처치) 네온 쇼크웨이브 와이프 {life,max,color}
+  let lastThreat = 0;                       // 심연 위협 티어(상승 시 경고 연출)
   let levelupDelay = 0, goldFlash = 0, comboPop = 0;
   let autoPotion = meta.settings.autoPotion !== false;   // 물약 자동 사용(O 키/설정 토글)
 
@@ -180,7 +182,7 @@ export function boot() {
     rs.projShape = ch.projShape || null;                                    // 직업 기본 투사체 모양(궁수=화살, 검사=검기)
     dir = makeDirector(rng, BIOMES);
     sstate = {}; scene = 'run'; overlay = null;
-    announce = null; lastBoss = null; lastBiome = null; biomeSwipe = null;
+    announce = null; lastBoss = null; lastBiome = null; biomeSwipe = null; lastThreat = 0;
   }
 
   // 중앙 피해 처리: 스킬 데미지 × 공격력 배수 × (MP·편차) → 콤보에 따라 크리 확률↑.
@@ -195,6 +197,13 @@ export function boot() {
     if (rs.keystone === 'execute' && e.hp <= e.maxHp * 0.25) d *= 1.5;       // 처형 키스톤: 저HP 적 추가 피해
     if (rs.keystone === 'overcharge' && rs._overActive > 0) d *= 2.5;        // 과부하 키스톤: 폭증 창 동안 전체 피해↑
     d = Math.max(1, Math.round(d));
+    // 심연 변이 '수호(barrier)': 실제 HP보다 보호막이 먼저 깎인다. 완전 흡수면 이 타격은 HP 피해 없음.
+    if (e.barrier > 0) {
+      e.barrier -= d; e.flash = 6;
+      if (world.particles.length < 600) FX.spawnImpact(world, e.x, e.y, 'ice', false);
+      if (e.barrier > 0) { if (world.floaters.length < 100) world.spawnFloater({ x:e.x, y:e.y-10, text:'🛡', color:'#42e6ff', life:22, max:22, vy:-0.5 }); return; }
+      d = -e.barrier; e.barrier = 0; if (d <= 0) return;   // 초과분만 HP로
+    }
     const res = applyHit(e, d);
     e.flash = 6;
     // 마법 속성(비물리) 공격에 맞으면 확률로 침묵(마법 봉인) — 아케인 몹 한정(마법을 쓰는 몹).
@@ -393,6 +402,11 @@ export function boot() {
     if (slowmo > 0) { slowmo--; if (frameCount % 3 !== 0) return; }
     rs.timeMs += dt;
     rs.stage = Math.max(1, (rs.timeMs/30000|0)+1);
+    // 심연 위협 티어 상승 감지(35레벨부터 +5마다) → 중앙 경고 연출 + 셰이크
+    { const th = abyssTier(rs.level);
+      if (th > lastThreat) { lastThreat = th;
+        world.spawnFloater({ x:world.player.x, y:world.player.y-70, text:`☠ 심연 위협 Lv${th}`, color:'#ff5c6a', life:100, max:100, vy:-0.2, crit:true });
+        shake = Math.min(12, shake + 5); audio.sfx('boss'); } }
     // 파생 maxHp/maxMp 변경(레벨 성장·테크트리 방어 노드 등)을 실제 HP/MP 풀에 반영.
     //  · maxHp: world.player.maxHp가 진짜 소스라 startRun 이후 재동기화 필요(기존 테크 maxHp 노드 미반영 버그도 함께 해결).
     //  · 늘어난 만큼 현재값도 함께 올려 레벨업·각성이 즉시 체감되게(감소 시엔 상한 클램프).
@@ -707,6 +721,19 @@ export function boot() {
           const sx = e.x-camX, sy = e.y-camY - e.radius*headOff - (e.hp < e.maxHp ? 14 : 4);
           ctx.save(); ctx.globalAlpha = 0.6 + 0.4*Math.sin(frameCount*0.2);
           ctx.font = '700 13px system-ui'; ctx.textAlign = 'center'; ctx.fillText('🔇', sx, sy); ctx.restore();
+        }
+        // 심연 변이 표시: 변이 색 링(barrier는 보호막 잔량 비례) + 머리 위 심볼
+        if (e.mutation) {
+          const ex = e.x-camX, ey = e.y-camY;
+          ctx.save(); ctx.strokeStyle = e.mutColor || '#fff'; ctx.shadowColor = e.mutColor || '#fff'; ctx.shadowBlur = 8;
+          if (e.barrier > 0) { ctx.globalAlpha = 0.35 + 0.5*(e.barrier/(e.barrierMax||1)); ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(ex, ey, e.radius*1.35, 0, Math.PI*2); ctx.stroke(); }
+          else { ctx.globalAlpha = 0.5 + 0.3*Math.sin(frameCount*0.15); ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(ex, ey, e.radius*1.3, 0, Math.PI*2); ctx.stroke(); }
+          const sym = MUTATIONS[e.mutation]?.symbol;
+          if (sym) { ctx.globalAlpha = 0.9; ctx.shadowBlur = 0; ctx.font = '700 12px system-ui'; ctx.textAlign = 'center';
+            ctx.fillText(sym, ex, ey - e.radius*headOff - (e._silence>0 ? 30 : 18)); }
+          ctx.restore();
         } }
       for (const p of world.projectiles) { if (!p.alive) continue;
         if (p.beam) { const n=Math.hypot(p.vx,p.vy)||1, ux=p.vx/n, uy=p.vy/n;
@@ -827,6 +854,8 @@ export function boot() {
       // 우측 상단: AUTO(이동) + 물약자동 토글
       R.text(ctx, input.isAutopilot()?'AUTO 이동 (P)':'수동 이동 (P)', canvas.width-16, 20, { size:12, align:'right', color: input.isAutopilot()?'#8effc7':'#8aa' });
       R.text(ctx, autoPotion?'물약자동 ON (O)':'물약자동 OFF (O)', canvas.width-16, 38, { size:12, align:'right', color: autoPotion?'#ffb3c0':'#889' });
+      { const th = abyssTier(rs.level);   // 심연 위협 티어 뱃지(35레벨+)
+        if (th > 0) R.text(ctx, `☠ 심연 위협 Lv${th}`, canvas.width-16, 54, { size:12.5, align:'right', color:'#ff5c6a', weight:'800' }); }
       // 우측 상단: 현재 장착 스킬 아이콘 + 레벨
       { const isz=32, pad=7, x0=canvas.width-12-isz; let idx=0;
         for (const id of Object.keys(rs.ownedSkills)) { const s=getSkill(id); if (!s) continue;

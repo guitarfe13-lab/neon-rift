@@ -106,8 +106,13 @@
 
 ---
 
-## Phase 3(선택) — 심연 위협
-35레벨 이후 적 랜덤 변이(배리어·자폭·순간이동) + 위협 레벨 상승 + 보상 비례. 후순위.
+## Phase 3 — 심연 위협 (구현 완료)
+35레벨 이후 스폰 몹에 위협 티어 비례 확률로 위험 변이 부여 + 처치 보상↑ + 티어 상승 경고.
+- **위협 티어**: `abyssTier(level)` = 35에서 1, 이후 +5마다 +1. 변이 확률 `min(0.5, 0.12 + tier*0.06)`.
+- **변이 4종**(`data/mutations.js`): 수호(barrier, 보호막이 HP보다 먼저 소모) · 폭심(volatile, 사망 시 폭발 탄막)
+  · 점멸(blink, 주기적 순간이동) · 격노(frenzy, 빠르고 강하나 약간 무름). 처치 시 xp·gold ×1.5~1.7.
+- **훅**: spawner(스탯·확률), enemyAI(blink 텔레포트·volatile 폭발), main(barrier 흡수·변이 링/심볼 렌더·티어 뱃지·상승 연출).
+- **테스트**: abyssTier·applyMutation·spawner 변이 등장·volatile/blink 회귀.
 
 ---
 

@@ -79,6 +79,16 @@ export function stepEnemy(e, world, rng) {
     if (e._skillNameT > 0) e._skillNameT--;   // HUD 스킬명 표시 타이머 감쇠
   }
   if (e._slow > 0) { e._slow--; spd *= 0.45; }   // 감속(서리장 키스톤 / 서리 파동 각인) — 이속 절반 이하
+  // 심연 변이 '점멸': 주기적으로 플레이어 주변 무작위 지점으로 순간이동(카이팅 방해).
+  if (e.blink && e.behavior !== 'boss') {
+    e._blinkCd = (e._blinkCd ?? (120 + Math.floor(rng.next() * 120)));
+    if (--e._blinkCd <= 0) {
+      e._blinkCd = 150 + Math.floor(rng.next() * 150);
+      const a = rng.next() * Math.PI * 2, dist = 110 + rng.next() * 90;
+      e.x = p.x + Math.cos(a) * dist; e.y = p.y + Math.sin(a) * dist;
+      if (world.spawnParticle) world.spawnParticle({ x:e.x, y:e.y, r:6, rMax:40, life:12, color:'#c98bff', shock:true });
+    }
+  }
   e.x += Math.cos(ang)*spd*MOVE_SCALE; e.y += Math.sin(ang)*spd*MOVE_SCALE;
   if (e._atk > 0) e._atk--;   // 공격 애니 타이머(마법 몹 등)
   if (e._retCd > 0) e._retCd--;   // 아케인 반격 마법 쿨(main damageEnemy에서 설정) — 프레임당 감소
@@ -114,6 +124,12 @@ export function onEnemyDeath(e, world, rng) {
   } else if (e.behavior === 'bomber') {
     // 사망 폭발: 빠르게 퍼지는 짧은 수명 탄막(폭발감) + 충격파 링
     for (let i=0;i<10;i++){ const a=i/10*Math.PI*2 + rng.next()*0.2; fireHazard(world, e.x, e.y, a, 5.2, e.damage, { life:80 }); }
+    world.spawnParticle({ x:e.x, y:e.y, r:e.radius*0.6, rMax:e.radius*4.5, life:14, color:'#ff7a3d', shock:true });
+  }
+  // 심연 변이 '폭심(volatile)': 사망 시 방사형 폭발 탄막(bomber와 별개 — 어떤 몹이든 변이 시 폭발).
+  if (e.volatile) {
+    for (let i=0;i<12;i++){ const a=i/12*Math.PI*2 + rng.next()*0.2;
+      fireHazard(world, e.x, e.y, a, 4.6, Math.max(1, Math.round((e.damage||6)*0.9)), { life:90, color:'#ff7a3d' }); }
     world.spawnParticle({ x:e.x, y:e.y, r:e.radius*0.6, rMax:e.radius*4.5, life:14, color:'#ff7a3d', shock:true });
   }
 }

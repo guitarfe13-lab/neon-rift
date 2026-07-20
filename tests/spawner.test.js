@@ -36,6 +36,14 @@ test('적 이속 배율은 2배 상한(후반 무한 가속 방지)', () => {
   const late = dir.enemyStatsAt('grunt', 3600000, 99);        // 극후반
   assert.ok(late.speed <= base * 2.0 + 1e-9);
 });
+test('심연 변이: 35레벨+에서만 변이 몹 등장', () => {
+  const hi = makeDirector(makeRng('mut'), BIOMES); const w = createWorld();
+  for (let i=0;i<500;i++) hi.update(50, w, 45);   // 고레벨(티어2) 스폰 다수
+  assert.ok(w.enemies.some(e => e.mutation), '고레벨에선 변이 몹이 나와야 함');
+  const lo = makeDirector(makeRng('nomut'), BIOMES); const w2 = createWorld();
+  for (let i=0;i<500;i++) lo.update(50, w2, 10);   // 저레벨
+  assert.ok(!w2.enemies.some(e => e.mutation), '저레벨에선 변이 없음');
+});
 test('durationMs 경과 시 보스 스폰 + 아레나 설정', () => {
   const dir = makeDirector(makeRng('s'), BIOMES);
   const w = createWorld();

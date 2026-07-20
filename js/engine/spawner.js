@@ -1,6 +1,7 @@
 // 디렉터: 내부 시계(t)로 바이옴별 스폰·엘리트·보스 등장·바이옴 순환을 관리.
 import { getEnemy } from '../data/enemies.js';
 import { getBoss } from '../data/bosses.js';
+import { MUTATION_IDS, applyMutation, abyssTier } from '../data/mutations.js';
 
 export function makeDirector(rng, biomes) {
   let t = 0, timer = 0, biomeIdx = 0, biomeStart = 0, bossRef = null, arena = null;
@@ -26,6 +27,10 @@ export function makeDirector(rng, biomes) {
       st.hp = Math.round(st.hp * 3.2); st.radius = Math.round(st.radius * 1.4);
       st.damage = Math.round(st.damage * 1.4); st.gold *= 4; st.xp *= 3; st.elite = true;
     }
+    // 심연 변이(35레벨+): 위협 티어에 비례한 확률로 위험 변이 부여(보상↑).
+    const tier = abyssTier(level);
+    if (tier > 0 && rng.next() < Math.min(0.5, 0.12 + tier * 0.06))
+      applyMutation(st, MUTATION_IDS[Math.floor(rng.next() * MUTATION_IDS.length)], tier);
     st.maxHp = st.hp;
     const ang = rng.next() * Math.PI * 2, R = 460;
     world.spawnEnemy({ ...st, x: world.player.x + Math.cos(ang)*R, y: world.player.y + Math.sin(ang)*R });

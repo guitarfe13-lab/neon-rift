@@ -102,3 +102,15 @@ test('일반 적은 플레이어 쪽으로 이동', () => {
   stepEnemy(e, w, makeRng('m'));
   assert.ok(e.x > 0);
 });
+test('심연 변이 volatile: 사망 시 폭발 탄막 방출', () => {
+  const w = createWorld(); w.player.x=0; w.player.y=0;
+  const e = { ...getEnemy('grunt'), x:100, y:0, alive:true, volatile:true };
+  onEnemyDeath(e, w, makeRng('v'));
+  assert.ok(w.hazards.length > 0);
+});
+test('심연 변이 blink: 쿨 종료 시 플레이어 근처로 순간이동', () => {
+  const w = createWorld(); w.player.x=0; w.player.y=0;
+  const e = { ...getEnemy('grunt'), x:1000, y:1000, alive:true, blink:true, _blinkCd:1 };
+  stepEnemy(e, w, makeRng('b'));   // _blinkCd 1→0 → 텔레포트 발동
+  assert.ok(Math.hypot(e.x - w.player.x, e.y - w.player.y) < 260, '플레이어 근처로 이동');
+});
