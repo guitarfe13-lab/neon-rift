@@ -78,6 +78,7 @@ export function stepEnemy(e, world, rng) {
     stepBossSkill(e, world);
     if (e._skillNameT > 0) e._skillNameT--;   // HUD 스킬명 표시 타이머 감쇠
   }
+  if (e._slow > 0) { e._slow--; spd *= 0.45; }   // 감속(서리장 키스톤 / 서리 파동 각인) — 이속 절반 이하
   e.x += Math.cos(ang)*spd*MOVE_SCALE; e.y += Math.sin(ang)*spd*MOVE_SCALE;
   if (e._atk > 0) e._atk--;   // 공격 애니 타이머(마법 몹 등)
   if (e._retCd > 0) e._retCd--;   // 아케인 반격 마법 쿨(main damageEnemy에서 설정) — 프레임당 감소

@@ -35,6 +35,7 @@ const RUNTIME = {
     if ((st.timer -= 1) > 0) return;
     if (!payMp(rs, skill, st)) return;
     st.timer = st.cdMax = cd(rt, rs.stats);
+    if (rs.keystone === 'echo' && Math.random() < 0.25) st.timer = 3;   // 이중 시전 키스톤: 25% 확률 빠른 2연사
     const p = world.player; const t = nearestEnemy(world, p.x, p.y); if (!t) return;
     const base = Math.atan2(t.y-p.y, t.x-p.x);
     const count = (rt.count||1) * (rs.stats.projectiles||1);
@@ -51,6 +52,7 @@ const RUNTIME = {
     if ((st.timer -= 1) > 0) return;
     if (!payMp(rs, skill, st)) return;
     st.timer = st.cdMax = cd(rt, rs.stats);
+    if (rs.keystone === 'echo' && Math.random() < 0.25) st.timer = 3;   // 이중 시전 키스톤: 25% 확률 빠른 2연사
     const p = world.player; const t = nearestEnemy(world, p.x, p.y); if (!t) return;
     const a = Math.atan2(t.y-p.y, t.x-p.x);
     world.spawnProjectile({ x:p.x, y:p.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,
@@ -89,6 +91,7 @@ const RUNTIME = {
     if ((st.timer -= 1) > 0) return;
     if (!payMp(rs, skill, st)) return;
     st.timer = st.cdMax = cd(rt, rs.stats);
+    if (rs.keystone === 'echo' && Math.random() < 0.25) st.timer = 3;   // 이중 시전 키스톤: 25% 확률 빠른 2연사
     const el = skill.tags && skill.tags[0];
     const p = world.player; let node = nearestEnemy(world, p.x, p.y); if (!node) return;
     const hit = new Set(); let cx=p.x, cy=p.y;
@@ -110,6 +113,7 @@ const RUNTIME = {
     if ((st.timer -= 1) > 0) return;
     if (!payMp(rs, skill, st)) return;
     st.timer = st.cdMax = cd(rt, rs.stats);
+    if (rs.keystone === 'echo' && Math.random() < 0.25) st.timer = 3;   // 이중 시전 키스톤: 25% 확률 빠른 2연사
     const d = st.drone; const t = nearestEnemy(world, d.x, d.y); if (!t) return;
     const a = Math.atan2(t.y-d.y, t.x-d.x); d._aim = a;   // 포신 조준 방향(렌더용)
     world.spawnProjectile({ x:d.x, y:d.y, vx:Math.cos(a)*rt.speed, vy:Math.sin(a)*rt.speed,

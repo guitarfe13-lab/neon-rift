@@ -1,9 +1,9 @@
 // 테크트리 런타임(순수): 선택·분기 노드 개방·스탯 재계산·효과 설명. DOM 비의존 → node 테스트 안전.
-import { getTrees, TECH_UNLOCK_LEVEL } from '../data/techTrees.js';
+import { getTrees, TECH_UNLOCK_LEVEL, KEYSTONES } from '../data/techTrees.js';
 import { computeStats } from '../engine/stats.js';
 import { allRunMods } from './levelup.js';
 
-export { getTrees, TECH_UNLOCK_LEVEL };
+export { getTrees, TECH_UNLOCK_LEVEL, KEYSTONES };
 
 function findTree(rs) { return getTrees(rs.charId).find((t) => t.id === rs.techTree) || null; }
 
@@ -13,9 +13,12 @@ function recompute(rs) {
 }
 
 // 트리 선택(런당 1회). 노드 적용은 nextDueNode/applyNode로 별도 진행.
+// 계열 키스톤(시그니처 능력)을 함께 부여 → main.js 전투 훅이 rs.keystone으로 거동을 바꾼다.
 export function chooseTree(rs, tree) {
   if (rs.techTree) return false;
   rs.techTree = tree.id; rs.techTreeName = tree.name; rs.techTreeColor = tree.color;
+  const ks = KEYSTONES[tree.id];
+  if (ks) { rs.keystone = ks.special; rs.keystoneName = ks.name; rs.keystoneColor = tree.color; }
   rs.treeMods = []; rs.treeApplied = 0;
   return true;
 }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { getTrees, chooseTree, nextDueNode, applyNode, describeMods, TECH_UNLOCK_LEVEL } from '../js/systems/techtree.js';
+import { getTrees, chooseTree, nextDueNode, applyNode, describeMods, TECH_UNLOCK_LEVEL, KEYSTONES } from '../js/systems/techtree.js';
 import { TECH_TREES } from '../js/data/techTrees.js';
 import { CHARACTERS } from '../js/data/characters.js';
 import { computeStats } from '../js/engine/stats.js';
@@ -53,6 +53,22 @@ test('레벨 35: 진입+분기 3회 순차 개방, 투사체 누적', () => {
   while (nextDueNode(rs)) { applyNode(rs, 0); applied++; }       // 항상 1번째 옵션
   assert.equal(applied, 4);
   assert.equal(rs.stats.projectiles, 1 + 2);                     // 진입 +1, lv35 '화살비 완성' +1
+});
+test('모든 트리에 유효한 키스톤(special/name/desc)이 매핑됨', () => {
+  const valid = new Set(['siphon','guard','arcCrit','detonate','execute','echo','frostfield','overcharge']);
+  for (const id of Object.keys(CHARACTERS)) for (const t of getTrees(id)) {
+    const ks = KEYSTONES[t.id];
+    assert.ok(ks, t.id + ' 키스톤 존재');
+    assert.ok(valid.has(ks.special), t.id + ' 유효 special: ' + ks.special);
+    assert.ok(ks.name && ks.desc, t.id + ' 이름·설명');
+  }
+});
+test('chooseTree는 계열 키스톤을 rs에 부여', () => {
+  const rs = runState('blade', 20);
+  chooseTree(rs, TECH_TREES.blade[1]);                            // 불괴의 수호자 → guard
+  assert.equal(rs.keystone, 'guard');
+  assert.equal(rs.keystoneName, KEYSTONES.guardian.name);
+  assert.equal(rs.keystoneColor, TECH_TREES.blade[1].color);
 });
 test('describeMods: 효과 요약 문자열', () => {
   assert.equal(describeMods([{stat:'damage',kind:'mult',value:0.2}]), '공격력 +20%');

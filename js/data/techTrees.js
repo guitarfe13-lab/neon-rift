@@ -171,3 +171,21 @@ export const TECH_TREES = {
 };
 export const TECH_UNLOCK_LEVEL = 20;
 export function getTrees(charId) { return TECH_TREES[charId] || []; }
+
+// 전직 키스톤: 계열(트리)별 시그니처 능력 — 20레벨 전직 시 부여되어 전투 거동을 바꾸고 캐릭터에 오라를 입힌다.
+//  special = main.js 전투 훅이 해석하는 id(siphon/guard/arcCrit/detonate/execute/echo/frostfield/overcharge).
+//  name/desc = 전직 카드·플로터 표시용.
+export const KEYSTONES = {
+  berserker:   { special:'siphon',     name:'피의 갈망',   desc:'가한 피해의 6%를 회복' },
+  guardian:    { special:'guard',      name:'불괴 방벽',   desc:'6초마다 피격 1회를 무효화' },
+  flash:       { special:'arcCrit',    name:'섬광 연격',   desc:'치명타 시 인접 적에게 번개' },
+  archmage:    { special:'detonate',   name:'비전 폭발',   desc:'투사체 명중 시 소폭발' },
+  stormweaver: { special:'echo',       name:'이중 시전',   desc:'25% 확률로 스킬을 2연사' },
+  wardmage:    { special:'guard',      name:'마력 방벽',   desc:'6초마다 피격 1회를 무효화' },
+  sniper:      { special:'execute',    name:'처형 사격',   desc:'HP 25% 이하 적 피해 +50%' },
+  stormrain:   { special:'detonate',   name:'작렬 화살',   desc:'투사체 명중 시 소폭발' },
+  shadow:      { special:'arcCrit',    name:'암습 연격',   desc:'치명타 시 인접 적에게 번개' },
+  frostlord:   { special:'frostfield', name:'동결 파동',   desc:'5초마다 주변 감속 필드' },
+  erosion:     { special:'siphon',     name:'생명 침식',   desc:'가한 피해의 6%를 회복' },
+  stormcaller: { special:'overcharge', name:'과부하 방출', desc:'8초마다 잠시 피해 폭증' },
+};

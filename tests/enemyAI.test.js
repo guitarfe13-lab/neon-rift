@@ -51,6 +51,19 @@ test('_silence는 프레임당 감소(침묵 자동 해제)', () => {
   for (let i=0;i<12;i++) stepEnemy(e, w, makeRng('s'));
   assert.equal(e._silence, 0);
 });
+test('감속(_slow)된 적은 더 느리게 이동하고 _slow는 프레임당 감소(서리장 키스톤)', () => {
+  const mv = (slow) => {
+    const w = createWorld(); w.player.x = 1000; w.player.y = 0;
+    const e = { ...getEnemy('grunt'), x:0, y:0, alive:true }; if (slow) e._slow = 999;
+    stepEnemy(e, w, makeRng('m'));
+    return e.x;   // 1프레임 이동 거리(플레이어 쪽 +x)
+  };
+  assert.ok(mv(true) < mv(false), '감속 적이 덜 이동해야 함');
+  const e = { ...getEnemy('grunt'), x:0, y:0, alive:true, _slow: 5 };
+  const w = createWorld(); w.player.x = 1000; w.player.y = 0;
+  for (let i=0;i<5;i++) stepEnemy(e, w, makeRng('m'));
+  assert.equal(e._slow, 0);
+});
 test('슈터는 사거리 내에서 hazard 발사', () => {
   const w = createWorld(); w.player.x=0; w.player.y=0;
   const e = { ...getEnemy('shooter'), x:100, y:0, alive:true };

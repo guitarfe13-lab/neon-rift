@@ -14,7 +14,7 @@ import { BIOMES } from './data/biomes.js';
 import { getSkill, SKILLS, EVOLUTIONS } from './data/skills.js';
 import { updateSkills, updateProjectiles } from './systems/skills.js';
 import { addXp, rollChoices, applyChoice, allRunMods } from './systems/levelup.js';
-import { getTrees, chooseTree, nextDueNode, applyNode, describeMods, TECH_UNLOCK_LEVEL } from './systems/techtree.js';
+import { getTrees, chooseTree, nextDueNode, applyNode, describeMods, TECH_UNLOCK_LEVEL, KEYSTONES } from './systems/techtree.js';
 import { makeInput } from './core/input.js';
 import { makeAudio } from './core/audio.js';
 import { drawHud } from './ui/hud.js';
@@ -171,6 +171,7 @@ export function boot() {
     world.player.maxHp = rs.stats.maxHp; world.player.hp = rs.stats.maxHp;
     rs.mp = rs.stats.maxMp; rs._maxMp = rs.stats.maxMp;                      // MP 현재값 + 성장 추적 기준
     rs.stun = 0; rs.stunMax = STUN_FRAMES; rs.stunCd = 0;                    // 마법 크리 스턴(MP 봉인) 잔여/최대/재발동쿨
+    rs.keystone = null;                                                      // 전직 키스톤(20레벨 계열 선택 시 부여)
     rs.potions = { hp: meta.potions?.hp || 0, mp: meta.potions?.mp || 0 };  // 상점 구매분 반입
     rs.potCd = { hp: 0, mp: 0 };                                            // 물약 쿨타임(30s, 스킬처럼)
     rs.oaths = meta.relics?.oath || 0;                                      // 신성의 맹세(부활) 반입
@@ -189,6 +190,8 @@ export function boot() {
     const mpBonus = 1 + ((rs.mp || 0) / (rs.stats.maxMp || 1)) * 0.05;        // MP 높을수록 소폭↑
     let d = skillDmg * (rs.stats.damage / rs.baseDamage) * mpBonus * (0.88 + Math.random() * 0.24); // ±12% 편차(각도/변동)
     if (crit) d *= (rs.stats.critMult || 1.55);
+    if (rs.keystone === 'execute' && e.hp <= e.maxHp * 0.25) d *= 1.5;       // 처형 키스톤: 저HP 적 추가 피해
+    if (rs.keystone === 'overcharge' && rs._overActive > 0) d *= 2.5;        // 과부하 키스톤: 폭증 창 동안 전체 피해↑
     d = Math.max(1, Math.round(d));
     const res = applyHit(e, d);
     e.flash = 6;
@@ -207,13 +210,27 @@ export function boot() {
       world.spawnHazard({ x:e.x, y:e.y, vx:Math.cos(a)*3.4, vy:Math.sin(a)*3.4, radius:8, damage:Math.max(1,Math.round(e.damage*0.8)), life:220, color:'#c98bff', magic:true });
       e._atk = 16; e._retCd = 70;   // 정상 감소하게 되면서 45→70(반격 최대 ~0.85/s)으로 완화
     }
-    // 테크트리 특수: 흡혈(피의 광전사) — 가한 피해의 일부 회복
-    if (rs.lifesteal > 0 && world.player.hp < world.player.maxHp)
-      world.player.hp = Math.min(world.player.maxHp, world.player.hp + d * rs.lifesteal);
+    // 흡혈: 테크 분기(rs.lifesteal) + 흡성 키스톤(siphon) 합산 — 가한 피해의 일부 회복
+    const steal = (rs.lifesteal || 0) + (rs.keystone === 'siphon' ? 0.06 : 0);
+    if (steal > 0 && world.player.hp < world.player.maxHp)
+      world.player.hp = Math.min(world.player.maxHp, world.player.hp + d * steal);
     if (world.particles.length < 600) FX.spawnImpact(world, e.x, e.y, element || 'physical', crit);   // 원소별 명중 이펙트
     if (crit || world.floaters.length < 120)   // 성능: 텍스트 폭주 방지(크리는 항상 표시)
       world.spawnFloater({ x:e.x, y:e.y-10, text: crit ? `Critical -${d}` : `-${d}`, color: crit?'#ffe14d':'#fff', life: crit?54:40, max: crit?54:40, vy:-0.7, crit });
     if (crit && frameCount % 3 === 0) audio.sfx('crit');
+    // 연격 키스톤: 치명타 시 가장 가까운 다른 적에게 번개 아크(피해 60%). 무한 연쇄 방지로 applyHit 직접 사용.
+    if (rs.keystone === 'arcCrit' && crit) {
+      let t = null, td = 180 * 180;
+      for (const o of world.enemies) { if (!o.alive || o === e) continue;
+        const dd = (o.x - e.x) ** 2 + (o.y - e.y) ** 2; if (dd < td) { td = dd; t = o; } }
+      if (t) {
+        const ad = Math.max(1, Math.round(d * 0.6));
+        FX.spawnChainArc(world, e.x, e.y, t.x, t.y, rs.keystoneColor || '#ffe14d', 3);
+        const r2 = applyHit(t, ad); t.flash = 6;
+        if (world.floaters.length < 120) world.spawnFloater({ x:t.x, y:t.y-10, text:`-${ad}`, color: rs.keystoneColor || '#ffe14d', life:34, max:34, vy:-0.7 });
+        if (r2.killed) { spawnDrops(t); onEnemyDeath(t, world, rng); }
+      }
+    }
     if (e.boss) shake = Math.min(6, shake + 0.5);
     if (res.killed) {
       audio.sfx(e.boss ? 'boss' : 'kill');
@@ -289,6 +306,13 @@ export function boot() {
   function hurtPlayer(raw, magic = false) {
     if ((world.player.invuln || 0) > 0) return;
     const p = world.player;
+    // 보호막 키스톤(guard): 충전 완료(쿨 0)면 이 피격을 완전 무효화하고 6초 재충전.
+    if (rs.keystone === 'guard' && (rs._guardCd || 0) <= 0) {
+      rs._guardCd = 360; p.invuln = Math.max(p.invuln || 0, 30);
+      world.spawnParticle({ x:p.x, y:p.y, r:p.radius, rMax:p.radius*2.4, life:16, color: rs.keystoneColor || '#42a6ff', shock:true });
+      world.spawnFloater({ x:p.x, y:p.y-40, text:'🛡 보호막!', color: rs.keystoneColor || '#42a6ff', life:50, max:50, vy:-0.5 });
+      return;
+    }
     p.hurtStreak = (p.hurtStreak || 0) + 1; p.hurtTimer = 120;   // 연속 피격 스트릭(2s 창)
     const critChance = Math.min(0.7, 0.1 + (p.hurtStreak - 1) * 0.03);   // 연속으로 맞을수록↑
     const crit = Math.random() < critChance;
@@ -304,6 +328,15 @@ export function boot() {
       shake = Math.min(16, shake + 6);
       world.spawnFloater({ x:p.x, y:p.y-42, text:'⚡ 스턴! MP 봉인', color:'#ff5cf0', life:72, max:72, vy:-0.5, crit:true });
     }
+  }
+
+  // 폭심 키스톤(detonate): 명중 지점 주변 적에게 소폭발(투사체 피해의 50%).
+  // 폭발 피해는 damageEnemy를 통하지만 재폭발하지 않음(detonate는 projectile 충돌 훅에서만 발동).
+  function detonateAt(x, y, skillDmg, element, source) {
+    const R = 46;
+    for (const o of world.enemies) { if (!o.alive || o === source) continue;
+      if ((o.x - x) ** 2 + (o.y - y) ** 2 <= R * R) damageEnemy(o, skillDmg * 0.5, element); }
+    world.spawnParticle({ x, y, r:8, rMax:R, life:12, color: rs.keystoneColor || '#ff7a3d', shock:true });
   }
 
   function cleanupSkillState() {
@@ -380,6 +413,20 @@ export function boot() {
     if (world.player.invuln>0) world.player.invuln--;
     if (rs.stun > 0) rs.stun--;   // 마법 크리 스턴 경과(0 되면 MP 봉인 자동 해제)
     if (rs.stunCd > 0) rs.stunCd--;   // 스턴 재발동 쿨다운 경과(끝나야 다시 스턴 가능)
+    // ── 전직 키스톤 주기 처리(guard 충전 / frostfield 필드 / overcharge 폭증 창) ──
+    if (rs.keystone === 'guard') { if (rs._guardCd > 0) rs._guardCd--; }
+    else if (rs.keystone === 'frostfield') {
+      if ((rs._fieldCd = (rs._fieldCd || 0) - 1) <= 0) { rs._fieldCd = 300;   // 5초마다 감속 필드
+        for (const e of world.enemies) if (e.alive && (e.x - pl.x) ** 2 + (e.y - pl.y) ** 2 <= 180 * 180) e._slow = 120;
+        world.spawnParticle({ x:pl.x, y:pl.y, r:20, rMax:180, life:22, color: rs.keystoneColor || '#8bd8ff', shock:true });
+      }
+    } else if (rs.keystone === 'overcharge') {
+      if (rs._overActive > 0) rs._overActive--;
+      if ((rs._overCd = (rs._overCd || 0) - 1) <= 0) { rs._overCd = 480; rs._overActive = 60;   // 8초마다 ~1초 폭증
+        world.spawnParticle({ x:pl.x, y:pl.y, r:16, rMax:120, life:20, color: rs.keystoneColor || '#ffd166', shock:true });
+        world.spawnFloater({ x:pl.x, y:pl.y - 40, text:'⚡ 과부하!', color: rs.keystoneColor || '#ffd166', life:44, max:44, vy:-0.5 });
+      }
+    }
     if (world.player.hurtTimer > 0 && --world.player.hurtTimer === 0) world.player.hurtStreak = 0; // 연속 피격 스트릭 소멸
     if (comboTimer>0) comboTimer--; else combo=0;
     if (levelupDelay>0) levelupDelay--;
@@ -402,7 +449,9 @@ export function boot() {
       for (const e of world.enemies) { if (!e.alive) continue;
         if (Math.hypot(p.x-e.x, p.y-e.y) < p.radius+e.radius) {
           if (p.orbit) { if ((e._orbCd||0)>0) continue; damageEnemy(e, p.dmg, p.element); e._orbCd = 12; }
-          else { damageEnemy(e, p.dmg, p.element); if (p.pierce>0) p.pierce--; else { p.alive=false; break; } }
+          else { damageEnemy(e, p.dmg, p.element);
+            if (rs.keystone === 'detonate') detonateAt(e.x, e.y, p.dmg, p.element, e);   // 폭심: 명중 시 소폭발
+            if (p.pierce>0) p.pierce--; else { p.alive=false; break; } }
         }
       }
     }
@@ -470,6 +519,7 @@ export function boot() {
     audio.sfx('upgrade'); goldFlash = 16;
     chooseTree(rs, tr);
     world.spawnFloater({ x:world.player.x, y:world.player.y-40, text:`🌟 테크트리: ${tr.name}`, color:tr.color, life:80, max:80, vy:-0.3, crit:true });
+    if (rs.keystone) world.spawnFloater({ x:world.player.x, y:world.player.y-64, text:`⚡ 각성: ${rs.keystoneName}`, color:tr.color, life:84, max:84, vy:-0.28, crit:true });
     overlay = null; processTechDues();
   }
   function selectTechNode(i){
@@ -625,6 +675,20 @@ export function boot() {
         else if (p.pshape === 'turret')  R.turretOrb(ctx, p.x-camX, p.y-camY, p._aim ?? ((p.oa||0)+Math.PI/2), p.radius, p.color); // 포탑(조준 포신)
         else if (p.pshape === 'wisp')    R.wispOrb(ctx, p.x-camX, p.y-camY, frameCount, p.radius, p.color);                     // 정령 위습(맥동)
         else R.neonCircle(ctx, p.x-camX, p.y-camY, p.radius, p.color||'#ffe14d'); }
+      // 전직 키스톤 오라: 발밑 계열색 링(맥동) → 전직이 시각적으로 드러남.
+      //  guard 충전 완료 시 몸 배리어 링, overcharge 활성 시 강한 링 추가.
+      if (rs.keystone) {
+        const px = world.player.x-camX, py = world.player.y-camY, r = world.player.radius, col = rs.keystoneColor || '#fff';
+        const pulse = 1 + 0.12 * Math.sin(frameCount * 0.12);
+        ctx.save(); ctx.strokeStyle = col; ctx.shadowColor = col; ctx.shadowBlur = 12;
+        ctx.globalAlpha = 0.5; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.ellipse(px, py + r*0.9, r*1.5*pulse, r*0.7*pulse, 0, 0, Math.PI*2); ctx.stroke();
+        if (rs.keystone === 'guard' && (rs._guardCd || 0) <= 0) { ctx.globalAlpha = 0.7; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(px, py, r*1.7, 0, Math.PI*2); ctx.stroke(); }
+        if (rs.keystone === 'overcharge' && rs._overActive > 0) { ctx.globalAlpha = 0.9; ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.arc(px, py, r*1.6, 0, Math.PI*2); ctx.stroke(); }
+        ctx.restore();
+      }
       // 플레이어(피격 무적 중 깜빡임)
       if (!(world.player.invuln>0 && frameCount%6<3))
         drawEntity(ctx, ch, world.player.x-camX, world.player.y-camY, world.player.radius, ch.color, frameCount, world.player.face||0, false, world.player);
@@ -824,7 +888,9 @@ export function boot() {
       const entry = tr.nodes[0];
       const road = `Lv20 ${entry.name}(${describeMods(entry.mods, entry.special)})  →  Lv25/30/35 분기 선택`;
       R.text(ctx, road, R0.x+16, R0.y+72, { size:11.5, align:'left', color:'#8592a8' });
-      R.text(ctx, '즉시 진입 보너스 적용', R0.x+16, R0.y+90, { size:11.5, align:'left', color:'#ffe14d', weight:'700' });
+      const ks = KEYSTONES[tr.id];   // 전직 키스톤(시그니처 능력) 강조 — 전직이 배지뿐 아니라 능력으로 체감되게
+      if (ks) R.text(ctx, `⚡ ${ks.name} — ${ks.desc}`, R0.x+16, R0.y+90, { size:11.5, align:'left', color:tr.color, weight:'700' });
+      else R.text(ctx, '즉시 진입 보너스 적용', R0.x+16, R0.y+90, { size:11.5, align:'left', color:'#ffe14d', weight:'700' });
     });
   }
   // 분기 노드 선택(2택)
