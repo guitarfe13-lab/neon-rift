@@ -3,6 +3,7 @@ import { SKILLS, EVOLUTIONS } from '../data/skills.js';
 import { getCharacter } from '../data/characters.js';
 import { computeStats } from '../engine/stats.js';
 import { canEvolve } from './skillScaling.js';
+import { sigilMods } from './ascension.js';
 
 export function xpForLevel(level) { return Math.round(8 * Math.pow(level, 1.55) + 4); }
 
@@ -38,10 +39,10 @@ export function levelMods(rs) {
   return [{ stat: lg.stat, kind: 'flat', value: lg.value * steps }];
 }
 
-// 스탯 재계산에 쓰는 모든 런타임 보정(패시브 + 레벨 성장 + 테크트리)을 한 곳에서 합성.
-// 재계산 지점(레벨업 선택·테크 노드·테스트훅)이 이걸 공유해야 레벨 성장이 유실되지 않는다.
+// 스탯 재계산에 쓰는 모든 런타임 보정(패시브 + 레벨 성장 + 테크트리 + 각인)을 한 곳에서 합성.
+// 재계산 지점(레벨업 선택·테크 노드·각인·테스트훅)이 이걸 공유해야 성장이 유실되지 않는다.
 export function allRunMods(rs) {
-  return passiveMods(rs).concat(levelMods(rs)).concat(rs.treeMods || []);
+  return passiveMods(rs).concat(levelMods(rs)).concat(rs.treeMods || []).concat(sigilMods(rs));
 }
 
 export function rollChoices(rs, rng, count = 3) {

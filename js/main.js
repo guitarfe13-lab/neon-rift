@@ -15,6 +15,7 @@ import { getSkill, SKILLS, EVOLUTIONS } from './data/skills.js';
 import { updateSkills, updateProjectiles } from './systems/skills.js';
 import { addXp, rollChoices, applyChoice, allRunMods } from './systems/levelup.js';
 import { getTrees, chooseTree, nextDueNode, applyNode, describeMods, TECH_UNLOCK_LEVEL, KEYSTONES } from './systems/techtree.js';
+import { rollSigils, applySigil, sigilsEligible } from './systems/ascension.js';
 import { makeInput } from './core/input.js';
 import { makeAudio } from './core/audio.js';
 import { drawHud } from './ui/hud.js';
@@ -172,6 +173,7 @@ export function boot() {
     rs.mp = rs.stats.maxMp; rs._maxMp = rs.stats.maxMp;                      // MP 현재값 + 성장 추적 기준
     rs.stun = 0; rs.stunMax = STUN_FRAMES; rs.stunCd = 0;                    // 마법 크리 스턴(MP 봉인) 잔여/최대/재발동쿨
     rs.keystone = null;                                                      // 전직 키스톤(20레벨 계열 선택 시 부여)
+    rs.sigils = {}; rs.sigilsGranted = 0;                                    // 각인(40레벨+ 무한 성장) 보유 스택 / 부여 횟수
     rs.potions = { hp: meta.potions?.hp || 0, mp: meta.potions?.mp || 0 };  // 상점 구매분 반입
     rs.potCd = { hp: 0, mp: 0 };                                            // 물약 쿨타임(30s, 스킬처럼)
     rs.oaths = meta.relics?.oath || 0;                                      // 신성의 맹세(부활) 반입
@@ -250,6 +252,21 @@ export function boot() {
         audio.sfx('boss'); audio.sfx('death');
       }
       onEnemyDeath(e, world, rng);
+      // 각인 처치 효과 ── 연쇄 낙뢰: 인접 최대 2적에 번개 / 흡성 핵: 최대 HP 회복
+      const nChain = rs.sigils?.chain_bolt || 0;
+      if (nChain && Math.random() < Math.min(0.9, 0.4 + 0.15 * (nChain - 1))) {
+        let hits = 0;
+        for (const o of world.enemies) { if (!o.alive || o === e) continue;
+          if ((o.x - e.x) ** 2 + (o.y - e.y) ** 2 <= 200 * 200) {
+            FX.spawnChainArc(world, e.x, e.y, o.x, o.y, '#b28bff', 3);
+            const r2 = applyHit(o, Math.max(1, Math.round(d * 0.7))); o.flash = 6;
+            if (r2.killed) { spawnDrops(o); onEnemyDeath(o, world, rng); }
+            if (++hits >= 2) break;
+          } }
+      }
+      const nSiph = rs.sigils?.siphon_core || 0;
+      if (nSiph && world.player.hp < world.player.maxHp)
+        world.player.hp = Math.min(world.player.maxHp, world.player.hp + world.player.maxHp * (0.015 + 0.01 * (nSiph - 1)));
     }
   }
 
@@ -313,6 +330,8 @@ export function boot() {
       world.spawnFloater({ x:p.x, y:p.y-40, text:'🛡 보호막!', color: rs.keystoneColor || '#42a6ff', life:50, max:50, vy:-0.5 });
       return;
     }
+    const nCursed = rs.sigils?.cursed || 0;
+    if (nCursed) raw *= (1 + 0.12 * nCursed);   // 저주받은 힘 각인: 받는 피해 증가(하이리스크)
     p.hurtStreak = (p.hurtStreak || 0) + 1; p.hurtTimer = 120;   // 연속 피격 스트릭(2s 창)
     const critChance = Math.min(0.7, 0.1 + (p.hurtStreak - 1) * 0.03);   // 연속으로 맞을수록↑
     const crit = Math.random() < critChance;
@@ -322,6 +341,16 @@ export function boot() {
     const shown = Math.max(1, Math.round(d));
     world.spawnFloater({ x:p.x, y:p.y-22, text: crit ? `Critical -${shown}` : `-${shown}`,
       color: crit ? '#ff3b3b' : '#ff9a9a', life: crit?52:34, max: crit?52:34, vy:-0.7, crit });
+    // 반사 장막 각인(aegis): 받은 피해의 일부를 가장 가까운 적에게 반사
+    const nAegis = rs.sigils?.aegis || 0;
+    if (nAegis) {
+      let t = null, td = Infinity;
+      for (const o of world.enemies) { if (!o.alive) continue; const dd = (o.x-p.x)**2 + (o.y-p.y)**2; if (dd < td) { td = dd; t = o; } }
+      if (t) { const rf = Math.max(1, Math.round(d * (0.3 + 0.15 * (nAegis - 1))));
+        const r2 = applyHit(t, rf); t.flash = 6;
+        if (world.floaters.length < 120) world.spawnFloater({ x:t.x, y:t.y-10, text:`-${rf}`, color:'#42a6ff', life:30, max:30, vy:-0.6 });
+        if (r2.killed) { spawnDrops(t); onEnemyDeath(t, world, rng); } }
+    }
     // 마법 공격에 크리로 맞으면 ~3초 MP 봉인 스턴(초상 붉게 + 잔여시간). 단, 쿨다운 중엔 면역 → 과다 스턴 방지.
     if (magic && crit && (rs.stunCd || 0) <= 0) {
       rs.stun = STUN_FRAMES; rs.stunMax = STUN_FRAMES; rs.stunCd = STUN_COOLDOWN;
@@ -337,6 +366,15 @@ export function boot() {
     for (const o of world.enemies) { if (!o.alive || o === source) continue;
       if ((o.x - x) ** 2 + (o.y - y) ** 2 <= R * R) damageEnemy(o, skillDmg * 0.5, element); }
     world.spawnParticle({ x, y, r:8, rMax:R, life:12, color: rs.keystoneColor || '#ff7a3d', shock:true });
+  }
+
+  // 분열탄 각인(splinter): 투사체가 적을 처치하면 파편(2+스택)을 방사. 파편은 _noSplinter로 재분열 방지.
+  function spawnSplinters(x, y, src) {
+    const n = 2 + (rs.sigils.splinter || 1);
+    const dmg = Math.max(1, Math.round((src.dmg || 6) * 0.4));
+    for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 + rng.next() * 0.6;
+      world.spawnProjectile({ x, y, vx: Math.cos(a) * 6, vy: Math.sin(a) * 6, radius: 4, dmg, pierce: 0,
+        life: 40, crit: false, color: '#ff9f45', element: src.element, pshape: src.pshape, _noSplinter: true }); }
   }
 
   function cleanupSkillState() {
@@ -427,6 +465,14 @@ export function boot() {
         world.spawnFloater({ x:pl.x, y:pl.y - 40, text:'⚡ 과부하!', color: rs.keystoneColor || '#ffd166', life:44, max:44, vy:-0.5 });
       }
     }
+    // 각인: 서리 파동(주기 감속) — 스택마다 주기 단축
+    const nFrostSig = rs.sigils?.frost_pulse || 0;
+    if (nFrostSig) {
+      if ((rs._sigFrostCd = (rs._sigFrostCd || 0) - 1) <= 0) { rs._sigFrostCd = Math.max(120, 240 - 30 * (nFrostSig - 1));
+        for (const e of world.enemies) if (e.alive && (e.x - pl.x) ** 2 + (e.y - pl.y) ** 2 <= 170 * 170) e._slow = 100;
+        world.spawnParticle({ x:pl.x, y:pl.y, r:16, rMax:170, life:18, color:'#8bd8ff', shock:true });
+      }
+    }
     if (world.player.hurtTimer > 0 && --world.player.hurtTimer === 0) world.player.hurtStreak = 0; // 연속 피격 스트릭 소멸
     if (comboTimer>0) comboTimer--; else combo=0;
     if (levelupDelay>0) levelupDelay--;
@@ -451,6 +497,7 @@ export function boot() {
           if (p.orbit) { if ((e._orbCd||0)>0) continue; damageEnemy(e, p.dmg, p.element); e._orbCd = 12; }
           else { damageEnemy(e, p.dmg, p.element);
             if (rs.keystone === 'detonate') detonateAt(e.x, e.y, p.dmg, p.element, e);   // 폭심: 명중 시 소폭발
+            if (!e.alive && rs.sigils?.splinter && !p._noSplinter) spawnSplinters(e.x, e.y, p);   // 분열탄: 처치 시 파편
             if (p.pierce>0) p.pierce--; else { p.alive=false; break; } }
         }
       }
@@ -498,12 +545,27 @@ export function boot() {
       // 레벨 20 돌파: 테크트리 선택(그 레벨의 3택 대신 운명의 갈림길)
       if (rs.level >= TECH_UNLOCK_LEVEL && !rs.techTree && getTrees(rs.charId).length) openTechChoice();
       else openLevelUp();
+    } else if (slowmo <= 0 && levelupDelay <= 0 && !overlay
+               && sigilsEligible(rs.level) > (rs.sigilsGranted || 0)) {
+      openSigilChoice();   // 각인 마일스톤(40레벨부터 +5마다): 레벨 선택을 모두 소진한 뒤 각인 3택1
     }
     if (world.player.hp <= 0) { if (rs.oaths > 0) reviveWithOath(); else gameOver(); }
   }
 
   function openLevelUp(){ audio.sfx('levelup'); overlay = { type:'levelup', choices: rollChoices(rs, rng, 3) }; }
   function openTechChoice(){ audio.sfx('levelup'); overlay = { type:'tech', choices: getTrees(rs.charId) }; }
+  function openSigilChoice(){ audio.sfx('levelup'); overlay = { type:'sigil', choices: rollSigils(rs, rng, 3) }; }
+  // 각인 선택: 스택 +1 → 스탯 재계산(mods형 반영) + 부여 횟수 증가(마일스톤 소진).
+  function selectSigil(i){
+    if (overlay?.type !== 'sigil' || !overlay.choices[i]) return;
+    audio.sfx('upgrade'); goldFlash = 16;
+    const s = overlay.choices[i];
+    applySigil(rs, s.id);
+    rs.sigilsGranted = (rs.sigilsGranted || 0) + 1;
+    rs.stats = computeStats({ charId: rs.charId, metaUpgrades: rs.metaUpgrades, runMods: allRunMods(rs) });
+    world.spawnFloater({ x:world.player.x, y:world.player.y-40, text:`⚡ 각인: ${s.name}`, color:s.color, life:82, max:82, vy:-0.3, crit:true });
+    overlay = null;
+  }
   // 개방 대기 노드 처리: 단일 노드는 자동 적용, 분기 노드는 2택 오버레이를 연다.
   function processTechDues(){
     if (overlay) return;
@@ -867,6 +929,7 @@ export function boot() {
     if (overlay?.type==='levelup') drawLevelUp();
     if (overlay?.type==='tech') drawTechChoice();
     if (overlay?.type==='technode') drawTechNode();
+    if (overlay?.type==='sigil') drawSigilChoice();
     if (scene==='gameover') { R.text(ctx,'GAME OVER',canvas.width/2,canvas.height/2-20,{size:44,align:'center',color:'#ff4d9d'});
       R.text(ctx,'클릭하면 다시 시작',canvas.width/2,canvas.height/2+24,{size:16,align:'center'}); }
   }
@@ -910,6 +973,21 @@ export function boot() {
       R.text(ctx, `${i+1}`, R0.x+R0.w-18, R0.y+24, { size:14, align:'center', color:'#7fa', weight:'800' });
     });
   }
+  // 각인 각성 카드(3택1). 보유 스택이 있으면 "(보유 N)" 표기 → 중복 강화 인지.
+  function drawSigilChoice(){
+    ctx.save(); ctx.fillStyle='rgba(6,4,14,0.80)'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore();
+    ctx.save(); ctx.shadowBlur=22; ctx.shadowColor='#c98bff'; ctx.fillStyle='#e0b0ff';
+    ctx.font='800 30px system-ui'; ctx.textAlign='center'; ctx.fillText('⚡ 각인 각성', canvas.width/2, 112); ctx.restore();
+    R.text(ctx,'무한의 힘을 새겨라 — 1 / 2 / 3 키 또는 클릭 (같은 각인은 스택 강화)',canvas.width/2,142,{size:13,align:'center',color:'#c9b0e6'});
+    overlay.choices.forEach((s,i)=>{
+      const R0=choiceRect(i); const have = rs.sigils?.[s.id] || 0;
+      ctx.save(); ctx.fillStyle='rgba(24,16,40,0.94)'; ctx.strokeStyle=s.color; ctx.lineWidth=2;
+      roundRect(ctx, R0.x, R0.y, R0.w, R0.h, 10); ctx.fill(); ctx.stroke(); ctx.restore();
+      R.text(ctx, s.name + (have?`  (보유 ${have})`:''), R0.x+18, R0.y+26, { size:17, align:'left', color:s.color, weight:'800' });
+      R.text(ctx, s.desc, R0.x+18, R0.y+50, { size:12.5, align:'left', color:'#d6c6ec' });
+      R.text(ctx, `${i+1}`, R0.x+R0.w-18, R0.y+24, { size:14, align:'center', color:'#c9a3ff', weight:'800' });
+    });
+  }
   function drawLevelUp(){
     ctx.save(); ctx.fillStyle='rgba(4,6,14,0.76)'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore();
     ctx.save(); ctx.shadowBlur=22; ctx.shadowColor='#ffd166'; ctx.fillStyle='#ffe14d';
@@ -929,41 +1007,53 @@ export function boot() {
   addEventListener('keydown', e => {
     if (overlay?.type==='tech') { const i='123'.indexOf(e.key); if (i>=0) selectTech(i); return; }
     if (overlay?.type==='technode') { const i='123'.indexOf(e.key); if (i>=0) selectTechNode(i); return; }
+    if (overlay?.type==='sigil') { const i='123'.indexOf(e.key); if (i>=0) selectSigil(i); return; }
     if (overlay?.type==='levelup') { const i='123'.indexOf(e.key); if (i>=0) selectChoice(i); return; }
     if (e.key.toLowerCase()==='o') { autoPotion = !autoPotion; meta.settings.autoPotion = autoPotion; saveMeta(meta); }
   });
   canvas.addEventListener('pointerdown', (e) => {
     if (scene==='gameover') { toTitle(); return; }
-    if (overlay?.type==='levelup' || overlay?.type==='tech' || overlay?.type==='technode') {
+    if (overlay?.type==='levelup' || overlay?.type==='tech' || overlay?.type==='technode' || overlay?.type==='sigil') {
       const type = overlay.type;
       const rct = canvas.getBoundingClientRect();
       const px=(e.clientX-rct.left)*canvas.width/rct.width, py=(e.clientY-rct.top)*canvas.height/rct.height;
       for (let i=0;i<overlay.choices.length;i++){ const R0 = type==='tech'?techRect(i):choiceRect(i);
         if (px>=R0.x && px<=R0.x+R0.w && py>=R0.y && py<=R0.y+R0.h) {
-          if (type==='tech') selectTech(i); else if (type==='technode') selectTechNode(i); else selectChoice(i);
+          if (type==='tech') selectTech(i); else if (type==='technode') selectTechNode(i);
+          else if (type==='sigil') selectSigil(i); else selectChoice(i);
           break; } }
     }
   });
 
   // [임시 테스트도구] devtest 연동: 즉시 15레벨 + 15레벨 수준 스킬·패시브 부여(마법 몹 등 후반 테스트).
   //  완료 후 이 블록과 js/devtest.js, play.html의 스크립트 한 줄을 삭제.
-  if (typeof window !== 'undefined') window.__neonTest = {
-    jumpTo15() {
+  if (typeof window !== 'undefined') {
+    function jumpToLevel(n) {
       if (scene !== 'run' || !rs) return;
-      rs.level = 15;
-      rs.timeMs = Math.max(rs.timeMs, 8 * 60000);   // 시간도 당겨 몹 스케일(15레벨 스폰=마법 몹) 반영
+      rs.level = n;
+      rs.timeMs = Math.max(rs.timeMs, (n * 0.5) * 60000);   // 시간도 당겨 몹 스케일 반영(대략 레벨×0.5분)
       rs.stage = Math.max(1, (rs.timeMs / 30000 | 0) + 1);
       const c = getCharacter(rs.charId);
-      rs.ownedSkills = { [c.startingSkill]: 5 };     // 시작 스킬 5레벨
-      for (const id of (c.skillPool || []).slice(0, 4)) {   // 직업 풀 앞 4개를 4레벨로
-        const s = getSkill(id); if (s && !EVOLUTIONS.has(id)) rs.ownedSkills[id] = Math.min(4, s.maxLevel);
+      const skLv = Math.min(8, Math.max(4, Math.floor(n / 3)));   // 레벨에 맞춘 스킬 레벨
+      rs.ownedSkills = { [c.startingSkill]: skLv };
+      for (const id of (c.skillPool || []).slice(0, 4)) {
+        const s = getSkill(id); if (s && !EVOLUTIONS.has(id)) rs.ownedSkills[id] = Math.min(skLv, s.maxLevel);
       }
-      rs.passives = { power: 3, haste: 3, swift: 2 };       // 15레벨 수준 패시브
+      rs.passives = { power: 3, haste: 3, swift: 2 };
+      // 20레벨+: 첫 계열로 전직 + 도달한 테크 노드 자동 개방(키스톤 부여)
+      if (n >= TECH_UNLOCK_LEVEL && !rs.techTree) {
+        const trees = getTrees(rs.charId);
+        if (trees.length) { chooseTree(rs, trees[0]); while (nextDueNode(rs)) applyNode(rs, 0); }
+      }
+      // 40레벨+: 사용 가능한 각인 수만큼 무작위 부여
+      const elig = sigilsEligible(n);
+      while ((rs.sigilsGranted || 0) < elig) { const [s] = rollSigils(rs, rng, 1); if (s) applySigil(rs, s.id); rs.sigilsGranted = (rs.sigilsGranted || 0) + 1; }
       rs.stats = computeStats({ charId: rs.charId, metaUpgrades: rs.metaUpgrades, runMods: allRunMods(rs) });
       cleanupSkillState();
-      world.spawnFloater({ x: world.player.x, y: world.player.y - 34, text: '⚡ TEST: 15레벨', color: '#ff8b8b', life: 60, max: 60, vy: -0.5, crit: true });
-    },
-  };
+      world.spawnFloater({ x: world.player.x, y: world.player.y - 34, text: `⚡ TEST: ${n}레벨`, color: '#ff8b8b', life: 60, max: 60, vy: -0.5, crit: true });
+    }
+    window.__neonTest = { jumpToLevel, jumpTo15: () => jumpToLevel(15), jumpTo20: () => jumpToLevel(20), jumpTo40: () => jumpToLevel(40) };
+  }
 
   // 씬 내비게이션
   function toTitle(){ scene='title'; clearScreens(); showTitle({ meta, onPlay:toLoadout, onShop:toShop, onSettings:toSettings }); }
